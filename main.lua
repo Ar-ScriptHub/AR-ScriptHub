@@ -207,6 +207,13 @@ MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
+-- BARU: Kasih ruang napas atas-bawah-kiri-kanan agar border ga kepotong tepi main GUI!
+local framePadding = Instance.new("UIPadding", MainContentFrame)
+framePadding.PaddingTop = UDim.new(0, 4)
+framePadding.PaddingBottom = UDim.new(0, 4)
+framePadding.PaddingLeft = UDim.new(0, 3)
+framePadding.PaddingRight = UDim.new(0, 3)
+
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
