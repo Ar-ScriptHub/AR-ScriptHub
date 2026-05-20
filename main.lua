@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - FULLY AUTOMATIC SIZING & DEPLOYMENT READY (v5.6)
+-- AR SCRIPT HUB - FULLY AUTOMATIC SIZING & LOAD SCREEN INTEGRATED (v5.6)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -18,7 +18,6 @@ MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 999999999 
 
--- FIX: Memperbaiki struktur tabel Theme yang patah/salah baris
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
     BgTrans = 0.15,                          
@@ -30,6 +29,61 @@ local Theme = {
     TextMain = Color3.fromRGB(245, 245, 255),
     TextMuted = Color3.fromRGB(140, 145, 175)
 }
+
+-- ====================================================================
+-- ADDISI BARU: LOADING SCREEN SYSTEM
+-- ====================================================================
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Parent = MainGui
+LoadingFrame.Size = UDim2.new(0, 320, 0, 180)
+LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90)
+LoadingFrame.BackgroundColor3 = Theme.Bg
+LoadingFrame.BackgroundTransparency = 0.05
+Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+local loadStroke = Instance.new("UIStroke", LoadingFrame)
+loadStroke.Color = Theme.Stroke
+loadStroke.Thickness = 1.5
+
+local LoadTitle = Instance.new("TextLabel", LoadingFrame)
+LoadTitle.Size = UDim2.new(1, 0, 0, 40)
+LoadTitle.Position = UDim2.new(0, 0, 0, 25)
+LoadTitle.Text = "✨ AR SCRIPT HUB"
+LoadTitle.Font = Enum.Font.GothamBold
+LoadTitle.TextColor3 = Theme.TextMain
+LoadTitle.TextSize = 18
+LoadTitle.BackgroundTransparency = 1
+
+local LoadStatus = Instance.new("TextLabel", LoadingFrame)
+LoadStatus.Size = UDim2.new(1, 0, 0, 20)
+LoadStatus.Position = UDim2.new(0, 0, 0, 65)
+LoadStatus.Text = "Menghubungkan ke server..."
+LoadStatus.Font = Enum.Font.GothamMedium
+LoadStatus.TextColor3 = Theme.TextMuted
+LoadStatus.TextSize = 11
+LoadStatus.BackgroundTransparency = 1
+
+local LoadProgressText = Instance.new("TextLabel", LoadingFrame)
+LoadProgressText.Size = UDim2.new(1, 0, 0, 20)
+LoadProgressText.Position = UDim2.new(0, 0, 0, 90)
+LoadProgressText.Text = "0%"
+LoadProgressText.Font = Enum.Font.GothamBold
+LoadProgressText.TextColor3 = Theme.AccentPurple
+LoadProgressText.TextSize = 14
+LoadProgressText.BackgroundTransparency = 1
+
+local LoadTrack = Instance.new("Frame", LoadingFrame)
+LoadTrack.Size = UDim2.new(1, -60, 0, 6)
+LoadTrack.Position = UDim2.new(0, 30, 0, 125)
+LoadTrack.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", LoadTrack).CornerRadius = UDim.new(0, 3)
+local ltStroke = Instance.new("UIStroke", LoadTrack)
+ltStroke.Color = Theme.Stroke
+
+local LoadFill = Instance.new("Frame", LoadTrack)
+LoadFill.Size = UDim2.new(0, 0, 1, 0)
+LoadFill.BackgroundColor3 = Theme.Accent
+Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
 
 -- DRAGGABLE ENGINE (Sistem Geser Menu Utama)
 local function makeDraggable(frame, dragHandle)
@@ -70,6 +124,7 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "AR"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 16
+ToggleButton.Visible = false -- Disembunyikan dulu saat loading
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
 local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
@@ -83,6 +138,7 @@ MainFrame.Size = UDim2.new(0, 560, 0, 420)
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -210)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
+MainFrame.Visible = false -- Disembunyikan dulu saat loading
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
@@ -139,7 +195,6 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- FIX: Mengubah Frame menjadi ScrollingFrame agar menu bisa digulir ke bawah jika penuh
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
@@ -155,7 +210,7 @@ local menuContainers = {}
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 0, 0) -- Mulai dari 0, dihitung dinamis
+    page.Size = UDim2.new(1, 0, 0, 0) 
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
@@ -173,7 +228,7 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
-    MainContentFrame.CanvasPosition = Vector2.new(0, 0) -- Kembalikan scroll ke atas saat pindah tab
+    MainContentFrame.CanvasPosition = Vector2.new(0, 0)
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
@@ -232,7 +287,6 @@ destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 -- ====================================================================
 -- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN)
 -- ====================================================================
--- FIX: Gunakan UIListLayout horizontal induk agar sinkronisasi AutomaticSize berjalan rapi
 local pageLayout = Instance.new("UIListLayout", playerPage)
 pageLayout.FillDirection = Enum.FillDirection.Horizontal
 pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -255,7 +309,6 @@ RightColumn.LayoutOrder = 2
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Padding = UDim.new(0, 12) rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- FIX: Menghapus argumen sizeY manual, Card akan memanjang otomatis sesuai isi di dalamnya
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
     card.Size = UDim2.new(1, 0, 0, 0) 
@@ -413,22 +466,71 @@ end
 -- ====================================================================
 -- PERAKITAN CARD AUTOMATIC
 -- ====================================================================
-
--- 1. CARD FLY (Kolom Kiri - Atas)
 local flyCard = createCard(LeftColumn, "Fly", 1)
 addToggle(flyCard, "Toggle Fly Mode", 1)
 addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
 addToggle(flyCard, "Noclip Activator", 3)
 
--- 2. CARD WALKSPEED (Kolom Kiri - Bawah)
 local walkCard = createCard(LeftColumn, "Walkspeed", 2)
 addToggle(walkCard, "Toggle Speed Bypass", 1)
 addSliderWithInput(walkCard, "Velocity Speed Magnitude", 16, 250, 16, 2)
 
--- 3. CARD JUMP (Kolom Kanan - Atas)
 local jumpCard = createCard(RightColumn, "Jump", 1)
 addToggle(jumpCard, "Toggle Jump Bypass", 1)
 addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump Engine", 3)
 
-print("[AR FRAMEWORK]: Script Deployed and Executed Successfully!")
+-- ====================================================================
+-- ADDISI BARU: LOGIKA ANIMASI INTRO LOADING SCREEN
+-- ====================================================================
+task.spawn(function()
+    local statusMessages = {
+        {time = 0.5, msg = "Memeriksa lisensi skrip..."},
+        {time = 1.2, msg = "Memuat modul UI List & Grid..."},
+        {time = 2.0, msg = "Menyelaraskan konfigurasi framework..."},
+        {time = 2.7, msg = "Sukses terhubung! Membuka panel..."}
+    }
+
+    for i = 1, 100 do
+        local progress = i / 100
+        -- Animasi bar pengisi menggunakan Tween agar mulus
+        TweenService:Create(LoadFill, TweenInfo.new(0.03, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
+        LoadProgressText.Text = tostring(i) .. "%"
+        
+        -- Perbarui teks status berdasarkan progress waktu
+        for _, stage in ipairs(statusMessages) do
+            if i == math.round(stage.time * 30) then -- Estimasi kecocokan index langkah
+                LoadStatus.Text = stage.msg
+            end
+        end
+        task.wait(0.03) -- Durasi total loading sekitar ~3 detik
+    end
+    
+    LoadStatus.Text = "Selesai!"
+    task.wait(0.4)
+    
+    -- Efek Fade-Out untuk Loading Screen
+    local fadeTween = TweenService:Create(LoadingFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+    TweenService:Create(LoadTitle, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(LoadStatus, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(LoadProgressText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(LoadTrack, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(LoadFill, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(loadStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    TweenService:Create(ltStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    
+    fadeTween:Play()
+    fadeTween.Completed:Connect(function()
+        LoadingFrame:Destroy() -- Hapus dari memori setelah selesai
+        
+        -- Memunculkan Menu Utama & Tombol Pemicu Layar
+        MainFrame.Visible = true
+        ToggleButton.Visible = true
+        
+        -- Efek transparansi muncul perlahan (Pop-In Effect)
+        MainFrame.Size = UDim2.new(0, 520, 0, 380)
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 420)}):Play()
+        
+        print("[AR FRAMEWORK]: Main Panel Deployed Successfully After Clean Load!")
+    end)
+end)
