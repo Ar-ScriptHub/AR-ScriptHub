@@ -298,11 +298,14 @@ local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
 -- KUNCI POSISI SIMETRIS ABSOLUT (262px Kiri, Sekat 5px, 262px Kanan Shifted)
+-- ====================================================================
+-- KUNCI POSISI BARU: CARD KECIL 5PX & MERAPAT PUSAT KIRI
+-- ====================================================================
 local function createLeftColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    -- KUNCI kiri diam di koordinat X=0, lebar 262px
-    col.Size = UDim2.new(0, 262, 0, 0)
+    -- Kolom kiri dikecilkan jadi 257px, posisi tetap nempel kiri (X = 0)
+    col.Size = UDim2.new(0, 257, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
     col.Position = UDim2.new(0, 0, 0, 0) 
     col.BackgroundTransparency = 1
@@ -316,10 +319,10 @@ end
 local function createShiftedRightColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    -- KUNCI: Ukuran diam (262px), Posisi digeser ke koordinat X=267 (Kiri + 5px Sekat)
-    col.Size = UDim2.new(0, 262, 0, 0)
+    -- Kolom kanan dikecilkan jadi 257px, koordinat X digeser ke kiri jadi 262
+    col.Size = UDim2.new(0, 257, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 267, 0, 0) 
+    col.Position = UDim2.new(0, 262, 0, 0) 
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
@@ -333,7 +336,6 @@ local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
 local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
-
 -- FUNGSI KREASI CARD AUTOMATIC SIZE
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
