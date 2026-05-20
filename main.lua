@@ -1,11 +1,15 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.6 FULL DEPLOY (ADVANCED PRO POP-UP & MINIMIZE)
+-- AR SCRIPT HUB - v6.7 FULL PRODUCTION DEPLOY (SERVER MODAL UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 -- Bersihkan GUI Lama
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
@@ -44,7 +48,7 @@ PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70)
 PopupFrame.BackgroundColor3 = Theme.Bg
 PopupFrame.BackgroundTransparency = 0.05
 PopupFrame.Visible = false
-PopupFrame.ZIndex = 1000 -- Memastikan paling atas
+PopupFrame.ZIndex = 1000 
 Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
 local popStroke = Instance.new("UIStroke", PopupFrame)
 popStroke.Color = Theme.AccentPurple
@@ -91,7 +95,6 @@ local function showConfirmation(message, onYes)
     PopupText.Text = message
     currentCallback = onYes
     PopupFrame.Visible = true
-    -- Animasi Pop-up Muncul
     PopupFrame.Size = UDim2.new(0, 250, 0, 120)
     TweenService:Create(PopupFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
 end
@@ -104,7 +107,6 @@ end)
 PopupNo.MouseButton1Click:Connect(function()
     PopupFrame.Visible = false
 end)
-
 
 -- ====================================================================
 -- LOADING SCREEN SYSTEM
@@ -187,7 +189,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- FLOATING TOGGLE BUTTON (MUNCUL PAS MINIMIZE)
+-- FLOATING TOGGLE BUTTON
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
@@ -225,7 +227,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.6</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.7</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -235,7 +237,6 @@ Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
--- REVISI: TOMBOL CLOSE (X) DENGAN POP-UP PERINGATAN KELUAR PERMANEN
 local CloseBtn = Instance.new("TextButton", Header)
 CloseBtn.Text = "×"
 CloseBtn.Size = UDim2.new(0, 35, 1, 0)
@@ -245,7 +246,6 @@ CloseBtn.TextColor3 = Theme.DeleteRed
 CloseBtn.TextSize = 24
 CloseBtn.BackgroundTransparency = 1
 
--- REVISI: TOMBOL MINIMIZE (-) UTK SEMBUNYIIN PANEL KE TOMBOL AR
 local MinimizeBtn = Instance.new("TextButton", Header)
 MinimizeBtn.Text = "−"
 MinimizeBtn.Size = UDim2.new(0, 35, 1, 0)
@@ -257,7 +257,6 @@ MinimizeBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
 
--- Logika Tombol Navigasi Header
 ToggleButton.MouseButton1Click:Connect(function() 
     MainFrame.Visible = true 
     ToggleButton.Visible = false
@@ -273,7 +272,6 @@ CloseBtn.MouseButton1Click:Connect(function()
         MainGui:Destroy()
     end)
 end)
-
 
 -- TOP BAR NAVIGATION MENU
 local TopBarNav = Instance.new("Frame", MainFrame)
@@ -370,20 +368,7 @@ addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
-local function buildPlaceholder(pageFrame, titleText)
-    local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(0, 518, 0, 150) 
-    card.BackgroundColor3 = Theme.CardBg
-    card.BackgroundTransparency = Theme.CardTrans
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-    Instance.new("UIStroke", card).Color = Theme.Stroke
-    local txt = Instance.new("TextLabel", card)
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.Text = "<b>" .. titleText .. " MENU FRAMEWORK</b>\n\nArea kosong siap diisi komponen kustom."
-    txt.RichText = true txt.Font = Enum.Font.GothamMedium txt.TextColor3 = Theme.TextMuted txt.TextSize = 12 txt.BackgroundTransparency = 1 txt.TextYAlignment = Enum.TextYAlignment.Center
-end
-buildPlaceholder(serverPage, "SERVER")
-
+-- SETTING PAGE DISSOLVE
 local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 518, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
@@ -407,7 +392,7 @@ local function createShiftedRightColumn(parentName, columnName)
     col.Name = columnName
     col.Size = UDim2.new(0, 255, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 263, 0, 0) -- 255 + 8px sekat tengah murni
+    col.Position = UDim2.new(0, 263, 0, 0) 
     col.BackgroundTransparency = 1
     local layout = Instance.new("UIListLayout", col)
     layout.Padding = UDim.new(0, 12)
@@ -536,12 +521,10 @@ local espSettingsCard = createCard(espRightColumn, "ESP Settings", 1)
 addToggle(espSettingsCard, "Team Check", 1) addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- PERAKITAN TAB TELEPORTATION (v6.6 - DYNAMIC MODAL CONFIRMATION ACTIVE)
+-- PERAKITAN TAB TELEPORTATION
 -- ====================================================================
-local HttpService = game:GetService("HttpService")
 local FILE_NAME = "AR_Hub_Waypoints.json"
 local CurrentPlaceId = tostring(game.PlaceId)
-
 local AllWaypoints = {}
 
 local function loadWaypointsFromStorage()
@@ -677,7 +660,6 @@ function refreshLandmarksUI()
         btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
         btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
         
-        -- REVISI: TOMBOL DELETE DI-LINK KE POP-UP DI TENGAH PANEL SCREEN
         local delBtn = Instance.new("TextButton", rowFrame)
         delBtn.Size = UDim2.new(0, 26, 1, 0)
         delBtn.Position = UDim2.new(1, -26, 0, 0)
@@ -690,7 +672,6 @@ function refreshLandmarksUI()
         local dStr = Instance.new("UIStroke", delBtn) dStr.Color = Theme.Stroke
         
         delBtn.MouseButton1Click:Connect(function()
-            -- Munculkan pop-up modal di tengah screen
             showConfirmation("Apakah kamu yakin ingin menghapus\nwaypoint \"" .. wpName .. "\"?", function()
                 deleteWaypoint(wpName)
             end)
@@ -734,13 +715,8 @@ end)
 refreshLandmarksUI()
 
 -- ====================================================================
--- PERAKITAN KONTEN TAB SERVER (v6.7 - SERVER ENGINE & UTILITIES)
+-- PERAKITAN TAB SERVER (v6.7 - SERVER ENGINE & UTILITIES)
 -- ====================================================================
-local Stats = game:GetService("Stats")
-local TeleportService = game:GetService("TeleportService")
-local RunService = game:GetService("RunService")
-
--- Registrasi Kolom Kiri & Kanan Khusus Tab Server (Lebar 255px, Sekat 8px)
 local serverLeftColumn = Instance.new("Frame", menuContainers["Server"])
 serverLeftColumn.Name = "ServerLeftColumn"
 serverLeftColumn.Size = UDim2.new(0, 255, 0, 0)
@@ -754,14 +730,13 @@ local serverRightColumn = Instance.new("Frame", menuContainers["Server"])
 serverRightColumn.Name = "ServerRightColumn"
 serverRightColumn.Size = UDim2.new(0, 255, 0, 0)
 serverRightColumn.AutomaticSize = Enum.AutomaticSize.Y
-serverRightColumn.Position = UDim2.new(0, 263, 0, 0) -- 255 + 8px sekat tengah murni
+serverRightColumn.Position = UDim2.new(0, 263, 0, 0) 
 serverRightColumn.BackgroundTransparency = 1
 local sLayoutR = Instance.new("UIListLayout", serverRightColumn)
 sLayoutR.Padding = UDim.new(0, 12)
 sLayoutR.SortOrder = Enum.SortOrder.LayoutOrder
 
-
--- CARD 1 (KIRI): SERVER STATS (REAL-TIME UPDATE)
+-- SERVER STATS CARD
 local statsCard = createCard(serverLeftColumn, "Server Stats", 1)
 
 local function createStatLabel(parent, labelText, order)
@@ -781,22 +756,18 @@ local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
 local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 
--- Loop Nilai Stats Secara Real-time
 task.spawn(function()
     while task.wait(1) do
         if not MainGui or not MainGui.Parent then break end
         if menuContainers["Server"].Visible then
-            -- Hitung FPS
             local fps = math.round(1 / RunService.RenderStepped:Wait())
             lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
             lblFps.RichText = true
             
-            -- Hitung Ping murni dari Network Stats
             local ping = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
             lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>"
             lblPing.RichText = true
             
-            -- Hitung Umur Server (Time)
             local sTime = math.round(workspace.DistributedGameTime)
             local hours = string.format("%02d", math.floor(sTime / 3600))
             local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
@@ -807,8 +778,7 @@ task.spawn(function()
     end
 end)
 
-
--- CARD 2 (KIRI): SERVER NAVIGATION
+-- SERVER NAVIGATION CARD
 local navCard = createCard(serverLeftColumn, "Server Navigation", 2)
 
 local function createServerButton(parent, text, color, onClick, order)
@@ -821,27 +791,22 @@ local function createServerButton(parent, text, color, onClick, order)
     btn.TextSize = 11
     btn.LayoutOrder = order
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    local bStr = Instance.new("UIStroke", btn)
-    bStr.Color = Theme.Stroke
-    
+    local bStr = Instance.new("UIStroke", btn) bStr.Color = Theme.Stroke
     btn.MouseButton1Click:Connect(onClick)
     return btn
 end
 
--- Fungsi Rejoin Server yang Sama
 createServerButton(navCard, "🔄 Rejoin Current Server", Color3.fromRGB(30, 35, 60), function()
     showConfirmation("Apakah kamu yakin ingin rejoin\nke server saat ini?", function()
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
     end)
 end, 1)
 
--- Fungsi Server Hop (Mencari Server Lain yang Publik)
 createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 60), function()
     showConfirmation("Cari dan pindah ke server lain?", function()
         local success, servers = pcall(function()
             return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
         end)
-        
         if success and servers and servers.data then
             for _, server in pairs(servers.data) do
                 if server.playing < server.maxPlayers and server.id ~= game.JobId then
@@ -853,11 +818,9 @@ createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 6
     end)
 end, 2)
 
-
--- CARD 3 (KANAN): OPTIMIZATION / PERFORMANCE BOOST
+-- OPTIMIZATION CARD
 local optiCard = createCard(serverRightColumn, "Optimization", 1)
 
--- Fitur Booster Pengurang Lag Game (Menghapus Objek Visual Sampah / Efek)
 createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(25, 45, 35), function()
     local count = 0
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -866,7 +829,6 @@ createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(2
             count = count + 1
         end
     end
-    -- Ubah teks sementara untuk memberi info sukses
     showConfirmation("Pembersihan selesai!\nBerhasil menghapus " .. tostring(count) .. " objek visual.", function() end)
 end, 1)
 
@@ -910,9 +872,9 @@ task.spawn(function()
     fadeTween.Completed:Connect(function()
         LoadingFrame:Destroy() 
         MainFrame.Visible = true
-        ToggleButton.Visible = false -- Sesuai logika awal, panel utama langsung buka, tombol minimize sembunyi
+        ToggleButton.Visible = false
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
-        print("[AR FRAMEWORK v6.6]: Full Advanced Pop-Up Confirmation UI deployed successfully.")
+        print("[AR FRAMEWORK v6.7]: Full Engine & Server Utilities deployed successfully.")
     end)
 end)
