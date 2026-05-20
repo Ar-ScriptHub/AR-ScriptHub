@@ -405,7 +405,7 @@ loadStroke.Thickness = 1.5
 local LoadTitle = Instance.new("TextLabel", LoadingFrame)
 LoadTitle.Size = UDim2.new(1, 0, 0, 40)
 LoadTitle.Position = UDim2.new(0, 0, 0, 25)
-LoadTitle.Text = "✨ AR SCRIPT HUB"
+LoadTitle.Text = "AR SCRIPT HUB"
 LoadTitle.Font = Enum.Font.GothamBold
 LoadTitle.TextColor3 = Theme.TextMain
 LoadTitle.TextSize = 18
@@ -506,7 +506,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.8</font>"
+Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.0</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -720,30 +720,30 @@ addSliderWithInput(visualSetCard, "UI Background Opacity", 0, 90, 15, 1, nil, fu
 end)
 
 local coreActionCard = createCard(SetRightColumn, "Core Actions", 1)
-createServerButton(coreActionCard, "🔴 Destroy System UI", Theme.DeleteBg, function()
-    showConfirmation("Apakah kamu ingin menghancurkan UI?", function() MainGui:Destroy() end)
+createServerButton(coreActionCard, "🔴 Close System UI", Theme.DeleteBg, function()
+    showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
 end, 1)
 
 -- ====================================================================
 -- RENDERING PLAYER PAGE
 -- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly Control", 1)
-addToggle(flyCard, "Fly Engine Active", 1, "FlyMode", handleFlyEngine) 
-addSliderWithInput(flyCard, "Fly Speed Multiplier", 1, 20, 5, 2, "FlySpeed") 
-addToggle(flyCard, "Noclip Enabled", 3, "Noclip")
+addToggle(flyCard, "Fly Mode", 1, "FlyMode", handleFlyEngine) 
+addSliderWithInput(flyCard, "Fly Speed Costumization", 1, 20, 5, 2, "FlySpeed") 
+addToggle(flyCard, "Noclip", 3, "Noclip")
 
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
-addToggle(walkCard, "Super Speed Active", 1, "SuperSpeed", enforceHumanoidProperties) 
-addSliderWithInput(walkCard, "Speed Value Configuration", 16, 250, 16, 2, "SuperSpeedVal", enforceHumanoidProperties)
+addToggle(walkCard, "Super Speed", 1, "SuperSpeed", enforceHumanoidProperties) 
+addSliderWithInput(walkCard, "Super Speed Costumization", 16, 250, 16, 2, "SuperSpeedVal", enforceHumanoidProperties)
 
 local jumpCard = createCard(RightColumn, "Jump Modification", 1)
-addToggle(jumpCard, "Super Jump Active", 1, "SuperJump", enforceHumanoidProperties) 
+addToggle(jumpCard, "Super Jump", 1, "SuperJump", enforceHumanoidProperties) 
 addSliderWithInput(jumpCard, "Jump Power Customization", 50, 500, 50, 2, "SuperJumpVal", enforceHumanoidProperties) 
-addToggle(jumpCard, "Infinite Jump Engine", 3, "InfiniteJump")
+addToggle(jumpCard, "Infinite Jump", 3, "InfiniteJump")
 
 local physicsCard = createCard(LeftColumn, "Physics Modifier", 3)
-addSliderWithInput(physicsCard, "Global Gravity Value", 0, 196, 196, 1, "Gravity", function(val) workspace.Gravity = val end) 
-addSliderWithInput(physicsCard, "Humanoid HipHeight Mod", 0, 20, 2, 2, "HipHeight", function(val) if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val end end)
+addSliderWithInput(physicsCard, "Global Gravity ", 0, 196, 196, 1, "Gravity", function(val) workspace.Gravity = val end) 
+addSliderWithInput(physicsCard, "HipHeight Controller", 0, 20, 2, 2, "HipHeight", function(val) if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val end end)
 
 local utilCard = createCard(RightColumn, "Character Utilities", 2)
 addToggle(utilCard, "Anti Ragdoll / Fall State", 1, "AntiRagdoll") 
@@ -756,7 +756,7 @@ local playerEspCard = createCard(espLeftColumn, "Visual ESP Engine", 1)
 addToggle(playerEspCard, "Enable ESP Master", 1, "EnableESP") 
 addToggle(playerEspCard, "Show Outer 3D Boxes", 2, "ShowBoxes") 
 addToggle(playerEspCard, "Show Text Identifiers", 3, "ShowNames") 
-addToggle(playerEspCard, "Show Inner Glow (Solid Chams)", 4, "ShowGlow")
+addToggle(playerEspCard, "Show Chams", 4, "ShowGlow")
 
 local espSettingsCard = createCard(espRightColumn, "ESP Configuration", 1)
 addToggle(espSettingsCard, "Enforce Team Check", 1, "TeamCheck") 
@@ -909,9 +909,9 @@ addToggle(optiCard, "Anti-Lag Core Engine", 3, "AntiLag", applyGraphicsBoost)
 -- ====================================================================
 task.spawn(function()
     local stages = {
-        {t = 15, m = "Menyelaraskan Modul Terbang Standalone..."},
-        {t = 45, m = "Mengaktifkan Engine Infinite Jump..."},
-        {t = 75, m = "Menyuntikkan Chams Glow Terang ke ESP..."},
+        {t = 15, m = "Menyelaraskan Modul Fly..."},
+        {t = 45, m = "Mengaktifkan Infinite Jump..."},
+        {t = 75, m = "Menyuntikkan Chams ESP..."},
         {t = 95, m = "Menata Frame Order ke Lapisan Teratas..."}
     }
     
