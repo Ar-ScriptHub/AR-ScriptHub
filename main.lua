@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - QUANTUM ADMIN HUB (V5.2 - WORLD & SERVER UPDATE)
+-- AR SCRIPT HUB - QUANTUM ADMIN HUB (V5.3 - AESTHETIC & TELEPORT UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -21,14 +21,17 @@ MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 999999999
 
--- THEME COLOR PALETTE (PREMIUM DARK CYBERPUNK)
+-- THEME COLOR PALETTE (SOFT SEMI-TRANSPARENT BLUE & PURPLE)
 local Theme = {
-    Bg = Color3.fromRGB(11, 14, 22),       
-    CardBg = Color3.fromRGB(18, 22, 32),   
-    Stroke = Color3.fromRGB(28, 36, 50),   
-    Accent = Color3.fromRGB(0, 230, 160),  
-    TextMain = Color3.fromRGB(240, 245, 255),
-    TextMuted = Color3.fromRGB(110, 125, 145)
+    Bg = Color3.fromRGB(15, 12, 28),         -- Dark Slate dengan Tint Ungu
+    BgTrans = 0.25,                          -- Transparansi Acrylic Soft (75% Opaque)
+    CardBg = Color3.fromRGB(24, 26, 46),     -- Card Biru Indigo Soft
+    CardTrans = 0.4,                         -- Card semi transparan
+    Stroke = Color3.fromRGB(54, 52, 90),     -- Stroke Ungu Meredup
+    Accent = Color3.fromRGB(100, 160, 255),  -- Soft Neon Blue
+    AccentPurple = Color3.fromRGB(180, 120, 255), -- Soft Orchid Purple
+    TextMain = Color3.fromRGB(245, 245, 255),
+    TextMuted = Color3.fromRGB(150, 155, 185)
 }
 
 -- DRAGGABLE ENGINE
@@ -64,13 +67,14 @@ ToggleButton.Parent = MainGui
 ToggleButton.Size = UDim2.new(0, 42, 0, 42)
 ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0)
 ToggleButton.BackgroundColor3 = Theme.Bg
+ToggleButton.BackgroundTransparency = 0.1
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "QT"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 15
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
 local tbStroke = Instance.new("UIStroke", ToggleButton)
-tbStroke.Color = Theme.Accent
+tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
 -- MAIN PANEL (SIZE: 400 x 330 COMPACT)
@@ -80,9 +84,11 @@ MainFrame.Parent = MainGui
 MainFrame.Size = UDim2.new(0, 400, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -200, 0.5, -165)
 MainFrame.BackgroundColor3 = Theme.Bg
+MainFrame.BackgroundTransparency = Theme.BgTrans
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
+mainStroke.Thickness = 1.2
 
 -- HEADER
 local Header = Instance.new("Frame", MainFrame)
@@ -90,7 +96,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "QUANTUM HUB <font color='#00e6a0'>v5.2</font>"
+Title.Text = "QUANTUM HUB <font color='#a878ff'>v5.3</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 12, 0, 0)
@@ -131,7 +137,7 @@ local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
     f.Size = UDim2.new(1, 0, 1, 0)
     f.BackgroundTransparency = 1
-    f.CanvasSize = UDim2.new(0, 0, 0, 580)
+    f.CanvasSize = UDim2.new(0, 0, 0, 620) -- Tinggi canvas ideal
     f.ScrollBarThickness = 2
     f.ScrollBarImageColor3 = Theme.Accent
     f.Visible = (name == activeTab)
@@ -180,7 +186,7 @@ end
 
 addTabButton("Player", "👤 Player", 1)
 addTabButton("ESP", "👁️ ESP Sys", 2)
-addTabButton("Teleport", "👤 Users TP", 3)
+addTabButton("Teleport", "🌀 Teleport", 3)
 addTabButton("World", "🌐 World", 4)
 addTabButton("Utilities", "🛠️ Utilities", 5)
 addTabButton("Settings", "⚙️ Settings", 6)
@@ -190,6 +196,7 @@ local function createSectionCard(parent, titleText, height, layoutOrder)
     local section = Instance.new("Frame", parent)
     section.Size = UDim2.new(1, -4, 0, height)
     section.BackgroundColor3 = Theme.CardBg
+    section.BackgroundTransparency = Theme.CardTrans
     section.LayoutOrder = layoutOrder
     Instance.new("UICorner", section).CornerRadius = UDim.new(0, 6)
     local sStroke = Instance.new("UIStroke", section)
@@ -200,7 +207,7 @@ local function createSectionCard(parent, titleText, height, layoutOrder)
     sTitle.Position = UDim2.new(0, 8, 0, 4)
     sTitle.Text = titleText:upper()
     sTitle.Font = Enum.Font.GothamBold
-    sTitle.TextColor3 = Theme.TextMuted
+    sTitle.TextColor3 = Theme.AccentPurple
     sTitle.TextSize = 9
     sTitle.BackgroundTransparency = 1
     sTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -289,50 +296,37 @@ end
 
 -- TARGET STORAGE GLOBAL
 local GlobalTargetName = ""
+local UseTweenTeleport = false -- Master Toggle Tween vs Instant
 
--- ====================================================================
--- TAB 1: PLAYER MODULES
--- ====================================================================
-local pSec1 = createSectionCard(tabs.Player.Container, "Movement Modifiers", 115, 1)
-
-local walkToggleState = false local walkLevel = 1
-local function updateWalkSpeed()
+-- MAIN SYSTEM TP FUNCTION (SUPPORT TWEEN & INSTANT)
+local function executeTeleport(targetCFrame)
     local char = Player.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then char:FindFirstChildOfClass("Humanoid").WalkSpeed = walkToggleState and (walkLevel * 10) or 16 end
-end
-createToggleSwitch(pSec1, "WalkSpeed Bypass", function(v) walkToggleState = v updateWalkSpeed() end)
-createLevelControl(pSec1, "Speed Value", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
-
-local jumpToggleState = false local jumpLevel = 5
-local function updateJumpPower()
-    local char = Player.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then
-        local hum = char:FindFirstChildOfClass("Humanoid") hum.UseJumpPower = true hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    if UseTweenTeleport then
+        local distance = (hrp.Position - targetCFrame.Position).Magnitude
+        local speed = 250 -- Nilai speed rata-rata aman bypass anti-cheat
+        local tweenTime = distance / speed
+        local tween = TweenService:Create(hrp, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+        tween:Play()
+    else
+        hrp.CFrame = targetCFrame
     end
 end
-createToggleSwitch(pSec1, "JumpPower Bypass", function(v) jumpToggleState = v updateJumpPower() end)
-createLevelControl(pSec1, "Jump Value", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
-local pSec2 = createSectionCard(tabs.Player.Container, "Navigation States", 145, 2)
-local noclipActive, flying, floatActive = false, false, false local flyLevel = 5
-local noclipConnection, flyConnection, floatConnection local bg, bv, floatPart
-
-createToggleSwitch(pSec2, "Noclip Mode (Ghost)", function(v)
-    noclipActive = v
-    if v then
-        if noclipConnection then noclipConnection:Disconnect() end
-        noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then for _, part in pairs(Player.Character:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end end
-        end)
-    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
-end)
-
+-- ====================================================================
+-- TAB 1: PLAYER MODULES (RE-ORDERED AND CLEANED)
+-- ====================================================================
+-- 1. FLY MODULE
+local pFly = createSectionCard(tabs.Player.Container, "Fly", 88, 1)
+local flying = false local flyLevel = 5 local bg, bv
 local function stopFlying()
     flying = false if bg then bg:Destroy() bg = nil end if bv then bv:Destroy() bv = nil end
     local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false) hum:ChangeState(Enum.HumanoidStateType.Running) end
 end
-createToggleSwitch(pSec2, "Fly Hack", function(v)
+createToggleSwitch(pFly, "Fly Hack Enabled", function(v)
     if v then
         stopFlying() local char = Player.Character if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         local torso = char.HumanoidRootPart local hum = char:FindFirstChildOfClass("Humanoid") flying = true
@@ -353,40 +347,39 @@ createToggleSwitch(pSec2, "Fly Hack", function(v)
         end)
     else stopFlying() end
 end)
-createLevelControl(pSec2, "Fly Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
+createLevelControl(pFly, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
-createToggleSwitch(pSec2, "Float Platform Engine", function(state)
-    floatActive = state local char = Player.Character
-    if state then
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        floatPart = Instance.new("Part", workspace) floatPart.Size = Vector3.new(4, 0.5, 4) floatPart.Transparency = 1 floatPart.Anchored = true floatPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -3.25, 0)
-        floatConnection = RunService.RenderStepped:Connect(function()
-            if floatActive and char and char:FindFirstChild("HumanoidRootPart") and floatPart then floatPart.CFrame = CFrame.new(char.HumanoidRootPart.Position.X, floatPart.Position.Y, char.HumanoidRootPart.Position.Z) end
-        end)
-    else
-        if floatConnection then floatConnection:Disconnect() floatConnection = nil end if floatPart then floatPart:Destroy() floatPart = nil end
+-- 2. WALKSPEED MODULE
+local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 58, 2)
+local walkToggleState = false local walkLevel = 1
+local function updateWalkSpeed()
+    local char = Player.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then char:FindFirstChildOfClass("Humanoid").WalkSpeed = walkToggleState and (walkLevel * 10) or 16 end
+end
+createToggleSwitch(pWalk, "Bypass Speed", function(v) walkToggleState = v updateWalkSpeed() end)
+createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
+
+-- 3. JUMP MODULE
+local pJump = createSectionCard(tabs.Player.Container, "Jump", 58, 3)
+local jumpToggleState = false local jumpLevel = 5
+local function updateJumpPower()
+    local char = Player.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        local hum = char:FindFirstChildOfClass("Humanoid") hum.UseJumpPower = true hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50
     end
-end)
+end
+createToggleSwitch(pJump, "Bypass Jump", function(v) jumpToggleState = v updateJumpPower() end)
+createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
-local infJumpActive = false local infJumpConnection
-createToggleSwitch(pSec2, "Infinite Jump Exploits", function(v)
-    infJumpActive = v
-    if v then
-        infJumpConnection = UserInputService.JumpRequest:Connect(function()
-            if infJumpActive and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping) end
-        end)
-    else if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end end
-end)
-
-local pSec3 = createSectionCard(tabs.Player.Container, "Defensive Protections", 145, 3)
+-- 4. DEFENSE MODULE
+local pDefense = createSectionCard(tabs.Player.Container, "Defense", 145, 4)
 local AntiAfkConnection, AntiFlingConnection, AntiStunConnection local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
 
-createToggleSwitch(pSec3, "Anti-AFK (24H Idle Bypass)", function(state)
+createToggleSwitch(pDefense, "Anti-AFK Core System", function(state)
     if state then AntiAfkConnection = Player.Idled:Connect(function() local vu = game:GetService("VirtualUser") vu:CaptureController() vu:ClickButton2(Vector2.new(0,0)) end)
     else if AntiAfkConnection then AntiAfkConnection:Disconnect() AntiAfkConnection = nil end end
 end)
-
-createToggleSwitch(pSec3, "Anti-Fling Shield Core", function(state)
+createToggleSwitch(pDefense, "Anti-Fling Shield Mode", function(state)
     AntiFlingActive = state
     if state then
         AntiFlingConnection = RunService.Heartbeat:Connect(function()
@@ -398,8 +391,7 @@ createToggleSwitch(pSec3, "Anti-Fling Shield Core", function(state)
         end)
     else if AntiFlingConnection then AntiFlingConnection:Disconnect() AntiFlingConnection = nil end end
 end)
-
-createToggleSwitch(pSec3, "Anti-Stun / No Slowdown", function(state)
+createToggleSwitch(pDefense, "Anti-Stun Ragdoll Lock", function(state)
     AntiStunActive = state
     if state then
         AntiStunConnection = RunService.RenderStepped:Connect(function()
@@ -408,14 +400,34 @@ createToggleSwitch(pSec3, "Anti-Stun / No Slowdown", function(state)
         end)
     else if AntiStunConnection then AntiStunConnection:Disconnect() AntiStunConnection = nil end end
 end)
+createToggleSwitch(pDefense, "Invisible Mode Glitch", function(state) IsInvisible = state local char = Player.Character if char and char:FindFirstChild("LowerTorso") then char.LowerTorso.RootJoint.Part0 = state and nil or char.HumanoidRootPart end end)
 
-createToggleSwitch(pSec3, "Invisible Mode (Local)", function(state) IsInvisible = state local char = Player.Character if char and char:FindFirstChild("LowerTorso") then char.LowerTorso.RootJoint.Part0 = state and nil or char.HumanoidRootPart end end)
+-- EXTRA UTILS SEEDED IN PLAYER TABS BELOW NO-CLIP & FLOAT
+local pExtraNav = createSectionCard(tabs.Player.Container, "Extra Environmental Ghost", 88, 5)
+local noclipActive, floatActive = false, false local noclipConnection, floatConnection, floatPart
+createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v)
+    noclipActive = v
+    if v then
+        if noclipConnection then noclipConnection:Disconnect() end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if noclipActive and Player.Character then convert = function(o) if o:IsA("BasePart") then o.CanCollide = false end end for _, p in pairs(Player.Character:GetChildren()) do convert(p) end end
+        end)
+    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
+end)
+createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state)
+    floatActive = state local char = Player.Character
+    if state then
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        floatPart = Instance.new("Part", workspace) floatPart.Size = Vector3.new(4, 0.5, 4) floatPart.Transparency = 1 floatPart.Anchored = true floatPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -3.25, 0)
+        floatConnection = RunService.RenderStepped:Connect(function() if floatActive and char and char:FindFirstChild("HumanoidRootPart") and floatPart then floatPart.CFrame = CFrame.new(char.HumanoidRootPart.Position.X, floatPart.Position.Y, char.HumanoidRootPart.Position.Z) end end)
+    else if floatConnection then floatConnection:Disconnect() floatConnection = nil end if floatPart then floatPart:Destroy() floatPart = nil end end
+end)
 
 -- ====================================================================
 -- TAB 2: ESP SYSTEM
 -- ====================================================================
 local espSec = createSectionCard(tabs.ESP.Container, "Visual Monitor Configurations", 145, 1)
-local EspSettings = { Active = false, Names = true, Distance = true, Health = true, Color = Color3.fromRGB(0, 230, 160) } local EspObjects = {}
+local EspSettings = { Active = false, Names = true, Distance = true, Health = true, Color = Color3.fromRGB(100, 160, 255) } local EspObjects = {}
 
 local function applyEspToCharacter(targetPlayer, char)
     if targetPlayer == Player or not char then return end
@@ -450,11 +462,11 @@ createToggleSwitch(espSec, "Show Health Monitor", function(v) EspSettings.Health
 
 local colorSec = createSectionCard(tabs.ESP.Container, "🎨 ESP Color Palette Selection", 115, 2)
 local colorsData = {
-    {Name = "🟢 Aqua Neon", Color = Color3.fromRGB(0, 230, 160)},
-    {Name = "🔴 Crimson Hell", Color = Color3.fromRGB(255, 60, 60)},
-    {Name = "🟡 Vampire Gold", Color = Color3.fromRGB(255, 215, 0)},
-    {Name = "⚪ Absolute White", Color = Color3.fromRGB(255, 255, 255)},
-    {Name = "🔵 Cyber Blue", Color = Color3.fromRGB(0, 120, 255)}
+    {Name = "🔵 Cyber Blue Soft", Color = Color3.fromRGB(100, 160, 255)},
+    {Name = "🟣 Orchid Purple Soft", Color = Color3.fromRGB(180, 120, 255)},
+    {Name = "🔴 Crimson Hell", Color = Color3.fromRGB(255, 90, 90)},
+    {Name = "🟡 Golden Honey", Color = Color3.fromRGB(255, 210, 100)},
+    {Name = "⚪ Absolute White", Color = Color3.fromRGB(255, 255, 255)}
 }
 for _, c in ipairs(colorsData) do
     local cb = Instance.new("TextButton", colorSec) cb.Size = UDim2.new(1, 0, 0, 16) cb.BackgroundTransparency = 1 cb.Font = Enum.Font.GothamMedium cb.Text = c.Name cb.TextColor3 = Theme.TextMain cb.TextSize = 10 cb.TextXAlignment = Enum.TextXAlignment.Left
@@ -462,17 +474,31 @@ for _, c in ipairs(colorsData) do
 end
 
 -- ====================================================================
--- TAB 3: TELEPORT USERS MODULE (PURE PLAYER TP)
+-- TAB 3: TELEPORT MODULE (GOTO PLAYER + WAYPOINTS 1-5 + TWEEN ENGINE)
 -- ====================================================================
-local tpSec1 = createSectionCard(tabs.Teleport.Container, "Player Tracker (Goto)", 55, 1)
-local inlinePlayerSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 115, 2)
-local pListScroll = Instance.new("ScrollingFrame", inlinePlayerSec) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,300) pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 3)
+local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 35, 1)
+createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state)
+    UseTweenTeleport = state
+end)
+
+local gotoSec = createSectionCard(tabs.Teleport.Container, "Goto Player Tracker", 55, 2)
+createStandardButton(gotoSec, "🎯 Teleport to Locked Target", function()
+    if GlobalTargetName ~= "" then
+        local t = Players:FindFirstChild(GlobalTargetName)
+        if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+            executeTeleport(t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0))
+        end
+    end
+end)
+
+local listUserSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 115, 3)
+local pListScroll = Instance.new("ScrollingFrame", listUserSec) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,320) pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 3)
 
 local function rebuildPlayerList()
     for _, child in pairs(pListScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= Player then
-            local pBtn = Instance.new("TextButton", pListScroll) pBtn.Size = UDim2.new(1, -4, 0, 18) pBtn.BackgroundColor3 = Theme.Bg pBtn.Font = Enum.Font.GothamMedium pBtn.Text = " " .. p.Name pBtn.TextColor3 = (GlobalTargetName == p.Name) and Theme.Accent or Theme.TextMain pBtn.TextSize = 10 pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            local pBtn = Instance.new("TextButton", pListScroll) pBtn.Size = UDim2.new(1, -4, 0, 18) pBtn.BackgroundColor3 = Theme.Bg pBtn.BackgroundTransparency = 0.4 pBtn.Font = Enum.Font.GothamMedium pBtn.Text = " " .. p.Name pBtn.TextColor3 = (GlobalTargetName == p.Name) and Theme.Accent or Theme.TextMain pBtn.TextSize = 10 pBtn.TextXAlignment = Enum.TextXAlignment.Left
             Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 3) Instance.new("UIStroke", pBtn).Color = Theme.Stroke
             pBtn.MouseButton1Click:Connect(function() GlobalTargetName = p.Name rebuildPlayerList() end)
         end
@@ -480,59 +506,67 @@ local function rebuildPlayerList()
 end
 rebuildPlayerList() Players.PlayerAdded:Connect(rebuildPlayerList) Players.PlayerRemoving:Connect(rebuildPlayerList)
 
-createStandardButton(tpSec1, "🎯 Goto Locked Target Player", function()
-    if GlobalTargetName ~= "" then
-        local t = Players:FindFirstChild(GlobalTargetName) local myHrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-        if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and myHrp then myHrp.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2.5, 0) end
-    end
-end)
+-- 5 SLOT WAYPOINTS INTEGRATION
+local wpSec = createSectionCard(tabs.Teleport.Container, "Map Waypoints Vectors (1-5)", 150, 4)
+local waypointSlots = {WP1 = nil, WP2 = nil, WP3 = nil, WP4 = nil, WP5 = nil}
+
+local function createWpRow(slotKey, labelDisplayName)
+    local row = Instance.new("Frame", wpSec) row.Size = UDim2.new(1, 0, 0, 22) row.BackgroundTransparency = 1
+    
+    local label = Instance.new("TextLabel", row)
+    label.Text = "📌 " .. labelDisplayName
+    label.Font = Enum.Font.GothamMedium label.TextColor3 = Theme.TextMain label.TextSize = 10
+    label.Size = UDim2.new(0.45, 0, 1, 0) label.TextXAlignment = Enum.TextXAlignment.Left label.BackgroundTransparency = 1
+    
+    local btnSave = Instance.new("TextButton", row)
+    btnSave.Text = "Save" btnSave.Size = UDim2.new(0, 45, 0, 18) btnSave.Position = UDim2.new(0.65, 0, 0, 2)
+    btnSave.BackgroundColor3 = Theme.Bg btnSave.TextColor3 = Theme.AccentPurple btnSave.Font = Enum.Font.GothamBold btnSave.TextSize = 9
+    Instance.new("UICorner", btnSave).CornerRadius = UDim.new(0, 3) Instance.new("UIStroke", btnSave).Color = Theme.Stroke
+    
+    local btnTp = Instance.new("TextButton", row)
+    btnTp.Text = "TP" btnTp.Size = UDim2.new(0, 35, 0, 18) btnTp.Position = UDim2.new(0.85, 0, 0, 2)
+    btnTp.BackgroundColor3 = Theme.Bg btnTp.TextColor3 = Theme.Accent btnSu = Instance.new("UIStroke", btnTp) btnSu.Color = Theme.Stroke
+    btnTp.Font = Enum.Font.GothamBold btnTp.TextSize = 9 Instance.new("UICorner", btnTp).CornerRadius = UDim.new(0, 3)
+    
+    btnSave.MouseButton1Click:Connect(function()
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            waypointSlots[slotKey] = Player.Character.HumanoidRootPart.CFrame
+            btnSave.Text = "Saved!" task.delay(0.6, function() btnSave.Text = "Save" end)
+        end
+    end)
+    
+    btnTp.MouseButton1Click:Connect(function()
+        if waypointSlots[slotKey] then
+            executeTeleport(waypointSlots[slotKey])
+        end
+    end)
+end
+
+createWpRow("WP1", "Waypoint Slot 1")
+createWpRow("WP2", "Waypoint Slot 2")
+createWpRow("WP3", "Waypoint Slot 3")
+createWpRow("WP4", "Waypoint Slot 4")
+createWpRow("WP5", "Waypoint Slot 5")
 
 -- ====================================================================
--- TAB 4: WORLD & SERVER MANAGEMENT MODULE (NEW SEPARATED TAB)
+-- TAB 4: WORLD MODULE (PURE SERVER CONNECTIONS)
 -- ====================================================================
 local worldSec = createSectionCard(tabs.World.Container, "Server Connection Manager", 85, 1)
-
--- REJOIN SERVER IMPLEMENTATION
 createStandardButton(worldSec, "⚡ Instant Rejoin Server", function()
-    if #Players:GetPlayers() <= 1 then
-        TeleportService:Teleport(game.PlaceId, Player)
-    else
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
-    end
+    if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, Player) else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end
 end)
-
--- DYNAMIC SERVER HOP IMPLEMENTATION
 createStandardButton(worldSec, "🚀 Auto Server Hop (Low Player)", function()
     local apiLink = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    local success, result = pcall(function()
-        return game:HttpGet(apiLink)
-    end)
+    local success, result = pcall(function() return game:HttpGet(apiLink) end)
     if success and result then
         local serverList = HttpService:JSONDecode(result)
         if serverList and serverList.data then
             for _, server in ipairs(serverList.data) do
-                if server.id ~= game.JobId and tonumber(server.playing) < tonumber(server.maxPlayers) then
-                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
-                    return
-                end
+                if server.id ~= game.JobId and tonumber(server.playing) < tonumber(server.maxPlayers) then TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player) return end
             end
         end
     end
-    print("[QUANTUM WORLD]: Gagal mencari server alternatif secara otomatis.")
 end)
-
-local mapWpSec = createSectionCard(tabs.World.Container, "Map Vectors Waypoints", 85, 2)
-local waypointSlots = {Slot1 = nil, Slot2 = nil}
-local function createWpRow(slot, name)
-    local row = Instance.new("Frame", mapWpSec) row.Size = UDim2.new(1, 0, 0, 22) row.BackgroundTransparency = 1
-    local l = Instance.new("TextLabel", row) l.Text = name l.Font = Enum.Font.GothamMedium l.TextColor3 = Theme.TextMain l.TextSize = 10 l.Size = UDim2.new(0.4,0,1,0) l.TextXAlignment = Enum.TextXAlignment.Left l.BackgroundTransparency = 1
-    local bS = Instance.new("TextButton", row) bS.Text = "Save" bS.Size = UDim2.new(0, 45, 0, 18) bS.Position = UDim2.new(0.65, 0, 0, 2) bS.BackgroundColor3 = Theme.Bg bS.TextColor3 = Theme.Accent bS.Font = Enum.Font.GothamBold bS.TextSize = 9 Instance.new("UICorner", bS)
-    local bT = Instance.new("TextButton", row) bT.Text = "TP" bT.Size = UDim2.new(0, 35, 0, 18) bT.Position = UDim2.new(0.85, 0, 0, 2) bT.BackgroundColor3 = Theme.Bg bT.TextColor3 = Theme.Accent bT.Font = Enum.Font.GothamBold bT.TextSize = 9 Instance.new("UICorner", bT)
-    bS.MouseButton1Click:Connect(function() if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then waypointSlots[slot] = Player.Character.HumanoidRootPart.CFrame bS.Text = "Saved!" task.delay(0.5, function() bS.Text = "Save" end) end end)
-    bT.MouseButton1Click:Connect(function() if waypointSlots[slot] and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then Player.Character.HumanoidRootPart.CFrame = waypointSlots[slot] end end)
-end
-createWpRow("Slot1", "📌 Map Position A")
-createWpRow("Slot2", "📌 Map Position B")
 
 -- ====================================================================
 -- TAB 5: UTILITIES MODULE
@@ -596,17 +630,14 @@ createStandardButton(utilSec2, "🎒 Sweep Map Tools to Inventory", function() l
 -- TAB 6: SETTINGS MODULE
 -- ====================================================================
 local setSec = createSectionCard(tabs.Settings.Container, "Dashboard Configuration", 65, 1)
-
 createStandardButton(setSec, "🔄 Quick Reload Script Hub", function()
     cleanFlingParts() if _G.EspAddC then _G.EspAddC:Disconnect() end if headSitC then headSitC:Disconnect() end if infJumpConnection then infJumpConnection:Disconnect() end
     if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
-    task.wait(0.2)
-    pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/pastebin/raw/your_link_here"))() end)
+    task.wait(0.2) pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/pastebin/raw/your_link_here"))() end)
 end)
-
 createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
     cleanFlingParts() if _G.EspAddC then _G.EspAddC:Disconnect() end if headSitC then headSitC:Disconnect() end if infJumpConnection then infJumpConnection:Disconnect() end
     if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
 end)
 
-print("[QUANTUM HUB V5.2]: World/Server Modules Activated.")
+print("[QUANTUM HUB V5.3]: Aesthetic Soft Glow Applied. Structural Re-Order Complete.")
