@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v5.6 (CLEAN COMPACT TWO-COLUMN EDITION)
+-- AR SCRIPT HUB - v5.6 (PERFECT SLIDER CONFIGURATION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -355,7 +355,7 @@ local function createGroupCard(parentCol, titleText)
     return card
 end
 
--- MINI COMPONENT: TOGGLE SWITCH (CLEAN NO TULISAN)
+-- MINI COMPONENT: TOGGLE SWITCH
 local function addCardToggle(parentCard, labelText, default, order, callback)
     local holder = Instance.new("Frame", parentCard)
     holder.Size = UDim2.new(1, 0, 0, 26) 
@@ -398,22 +398,42 @@ local function addCardToggle(parentCard, labelText, default, order, callback)
     end)
 end
 
--- MINI COMPONENT: SLIDER (CLEAN NO TULISAN VALUES)
+-- MINI COMPONENT: SLIDER DENGAN KOTAK INDIKATOR LEVEL DI SEBELAH KANAN
 local function addCardSlider(parentCard, labelText, min, max, default, order, callback)
     local holder = Instance.new("Frame", parentCard)
-    holder.Size = UDim2.new(1, 0, 0, 32) 
+    holder.Size = UDim2.new(1, 0, 0, 34) 
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
 
     local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = labelText -- Hanya Judul Slider Saja (Teks level angka & "Status" dihapus total!)
-    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.Text = labelText
+    lbl.Size = UDim2.new(0.7, 0, 0, 14)
     lbl.Font = Enum.Font.GothamMedium 
     lbl.TextColor3 = Theme.TextMuted 
     lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left 
     lbl.BackgroundTransparency = 1
 
+    -- KOTAK INDIKATOR LEVEL (Di Sebelah Kanan Atas)
+    local valBox = Instance.new("Frame", holder)
+    valBox.Size = UDim2.new(0, 24, 0, 16)
+    valBox.Position = UDim2.new(1, -24, 0, 0)
+    valBox.BackgroundColor3 = Theme.TopbarBg
+    Instance.new("UICorner", valBox).CornerRadius = UDim.new(0, 4)
+    local boxStroke = Instance.new("UIStroke", valBox)
+    boxStroke.Color = Theme.Stroke
+    boxStroke.Thickness = 1
+
+    local valLabel = Instance.new("TextLabel", valBox)
+    valLabel.Size = UDim2.new(1, 0, 1, 0)
+    valLabel.Text = tostring(default)
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.TextColor3 = Theme.Accent
+    valLabel.TextSize = 10
+    valLabel.TextAlignment = Enum.TextAlignment.Center
+    valLabel.BackgroundTransparency = 1
+
+    -- TRACK SLIDER (Bawah)
     local track = Instance.new("Frame", holder)
     track.Size = UDim2.new(1, 0, 0, 4)
     track.Position = UDim2.new(0, 0, 1, -4)
@@ -426,10 +446,12 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     fill.BackgroundColor3 = Theme.Accent
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
+    -- TOMBOL BULATAN UTAMA (Teks bawaan "Button" dihapus total!)
     local sBtn = Instance.new("TextButton", track)
     sBtn.Size = UDim2.new(0, 10, 0, 10)
     sBtn.Position = UDim2.new(startPerc, -5, 0.5, -5)
     sBtn.BackgroundColor3 = Theme.TextMain
+    sBtn.Text = "" -- DIHAPUS BIAR BERSIH POLOS
     Instance.new("UICorner", sBtn).CornerRadius = UDim.new(1, 0)
 
     local function update(input)
@@ -438,6 +460,7 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
         fill.Size = UDim2.new(perc, 0, 1, 0)
         sBtn.Position = UDim2.new(perc, -5, 0.5, -5)
         local val = math.round(min + (perc * (max - min)))
+        valLabel.Text = tostring(val) -- Update angka di dalam kotak real-time
         callback(val)
     end
 
@@ -458,7 +481,7 @@ end
 -- ====================================================================
 
 -- --- [ KOLOM KIRI: FLY & NOCLIP ] ---
-local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Noclip") -- Judul Baru
+local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Noclip")
 local isFlying, flySpeed = false, 50
 local bodyGyro, bodyVelocity
 local noclipActive, noclipConnection
@@ -500,12 +523,12 @@ addCardToggle(leftFlyGroup, "Fly", false, 1, function(state)
     if state then startFlying() else stopFlying() end
 end)
 
--- 2. Slider Fly Level
+-- 2. Slider Fly Level (Sudah ada Kotak Indikator Level Kanan & Bulatan Polos)
 addCardSlider(leftFlyGroup, "Fly Level", 1, 20, 5, 2, function(val)
     flySpeed = val * 10
 end)
 
--- 3. Toggle Noclip (Tanpa embel-embel Ghost Pass)
+-- 3. Toggle Noclip
 addCardToggle(leftFlyGroup, "Noclip", false, 3, function(v)
     noclipActive = v
     if v then
@@ -524,7 +547,7 @@ end)
 
 
 -- --- [ KOLOM KANAN: JUMP ] ---
-local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump") -- Judul Baru
+local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump")
 local jumpToggleState = false local jumpLevel = 5
 local infJumpEnabled = false local infJumpConnection
 
@@ -537,13 +560,13 @@ local function updateJumpPower()
     end
 end
 
--- 1. Toggle Jump Power (Teks Bypass Dihapus)
+-- 1. Toggle Jump Power
 addCardToggle(rightJumpGroup, "Jump Power", false, 1, function(v)
     jumpToggleState = v 
     updateJumpPower() 
 end)
 
--- 2. Slider Jump Level
+-- 2. Slider Jump Level (Sudah ada Kotak Indikator Level Kanan & Bulatan Polos)
 addCardSlider(rightJumpGroup, "Jump Level", 1, 20, 5, 2, function(lvl)
     jumpLevel = lvl 
     updateJumpPower() 
@@ -564,7 +587,7 @@ addCardToggle(rightJumpGroup, "Infinite Jump", false, 3, function(state)
 end)
 
 -- ====================================================================
--- SINKRONISASI TOMBOL KELUAR MODAL BOX PERMANEN
+-- SINKRONISASI TOMBOL KELUAR
 -- ====================================================================
 ConfirmCloseBtn.MouseButton1Click:Connect(function()
     if noclipConnection then noclipConnection:Disconnect() end 
@@ -573,4 +596,4 @@ ConfirmCloseBtn.MouseButton1Click:Connect(function()
     MainGui:Destroy() 
 end)
 
-print("[AR SCRIPT HUB V5.6]: Clean Two-Column Framework Ready!")
+print("[AR SCRIPT HUB V5.6]: Slider Button Text Removed & Level Box Integrated!")
