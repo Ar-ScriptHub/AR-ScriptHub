@@ -358,3 +358,293 @@ local function createGroupCard(parentCol, titleText)
     label.LayoutOrder = 0
     
     return card
+    end
+
+-- MINI COMPONENT: INSIDE-CARD TOGGLE SWITCH
+local function addCardToggle(parentCard, labelText, default, order, callback)
+    local holder = Instance.new("Frame", parentCard)
+    holder.Size = UDim2.new(1, 0, 0, 26) 
+    holder.BackgroundTransparency = 1
+    holder.LayoutOrder = order
+    
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = labelText 
+    lbl.Size = UDim2.new(0.65, 0, 1, 0)
+    lbl.Font = Enum.Font.GothamMedium 
+    lbl.TextColor3 = Theme.TextMain 
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left 
+    lbl.BackgroundTransparency = 1
+    
+    local bgTrack = Instance.new("TextButton", holder)
+    bgTrack.Size = UDim2.new(0, 32, 0, 16) 
+    bgTrack.Position = UDim2.new(1, -32, 0.5, -8)
+    bgTrack.BackgroundColor3 = default and Theme.Accent or Theme.Bg 
+    bgTrack.Text = ""
+    Instance.new("UICorner", bgTrack).CornerRadius = UDim.new(0, 8)
+    local tStroke = Instance.new("UIStroke", bgTrack)
+    tStroke.Color = default and Theme.Accent or Theme.Stroke
+    
+    local knob = Instance.new("Frame", bgTrack)
+    knob.Size = UDim2.new(0, 12, 0, 12) 
+    knob.Position = UDim2.new(0, default and 17 or 2, 0.5, -6)
+    knob.BackgroundColor3 = Theme.TextMain 
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 6)
+    
+    local state = default
+    bgTrack.MouseButton1Click:Connect(function()
+        state = not state
+        local targetX = state and 17 or 2
+        local targetTrackColor = state and Theme.Accent or Theme.Bg
+        TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, targetX, 0.5, -6)}):Play()
+        TweenService:Create(bgTrack, TweenInfo.new(0.08), {BackgroundColor3 = targetTrackColor}):Play()
+        tStroke.Color = state and Theme.Accent or Theme.Stroke
+        callback(state)
+    end)
+end
+
+-- MINI COMPONENT: INSIDE-CARD SLIDER
+local function addCardSlider(parentCard, labelText, min, max, default, order, callback)
+    local holder = Instance.new("Frame", parentCard)
+    holder.Size = UDim2.new(1, 0, 0, 32) 
+    holder.BackgroundTransparency = 1
+    holder.LayoutOrder = order
+
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = labelText .. ": " .. default
+    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.Font = Enum.Font.GothamMedium 
+    lbl.TextColor3 = Theme.TextMuted 
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left 
+    lbl.BackgroundTransparency = 1
+
+    local track = Instance.new("Frame", holder)
+    track.Size = UDim2.new(1, 0, 0, 4)
+    track.Position = UDim2.new(0, 0, 1, -4)
+    track.BackgroundColor3 = Theme.Stroke
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+
+    local fill = Instance.new("Frame", track)
+    local startPerc = (default - min) / (max - min)
+    fill.Size = UDim2.new(startPerc, 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+
+    local sBtn = Instance.new("TextButton", track)
+    sBtn.Size = UDim2.new(0, 10, 0, 10)
+    sBtn.Position = UDim2.new(startPerc, -5, 0.5, -5)
+    sBtn.BackgroundColor3 = Theme.TextMain
+    Instance.new("UICorner", sBtn).CornerRadius = UDim.new(1, 0)
+
+    local function update(input)
+        local relX = input.Position.X - track.AbsolutePosition.X
+        local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(perc, 0, 1, 0)
+        sBtn.Position = UDim2.new(perc, -5, 0.5, -5)
+        local val = math.round(min + (perc * (max - min)))
+        lbl.Text = labelText .. ": " .. val
+        callback(val)
+    end
+
+    local sliding = false
+    sBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end
+    end)
+end
+
+-- MINI COMPONENT: INSIDE-CARD BUTTON
+local function addCardButton(parentCard, textDisplay, order, callback)
+    local btn = Instance.new("TextButton", parentCard)
+    btn.Size = UDim2.new(1, 0, 0, 26) 
+    btn.BackgroundColor3 = Theme.Bg
+    btn.Font = Enum.Font.GothamMedium 
+    btn.Text = textDisplay 
+    btn.TextColor3 = Theme.TextMain 
+    btn.TextSize = 11
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", btn).Color = Theme.Stroke
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- ====================================================================
+-- MERGING LOGIC: TAB PLAYER MODIFIERS (GROUPED TWO-COLUMN)
+-- ====================================================================
+
+-- --- [ KOLOM KIRI: FLY & NOCLIP SYSTEM CARD ] ---
+local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Ghost Engine")
+local isFlying, flySpeed = false, 50
+local bodyGyro, bodyVelocity
+local noclipActive, noclipConnection
+
+local function startFlying()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    bodyGyro = Instance.new("BodyGyro", root)
+    bodyGyro.P = 9e4
+    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.cframe = root.CFrame
+    bodyVelocity = Instance.new("BodyVelocity", root)
+    bodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+    bodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    task.spawn(function()
+        while isFlying and root and root.Parent do
+            local cam = workspace.CurrentCamera
+            local moveDir = Vector3.new(0,0,0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+            bodyGyro.cframe = cam.CFrame
+            bodyVelocity.velocity = moveDir * flySpeed
+            task.wait()
+        end
+    end)
+end
+
+local function stopFlying()
+    isFlying = false
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+-- 1. Toggle Fly
+addCardToggle(leftFlyGroup, "Fly Bypass", false, 1, function(state)
+    isFlying = state
+    if state then startFlying() else stopFlying() end
+end)
+
+-- 2. Slider Speed
+addCardSlider(leftFlyGroup, "Speed Level", 1, 20, 5, 2, function(val)
+    flySpeed = val * 10
+    pcall(function()
+        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 + (val * 5) end
+    end)
+end)
+
+-- 3. Toggle Noclip
+addCardToggle(leftFlyGroup, "Noclip (Ghost Pass)", false, 3, function(v)
+    noclipActive = v
+    if v then
+        if noclipConnection then noclipConnection:Disconnect() end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if noclipActive and Player.Character then 
+                for _, p in pairs(Player.Character:GetChildren()) do 
+                    if p:IsA("BasePart") then p.CanCollide = false end 
+                end 
+            end
+        end)
+    else 
+        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end 
+    end
+end)
+
+
+-- --- [ KOLOM KANAN: JUMP POWER & INF JUMP SYSTEM CARD ] ---
+local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump & Physics Engine")
+local jumpToggleState = false local jumpLevel = 5
+local infJumpEnabled = false local infJumpConnection
+
+local function updateJumpPower()
+    local char = Player.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        local hum = char:FindFirstChildOfClass("Humanoid") 
+        hum.UseJumpPower = true 
+        hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50
+    end
+end
+
+-- 1. Toggle Bypass Jump
+addCardToggle(rightJumpGroup, "Jump Power Bypass", false, 1, function(v)
+    jumpToggleState = v 
+    updateJumpPower()
+end)
+
+-- 2. Slider Jump Level
+addCardSlider(rightJumpGroup, "Power Level", 1, 20, 5, 2, function(lvl)
+    jumpLevel = lvl 
+    updateJumpPower()
+end)
+
+-- 3. Toggle Infinite Jump
+infJumpConnection = UserInputService.JumpRequest:Connect(function()
+    if infJumpEnabled then
+        pcall(function()
+            local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        end)
+    end
+end)
+
+addCardToggle(rightJumpGroup, "Infinite Jump Mode", false, 3, function(state)
+    infJumpEnabled = state
+end)
+
+
+-- --- [ BARIS KEDUA KIRI: DEFENSE SYSTEM CARD ] ---
+local leftDefenseGroup = createGroupCard(tabs.Player.LeftCol, "Defense Shields Core")
+local AntiAfkConnection, AntiFlingConnection, AntiStunConnection 
+local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
+
+addCardToggle(leftDefenseGroup, "Anti-AFK Core System", false, 1, function(state)
+    if state then AntiAfkConnection = Player.Idled:Connect(function() local vu = game:GetService("VirtualUser") vu:CaptureController() vu:ClickButton2(Vector2.new(0,0)) end)
+    else if AntiAfkConnection then AntiAfkConnection:Disconnect() AntiAfkConnection = nil end end
+end)
+
+addCardToggle(leftDefenseGroup, "Anti-Fling Shield Mode", false, 2, function(state)
+    AntiFlingActive = state
+    if state then
+        AntiFlingConnection = RunService.Heartbeat:Connect(function()
+            local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") if not AntiFlingActive or not hrp then return end
+            if hrp.Velocity.Magnitude > 75 or hrp.RotVelocity.Magnitude > 75 then hrp.Velocity = Vector3.new(0,0,0) hrp.RotVelocity = Vector3.new(0,0,0) end
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= Player and p.Character then for _, part in pairs(p.Character:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end end
+            end
+        end)
+    else if AntiFlingConnection then AntiFlingConnection:Disconnect() AntiFlingConnection = nil end end
+end)
+
+
+-- ====================================================================
+-- TEMPLATE INTEGRASI TAB LAIN YANG ADA DI MAIN.LUA LAMA
+-- ====================================================================
+
+-- 1. Tab ESP (Visual Monitor)
+local visualGroup = createGroupCard(tabs.ESP.LeftCol, "Visual Configurations")
+addCardToggle(visualGroup, "Master Activation ESP", false, 1, function(v) end)
+addCardToggle(visualGroup, "Show Tag Names", true, 2, function(v) end)
+
+-- 2. Tab Teleport Hub
+local tpGroup = createGroupCard(tabs.Teleport.LeftCol, "Engine Vector Settings")
+addCardToggle(tpGroup, "Use Tween Movement", false, 1, function(state) end)
+
+-- 3. Tab World & Connections
+local worldGroup = createGroupCard(tabs.World.LeftCol, "Server Management")
+addCardButton(worldGroup, "⚡ Instant Rejoin Server", 1, function()
+    if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, Player) else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end
+end)
+
+-- 4. Tab Settings (UI Clean Destroy Setup)
+local settingsGroup = createGroupCard(tabs.Settings.LeftCol, "Dashboard Configuration")
+addCardButton(settingsGroup, "🔄 Quick Reload Script Hub", 1, function() end)
+addCardButton(settingsGroup, "🔴 Self-Destroy System UI", 2, function() 
+    ConfirmModal.Visible = true
+end)
+
+-- Hubungkan Tombol Modal Konfirmasi Keluar Permanen
+ConfirmCloseBtn.MouseButton1Click:Connect(function()
+    if noclipConnection then noclipConnection:Disconnect() end
+    if AntiFlingConnection then AntiFlingConnection:Disconnect() end
+    stopFlying()
+    MainGui:Destroy()
+end)
+
+print("[AR SCRIPT HUB V5.6]: Grouped Card Two-Column Engine Deployed!")
