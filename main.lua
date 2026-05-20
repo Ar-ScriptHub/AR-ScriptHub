@@ -28,6 +28,89 @@ local Theme = {
     TextMuted = Color3.fromRGB(110, 125, 145)
 }
 
+-- ====================================================================
+-- PREFERENCE KERE: CYBERPUNK LOADING UI SYSTEM
+-- ====================================================================
+local LoadingPanel = Instance.new("Frame")
+LoadingPanel.Name = "LoadingPanel"
+LoadingPanel.Size = UDim2.new(0, 260, 0, 150)
+LoadingPanel.Position = UDim2.new(0.5, -130, 0.5, -75)
+LoadingPanel.BackgroundColor3 = Theme.Bg
+LoadingPanel.Parent = MainGui
+Instance.new("UICorner", LoadingPanel).CornerRadius = UDim.new(0, 10)
+local loadStroke = Instance.new("UIStroke", LoadingPanel)
+loadStroke.Color = Theme.Stroke
+loadStroke.Thickness = 1.5
+
+local LoadLogo = Instance.new("TextLabel", LoadingPanel)
+LoadLogo.Size = UDim2.new(1, 0, 0, 50)
+LoadLogo.Position = UDim2.new(0, 0, 0, 20)
+LoadLogo.Text = "AR"
+LoadLogo.Font = Enum.Font.GothamBold
+LoadLogo.TextColor3 = Theme.Accent
+LoadLogo.TextSize = 36
+LoadLogo.BackgroundTransparency = 1
+
+local LoadStatus = Instance.new("TextLabel", LoadingPanel)
+LoadStatus.Size = UDim2.new(1, -20, 0, 20)
+LoadStatus.Position = UDim2.new(0, 10, 0, 75)
+LoadStatus.Text = "Initializing Core..."
+LoadStatus.Font = Enum.Font.GothamMedium
+LoadStatus.TextColor3 = Theme.TextMuted
+LoadStatus.TextSize = 11
+LoadStatus.BackgroundTransparency = 1
+
+local BarBg = Instance.new("Frame", LoadingPanel)
+BarBg.Size = UDim2.new(1, -40, 0, 4)
+BarBg.Position = UDim2.new(0, 20, 0, 105)
+BarBg.BackgroundColor3 = Theme.CardBg
+BarBg.BorderSizePixel = 0
+Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
+
+local BarFill = Instance.new("Frame", BarBg)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Theme.Accent
+BarFill.BorderSizePixel = 0
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
+-- Efek Pulse/Breathing pada Logo AR saat loading
+task.spawn(function()
+    while LoadingPanel.Parent and LoadingPanel.Visible do
+        TweenService:Create(LoadLogo, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextTransparency = 0.4}):Play()
+        task.wait(0.6)
+        TweenService:Create(LoadLogo, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextTransparency = 0}):Play()
+        task.wait(0.6)
+    end
+end)
+
+-- Simulasi Loading Sequences yang Interaktif
+local sequences = {
+    {0.15, "Connecting to GitHub Repo..."},
+    {0.40, "Checking Exploit Environment..."},
+    {0.65, "Injecting Quantum Engine (v3.7)..."},
+    {0.85, "Bypassing Security Checks..."},
+    {1.00, "Ready!"}
+}
+
+local function runLoading()
+    for _, step in ipairs(sequences) do
+        LoadStatus.Text = step[2]
+        local fillTween = TweenService:Create(BarFill, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step[0], 0, 1, 0)})
+        fillTween:Play()
+        fillTween.Completed:Wait()
+        task.wait(0.2)
+    end
+    
+    -- Outro Animasi transisi ke Menu Utama
+    local fadePanel = TweenService:Create(LoadingPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+    fadePanel:Play()
+    fadePanel.Completed:Wait()
+    LoadingPanel:Destroy()
+end
+
+-- ====================================================================
+-- SEKARANG MASUK KE LOGIC STRUKTUR UTAMA HUB KAMU (TIDAK BERUBAH)
+-- ====================================================================
 _G.BoomboxHistory = _G.BoomboxHistory or {}
 local waypointSlots = {Slot1 = nil, Slot2 = nil, Slot3 = nil, Slot4 = nil, Slot5 = nil}
 local waypointEspObjects = {} 
@@ -127,14 +210,14 @@ tbStroke.Color = Theme.Accent
 tbStroke.Thickness = 1.5
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL
+-- MAIN PANEL (Awalnya dibuat invisible biar ga ganggu loading)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
 MainFrame.Size = UDim2.new(0, 540, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -270, 0.5, -165)
 MainFrame.BackgroundColor3 = Theme.Bg
-MainFrame.Visible = true 
+MainFrame.Visible = false 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
@@ -440,7 +523,6 @@ end)
 -- ====================================================================
 local useTweenTeleport = false
 
--- Suntikan Toggle Pilihan Metode Teleport di bagian teratas Tab Teleport
 createToggleSwitch(tabs.Teleport.Container, "Tween Teleport (Anti-Rubberband)", function(state)
     useTweenTeleport = state
 end)
@@ -448,23 +530,20 @@ end)
 local function masterTeleport(targetCFrame)
     if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
     local hrp = Player.Character.HumanoidRootPart
-    local safeTarget = targetCFrame * CFrame.new(0, 3, 0) -- Kasih sedikit tinggi biar aman
+    local safeTarget = targetCFrame * CFrame.new(0, 3, 0)
     
-    -- Reset gaya fisika awal biar ga ngebug
     hrp.Velocity = Vector3.new(0, 0, 0)
     hrp.RotVelocity = Vector3.new(0, 0, 0)
     
     if useTweenTeleport then
-        -- METODE TWEEN (Bypass Anti-Cheat / Halus)
         local distance = (hrp.Position - safeTarget.Position).Magnitude
-        local speed = 180 -- Ukuran stud per detik (Cepat tapi aman dari kicked)
+        local speed = 180 
         local duration = distance / speed
-        if duration < 0.2 then duration = 0.2 end -- Durasi minimal
+        if duration < 0.2 then duration = 0.2 end
         
         local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = safeTarget})
         tween:Play()
     else
-        -- METODE INSTAN (Langsung Pindah Koordinat)
         hrp.CFrame = safeTarget
     end
 end
@@ -725,4 +804,10 @@ createStandardButton(tabs.Setting.Container, "🔄 Re-Load UI Script", function(
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Ar-ScriptHub/AR-ScriptHub/refs/heads/main/main.lua"))()
 end)
 
-print("[QUANTUM HUB V3.7]: Successfully Loaded and Protected.")
+-- TRIGGER LOADING UNTUK DIJALANKAN DI AWAL SEBELUM MAIN PANEL MUNCUL
+task.spawn(function()
+    runLoading()
+    MainFrame.Visible = true -- Tampilkan menu utama setelah loading sukses
+end)
+
+print("[QUANTUM HUB V3.7]: Successfully Loaded with Cyber Loading Screen.")
