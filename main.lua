@@ -468,19 +468,23 @@ end
 -- ====================================================================
 -- PERAKITAN CARD AUTOMATIC
 -- ====================================================================
+
+-- 1. CARD FLY (Kolom Kiri - Atas)
 local flyCard = createCard(LeftColumn, "Fly", 1)
-addToggle(flyCard, "Toggle Fly Mode", 1)
-addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
-addToggle(flyCard, "Noclip Activator", 3)
+addToggle(flyCard, "Fly Mode", 1)
+addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2) -- Diubah menjadi "Fly Speed Controller"
+addToggle(flyCard, "Noclip", 3)
 
-local walkCard = createCard(LeftColumn, "Walkspeed", 2)
-addToggle(walkCard, "Toggle Speed Bypass", 1)
-addSliderWithInput(walkCard, "Velocity Speed Magnitude", 16, 250, 16, 2)
+-- 2. CARD WALKSPEED (Kolom Kiri - Bawah)
+local walkCard = createCard(LeftColumn, "Superspeed", 2)
+addToggle(walkCard, "Super Speed", 1)
+addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2)
 
+-- 3. CARD JUMP (Kolom Kanan - Atas)
 local jumpCard = createCard(RightColumn, "Jump", 1)
-addToggle(jumpCard, "Toggle Jump Bypass", 1)
-addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
-addToggle(jumpCard, "Infinite Jump Engine", 3)
+addToggle(jumpCard, "Super Jump", 1)
+addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2)
+addToggle(jumpCard, "Infinite Jump", 3)
 
 -- ====================================================================
 -- LOGIKA ANIMASI INTRO LOADING SCREEN
