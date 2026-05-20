@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - QUANTUM ADMIN HUB (V3.7 - X-RAY UPDATE)
+-- AR SCRIPT HUB - QUANTUM ADMIN HUB (V3.8 - LAYER & SECTIONS UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -17,6 +17,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Quantum_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
+MainGui.DisplayOrder = 999999999 -- MENJAMIN UI SELALU DI PALING ATAS, ANTI-KETUTUPAN
 
 -- THEME COLOR PALETTE
 local Theme = {
@@ -29,7 +30,7 @@ local Theme = {
 }
 
 -- ====================================================================
--- PREFERENCE KERE: CYBERPUNK LOADING UI SYSTEM
+-- CYBERPUNK LOADING UI SYSTEM
 -- ====================================================================
 local LoadingPanel = Instance.new("Frame")
 LoadingPanel.Name = "LoadingPanel"
@@ -73,7 +74,6 @@ BarFill.BackgroundColor3 = Theme.Accent
 BarFill.BorderSizePixel = 0
 Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
--- Efek Pulse/Breathing pada Logo AR saat loading
 task.spawn(function()
     while LoadingPanel.Parent and LoadingPanel.Visible do
         TweenService:Create(LoadLogo, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextTransparency = 0.4}):Play()
@@ -83,39 +83,34 @@ task.spawn(function()
     end
 end)
 
--- Simulasi Loading Sequences yang Interaktif
 local sequences = {
     {0.15, "Connecting to GitHub Repo..."},
     {0.40, "Checking Exploit Environment..."},
-    {0.65, "Injecting Quantum Engine (v3.7)..."},
-    {0.85, "Bypassing Security Checks..."},
+    {0.65, "Injecting Quantum Engine (v3.8)..."},
+    {0.85, "Structuring Layout Sections..."},
     {1.00, "Ready!"}
 }
 
 local function runLoading()
     for _, step in ipairs(sequences) do
         LoadStatus.Text = step[2]
-        local fillTween = TweenService:Create(BarFill, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step[0], 0, 1, 0)})
+        local fillTween = TweenService:Create(BarFill, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step[0], 0, 1, 0)})
         fillTween:Play()
         fillTween.Completed:Wait()
-        task.wait(0.2)
+        task.wait(0.1)
     end
     
-    -- Outro Animasi transisi ke Menu Utama
     local fadePanel = TweenService:Create(LoadingPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
     fadePanel:Play()
     fadePanel.Completed:Wait()
     LoadingPanel:Destroy()
 end
 
--- ====================================================================
--- SEKARANG MASUK KE LOGIC STRUKTUR UTAMA HUB KAMU (TIDAK BERUBAH)
--- ====================================================================
+-- SYSTEM DATA SETUP
 _G.BoomboxHistory = _G.BoomboxHistory or {}
 local waypointSlots = {Slot1 = nil, Slot2 = nil, Slot3 = nil, Slot4 = nil, Slot5 = nil}
 local waypointEspObjects = {} 
 
--- FUNCTION ESP WAYPOINT CLEANER
 local function clearWaypointESP(slotName)
     if waypointEspObjects[slotName] then
         if waypointEspObjects[slotName].Part then waypointEspObjects[slotName].Part:Destroy() end
@@ -123,10 +118,8 @@ local function clearWaypointESP(slotName)
     end
 end
 
--- FUNCTION ESP WAYPOINT CREATOR
 local function createWaypointESP(slotName, displayName, cframe)
     clearWaypointESP(slotName)
-    
     local espPart = Instance.new("Part")
     espPart.Name = "ESP_" .. slotName
     espPart.Size = Vector3.new(2, 2, 2)
@@ -192,7 +185,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- FLOATING TOGGLE
+-- FLOATING TOGGLE BUTTON
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
@@ -210,7 +203,7 @@ tbStroke.Color = Theme.Accent
 tbStroke.Thickness = 1.5
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (Awalnya dibuat invisible biar ga ganggu loading)
+-- MAIN PANEL
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
@@ -229,7 +222,7 @@ Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "AR SCRIPT HUB v3.7"
+Title.Text = "AR SCRIPT HUB v3.8"
 Title.RichText = true
 Title.Size = UDim2.new(0.8, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
@@ -272,13 +265,13 @@ local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
     f.Size = UDim2.new(1, 0, 1, 0)
     f.BackgroundTransparency = 1
-    f.CanvasSize = UDim2.new(0, 0, 0, 480) 
+    f.CanvasSize = UDim2.new(0, 0, 0, 520) 
     f.ScrollBarThickness = 2
     f.ScrollBarImageColor3 = Theme.Accent
     f.Visible = (name == activeTab)
     tabs[name].Container = f
     local layout = Instance.new("UIListLayout", f)
-    layout.Padding = UDim.new(0, 6)
+    layout.Padding = UDim.new(0, 8) -- Ditambah sedikit padding antar sekat
     layout.SortOrder = Enum.SortOrder.LayoutOrder
 end
 
@@ -322,35 +315,67 @@ addTabButton("Teleport", "Teleport", 2)
 addTabButton("Utilities", "Utilities 🛠️", 3)
 addTabButton("Setting", "Settings", 4)
 
--- COMPONENTS FACTORY
-local function createToggleSwitch(parent, labelText, callback)
-    local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, -5, 0, 38) card.BackgroundColor3 = Theme.CardBg
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
-    local cStroke = Instance.new("UIStroke", card) cStroke.Color = Theme.Stroke
+-- ====================================================================
+-- SEKAT / CARD SECTION SEPARATOR CREATOR
+-- ====================================================================
+local function createSectionCard(parent, titleText, height, layoutOrder)
+    local section = Instance.new("Frame", parent)
+    section.Size = UDim2.new(1, -5, 0, height)
+    section.BackgroundColor3 = Theme.CardBg
+    section.LayoutOrder = layoutOrder
+    Instance.new("UICorner", section).CornerRadius = UDim.new(0, 8)
+    local sStroke = Instance.new("UIStroke", section)
+    sStroke.Color = Theme.Stroke
+    sStroke.Thickness = 1
     
-    local lbl = Instance.new("TextLabel", card)
-    lbl.Text = "  " .. labelText .. "  " lbl.Size = UDim2.new(0.6, 0, 1, 0)
+    local sTitle = Instance.new("TextLabel", section)
+    sTitle.Size = UDim2.new(1, -10, 0, 22)
+    sTitle.Position = UDim2.new(0, 10, 0, 4)
+    sTitle.Text = titleText:upper()
+    sTitle.Font = Enum.Font.GothamBold
+    sTitle.TextColor3 = Theme.TextMuted
+    sTitle.TextSize = 10
+    sTitle.BackgroundTransparency = 1
+    sTitle.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local container = Instance.new("Frame", section)
+    container.Size = UDim2.new(1, -16, 1, -30)
+    container.Position = UDim2.new(0, 8, 0, 26)
+    container.BackgroundTransparency = 1
+    local innerLayout = Instance.new("UIListLayout", container)
+    innerLayout.Padding = UDim.new(0, 4)
+    innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    return container
+end
+
+-- MODIFIED FACTORY COMPONENTS INSIDE SECTIONS
+local function createToggleSwitch(parent, labelText, callback)
+    local holder = Instance.new("Frame", parent)
+    holder.Size = UDim2.new(1, 0, 0, 32) holder.BackgroundTransparency = 1
+    
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = labelText lbl.Size = UDim2.new(0.6, 0, 1, 0)
     lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12
     lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
     
-    local bgTrack = Instance.new("TextButton", card)
-    bgTrack.Size = UDim2.new(0, 42, 0, 20) bgTrack.Position = UDim2.new(1, -50, 0.5, -10)
+    local bgTrack = Instance.new("TextButton", holder)
+    bgTrack.Size = UDim2.new(0, 38, 0, 18) bgTrack.Position = UDim2.new(1, -38, 0.5, -9)
     bgTrack.BackgroundColor3 = Theme.Bg bgTrack.Text = ""
-    Instance.new("UICorner", bgTrack).CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", bgTrack).CornerRadius = UDim.new(0, 9)
     local tStroke = Instance.new("UIStroke", bgTrack) tStroke.Color = Theme.Stroke
     
     local knob = Instance.new("Frame", bgTrack)
-    knob.Size = UDim2.new(0, 14, 0, 14) knob.Position = UDim2.new(0, 3, 0.5, -7)
-    knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 7)
+    knob.Size = UDim2.new(0, 12, 0, 12) knob.Position = UDim2.new(0, 3, 0.5, -6)
+    knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 6)
     
     local state = false
     bgTrack.MouseButton1Click:Connect(function()
         state = not state
-        local targetX = state and 25 or 3
+        local targetX = state and 23 or 3
         local targetTrackColor = state and Theme.Accent or Theme.Bg
         local targetKnobColor = state and Theme.Bg or Theme.TextMuted
-        TweenService:Create(knob, TweenInfo.new(0.1), {Position = UDim2.new(0, targetX, 0.5, -7), BackgroundColor3 = targetKnobColor}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.1), {Position = UDim2.new(0, targetX, 0.5, -6), BackgroundColor3 = targetKnobColor}):Play()
         TweenService:Create(bgTrack, TweenInfo.new(0.1), {BackgroundColor3 = targetTrackColor}):Play()
         tStroke.Color = state and Theme.Accent or Theme.Stroke
         callback(state)
@@ -358,49 +383,70 @@ local function createToggleSwitch(parent, labelText, callback)
 end
 
 local function createLevelControl(parent, labelText, defaultLvl, min, max, callback)
-    local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, -5, 0, 38) card.BackgroundColor3 = Theme.CardBg
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
-    local cStroke = Instance.new("UIStroke", card) cStroke.Color = Theme.Stroke
+    local holder = Instance.new("Frame", parent)
+    holder.Size = UDim2.new(1, 0, 0, 32) holder.BackgroundTransparency = 1
     
     local currentLvl = defaultLvl
-    local lbl = Instance.new("TextLabel", card)
-    lbl.Text = "  " .. labelText .. ": " .. currentLvl lbl.Size = UDim2.new(0.5, 0, 1, 0)
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = labelText .. ": " .. currentLvl lbl.Size = UDim2.new(0.5, 0, 1, 0)
     lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12
     lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
     
-    local btnMinus = Instance.new("TextButton", card)
-    btnMinus.Text = "–" btnMinus.Size = UDim2.new(0, 24, 0, 24) btnMinus.Position = UDim2.new(1, -32, 0.5, -12)
+    local btnMinus = Instance.new("TextButton", holder)
+    btnMinus.Text = "–" btnMinus.Size = UDim2.new(0, 22, 0, 22) btnMinus.Position = UDim2.new(1, -22, 0.5, -11)
     btnMinus.BackgroundColor3 = Theme.Bg btnMinus.TextColor3 = Theme.TextMain btnMinus.Font = Enum.Font.GothamMedium
     btnMinus.TextSize = 12 Instance.new("UICorner", btnMinus).CornerRadius = UDim.new(0, 4)
     Instance.new("UIStroke", btnMinus).Color = Theme.Stroke
     
-    local btnPlus = Instance.new("TextButton", card)
-    btnPlus.Text = "+" btnPlus.Size = UDim2.new(0, 24, 0, 24) btnPlus.Position = UDim2.new(1, -62, 0.5, -12)
+    local btnPlus = Instance.new("TextButton", holder)
+    btnPlus.Text = "+" btnPlus.Size = UDim2.new(0, 22, 0, 22) btnPlus.Position = UDim2.new(1, -48, 0.5, -11)
     btnPlus.BackgroundColor3 = Theme.Bg btnPlus.TextColor3 = Theme.TextMain btnPlus.Font = Enum.Font.GothamMedium
     btnPlus.TextSize = 12 Instance.new("UICorner", btnPlus).CornerRadius = UDim.new(0, 4)
     Instance.new("UIStroke", btnPlus).Color = Theme.Stroke
     
     btnPlus.MouseButton1Click:Connect(function()
-        if currentLvl < max then currentLvl = currentLvl + 1 lbl.Text = "  " .. labelText .. ": " .. currentLvl callback(currentLvl) end
+        if currentLvl < max then currentLvl = currentLvl + 1 lbl.Text = labelText .. ": " .. currentLvl callback(currentLvl) end
     end)
     btnMinus.MouseButton1Click:Connect(function()
-        if currentLvl > min then currentLvl = currentLvl - 1 lbl.Text = "  " .. labelText .. ": " .. currentLvl callback(currentLvl) end
+        if currentLvl > min then currentLvl = currentLvl - 1 lbl.Text = labelText .. ": " .. currentLvl callback(currentLvl) end
     end)
 end
 
 local function createStandardButton(parent, textDisplay, callback)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -5, 0, 36) btn.BackgroundColor3 = Theme.CardBg
+    btn.Size = UDim2.new(1, 0, 0, 32) btn.BackgroundColor3 = Theme.Bg
     btn.Font = Enum.Font.GothamBold btn.Text = textDisplay btn.TextColor3 = Theme.TextMain btn.TextSize = 12
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     local bStroke = Instance.new("UIStroke", btn) bStroke.Color = Theme.Stroke
     btn.MouseButton1Click:Connect(callback)
 end
 
 -- ====================================================================
--- MOVEMENT MECHANICS (FLY, SPEED, NOCLIP, JUMP BYPASS, INF JUMP)
+-- MOVEMENT SECTION INJECTIONS (NOCLIP PALING ATAS, MASING-MASING DISEKAT)
 -- ====================================================================
+
+-- 1. SEKAT NOCLIP (LayoutOrder = 1)
+local noclipSec = createSectionCard(tabs.Movement.Container, "Noclip Core", 65, 1)
+local noclipConnection
+local noclipActive = false
+createToggleSwitch(noclipSec, "Enable Noclip Mode", function(v)
+    noclipActive = v
+    if v then
+        if noclipConnection then noclipConnection:Disconnect() end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if noclipActive and Player.Character then
+                for _, part in pairs(Player.Character:GetChildren()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end)
+    else
+        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+    end
+end)
+
+-- 2. SEKAT FLY (LayoutOrder = 2)
+local flySec = createSectionCard(tabs.Movement.Container, "Fly Navigation", 95, 2)
 local flying = false
 local flyLevel = 5
 local bg, bv
@@ -450,10 +496,11 @@ local function startFlying()
         end
     end)
 end
+createToggleSwitch(flySec, "Fly Hack Enabled", function(v) if v then startFlying() else stopFlying() end end)
+createLevelControl(flySec, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
-createToggleSwitch(tabs.Movement.Container, "Fly Hack", function(v) if v then startFlying() else stopFlying() end end)
-createLevelControl(tabs.Movement.Container, "Fly Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
-
+-- 3. SEKAT WALKSPEED (LayoutOrder = 3)
+local wsSec = createSectionCard(tabs.Movement.Container, "Speed Regulation", 95, 3)
 local walkToggleState = false
 local walkLevel = 1
 local function updateWalkSpeed()
@@ -462,9 +509,11 @@ local function updateWalkSpeed()
         char:FindFirstChildOfClass("Humanoid").WalkSpeed = walkToggleState and (walkLevel * 10) or 16
     end
 end
-createToggleSwitch(tabs.Movement.Container, "WalkSpeed Bypass", function(v) walkToggleState = v updateWalkSpeed() end)
-createLevelControl(tabs.Movement.Container, "Walk Speed", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
+createToggleSwitch(wsSec, "WalkSpeed Bypass", function(v) walkToggleState = v updateWalkSpeed() end)
+createLevelControl(wsSec, "Speed Multiplier", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
+-- 4. SEKAT JUMPPOWER & INF JUMP (LayoutOrder = 4)
+local jumpSec = createSectionCard(tabs.Movement.Container, "Vertical Boosters", 125, 4)
 local jumpToggleState = false
 local jumpLevel = 5
 local function updateJumpPower()
@@ -475,12 +524,12 @@ local function updateJumpPower()
         hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50
     end
 end
-createToggleSwitch(tabs.Movement.Container, "JumpPower Bypass", function(v) jumpToggleState = v updateJumpPower() end)
-createLevelControl(tabs.Movement.Container, "Jump Power", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
+createToggleSwitch(jumpSec, "JumpPower Bypass", function(v) jumpToggleState = v updateJumpPower() end)
+createLevelControl(jumpSec, "Jump Impulse", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
 local infJumpActive = false
 local infJumpConnection
-createToggleSwitch(tabs.Movement.Container, "Infinite Jump", function(v)
+createToggleSwitch(jumpSec, "Infinite Jump Air", function(v)
     infJumpActive = v
     if v then
         if infJumpConnection then infJumpConnection:Disconnect() end
@@ -491,24 +540,6 @@ createToggleSwitch(tabs.Movement.Container, "Infinite Jump", function(v)
         end)
     else
         if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end
-    end
-end)
-
-local noclipConnection
-local noclipActive = false
-createToggleSwitch(tabs.Movement.Container, "Noclip", function(v)
-    noclipActive = v
-    if v then
-        if noclipConnection then noclipConnection:Disconnect() end
-        noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then
-                for _, part in pairs(Player.Character:GetChildren()) do
-                    if part:IsA("BasePart") then part.CanCollide = false end
-                end
-            end
-        end)
-    else
-        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
     end
 end)
 
@@ -523,7 +554,14 @@ end)
 -- ====================================================================
 local useTweenTeleport = false
 
-createToggleSwitch(tabs.Teleport.Container, "Tween Teleport (Anti-Rubberband)", function(state)
+local tpEngineCard = Instance.new("Frame", tabs.Teleport.Container)
+tpEngineCard.Size = UDim2.new(1, -5, 0, 38) tpEngineCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", tpEngineCard).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", tpEngineCard).Color = Theme.Stroke
+local engineHolder = Instance.new("Frame", tpEngineCard)
+engineHolder.Size = UDim2.new(1, -16, 1, 0) engineHolder.Position = UDim2.new(0, 8, 0, 0) engineHolder.BackgroundTransparency = 1
+
+createToggleSwitch(engineHolder, "Tween Teleport (Anti-Rubberband)", function(state)
     useTweenTeleport = state
 end)
 
@@ -549,7 +587,7 @@ local function masterTeleport(targetCFrame)
 end
 
 -- ====================================================================
--- TELEPORT LOGIC WITH DROPDOWN + ESP WAYPOINT
+-- TELEPORT DROPDOWN LAYER SECURITY
 -- ====================================================================
 local selectedPlayer = ""
 local ddMain = Instance.new("Frame", tabs.Teleport.Container)
@@ -570,10 +608,10 @@ btnTpPlayer.TextColor3 = Theme.Accent btnTpPlayer.Font = Enum.Font.GothamBold
 Instance.new("UICorner", btnTpPlayer).CornerRadius = UDim.new(0, 4)
 Instance.new("UIStroke", btnTpPlayer).Color = Theme.Stroke
 
-local ddScroll = Instance.new("ScrollingFrame", MainFrame)
-ddScroll.Size = UDim2.new(0, 240, 0, 110) ddScroll.Position = UDim2.new(0.3, 0, 0.5, 0)
+local ddScroll = Instance.new("ScrollingFrame", MainGui) -- Pindah ke MainGui langsung agar layer paling top
+ddScroll.Size = UDim2.new(0, 240, 0, 110) ddScroll.Position = UDim2.new(0.4, 0, 0.45, 0)
 ddScroll.BackgroundColor3 = Theme.CardBg ddScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-ddScroll.ScrollBarThickness = 3 ddScroll.Visible = false ddScroll.ZIndex = 10
+ddScroll.ScrollBarThickness = 3 ddScroll.Visible = false ddScroll.ZIndex = 999999
 Instance.new("UICorner", ddScroll).CornerRadius = UDim.new(0, 6)
 Instance.new("UIStroke", ddScroll).Color = Theme.Accent
 Instance.new("UIListLayout", ddScroll).SortOrder = Enum.SortOrder.LayoutOrder
@@ -587,7 +625,7 @@ local function updateDropdown()
             local pBtn = Instance.new("TextButton", ddScroll)
             pBtn.Size = UDim2.new(1, 0, 0, 28) pBtn.BackgroundTransparency = 1
             pBtn.Font = Enum.Font.GothamMedium pBtn.Text = "  " .. p.Name
-            pBtn.TextColor3 = Theme.TextMain pBtn.TextSize = 12 pBtn.TextXAlignment = Enum.TextXAlignment.Left pBtn.ZIndex = 10
+            pBtn.TextColor3 = Theme.TextMain pBtn.TextSize = 12 pBtn.TextXAlignment = Enum.TextXAlignment.Left pBtn.ZIndex = 999999
             pBtn.MouseButton1Click:Connect(function()
                 selectedPlayer = p.Name ddTrigger.Text = "  " .. p.Name .. " ▼" ddScroll.Visible = false
             end)
@@ -649,7 +687,7 @@ createWaypointUI("Slot4", "Waypoint 4")
 createWaypointUI("Slot5", "Waypoint 5")
 
 -- ====================================================================
--- UTILITIES & MASTER TOOLS MECHANICS (HEADSIT, TOOLS, BTOOLS, X-RAY)
+-- UTILITIES SYSTEM & THE POWERFUL COPY TARGET TOOLS
 -- ====================================================================
 local funTargetName = ""
 local headSitting = false
@@ -666,10 +704,10 @@ ddTriggerF.TextSize = 11 ddTriggerF.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", ddTriggerF).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", ddTriggerF).Color = Theme.Stroke
 
-local ddScrollF = Instance.new("ScrollingFrame", MainFrame)
-ddScrollF.Size = UDim2.new(0, 240, 0, 110) ddScrollF.Position = UDim2.new(0.3, 0, 0.5, 0)
+local ddScrollF = Instance.new("ScrollingFrame", MainGui) -- Pindah ke MainGui langsung agar layer paling top
+ddScrollF.Size = UDim2.new(0, 240, 0, 110) ddScrollF.Position = UDim2.new(0.4, 0, 0.45, 0)
 ddScrollF.BackgroundColor3 = Theme.CardBg ddScrollF.CanvasSize = UDim2.new(0, 0, 0, 0)
-ddScrollF.ScrollBarThickness = 3 ddScrollF.Visible = false ddScrollF.ZIndex = 10
+ddScrollF.ScrollBarThickness = 3 ddScrollF.Visible = false ddScrollF.ZIndex = 999999
 Instance.new("UICorner", ddScrollF).CornerRadius = UDim.new(0, 6)
 Instance.new("UIStroke", ddScrollF).Color = Theme.Accent
 Instance.new("UIListLayout", ddScrollF).SortOrder = Enum.SortOrder.LayoutOrder
@@ -683,7 +721,7 @@ local function updateFunDropdown()
             local pBtn = Instance.new("TextButton", ddScrollF)
             pBtn.Size = UDim2.new(1, 0, 0, 28) pBtn.BackgroundTransparency = 1
             pBtn.Font = Enum.Font.GothamMedium pBtn.Text = "  " .. p.Name
-            pBtn.TextColor3 = Theme.TextMain pBtn.TextSize = 12 pBtn.TextXAlignment = Enum.TextXAlignment.Left pBtn.ZIndex = 10
+            pBtn.TextColor3 = Theme.TextMain pBtn.TextSize = 12 pBtn.TextXAlignment = Enum.TextXAlignment.Left pBtn.ZIndex = 999999
             pBtn.MouseButton1Click:Connect(function()
                 funTargetName = p.Name ddTriggerF.Text = "  Selected: " .. p.Name .. " ▼" ddScrollF.Visible = false
             end)
@@ -693,7 +731,42 @@ local function updateFunDropdown()
 end
 ddTriggerF.MouseButton1Click:Connect(function() ddScrollF.Visible = not ddScrollF.Visible if ddScrollF.Visible then updateFunDropdown() end end)
 
-createToggleSwitch(tabs.Utilities.Container, "Headsit Target", function(state)
+-- SEKAT UNTUK COPIER & HEADSIT
+local actionSec = createSectionCard(tabs.Utilities.Container, "Target Interaction", 110, 1)
+
+-- REQ BARU: FITUR COPY PLAYER TOOLS SYSTEM
+createStandardButton(actionSec, "🎒 Copy Target Tools", function()
+    if funTargetName ~= "" then
+        local target = Players:FindFirstChild(funTargetName)
+        local myBackpack = Player:FindFirstChild("Backpack")
+        if target and myBackpack then
+            local copiedCount = 0
+            -- Ambil tool yang sedang dia pegang di karakter
+            if target.Character then
+                for _, obj in pairs(target.Character:GetChildren()) do
+                    if obj:IsA("Tool") then
+                        local clone = obj:Clone()
+                        clone.Parent = myBackpack
+                        copiedCount = copiedCount + 1
+                    end
+                end
+            end
+            -- Ambil tool yang disimpan di tas dia
+            if target:FindFirstChild("Backpack") then
+                for _, obj in pairs(target.Backpack:GetChildren()) do
+                    if obj:IsA("Tool") then
+                        local clone = obj:Clone()
+                        clone.Parent = myBackpack
+                        copiedCount = copiedCount + 1
+                    end
+                end
+            end
+            print("[QUANTUM COPIER]: Successfully cloned " .. copiedCount .. " tools from " .. target.Name)
+        end
+    end
+end)
+
+createToggleSwitch(actionSec, "Headsit Target", function(state)
     headSitting = state
     if headSitConnection then headSitConnection:Disconnect() headSitConnection = nil end
     if not state then 
@@ -715,9 +788,9 @@ createToggleSwitch(tabs.Utilities.Container, "Headsit Target", function(state)
     end)
 end)
 
--- ==========================================
--- ADVANCED X-RAY MECHANIC
--- ==========================================
+-- SEKAT UNTUK MAP UTILITIES
+local mapSec = createSectionCard(tabs.Utilities.Container, "Map Exploration Tools", 145, 2)
+
 local xrayActive = false
 local originalTransparencies = {}
 
@@ -743,7 +816,7 @@ local function removeXray()
     table.clear(originalTransparencies)
 end
 
-createToggleSwitch(tabs.Utilities.Container, "X-Ray Vision (Tembus Dinding)", function(state)
+createToggleSwitch(mapSec, "X-Ray Vision (Transparan)", function(state)
     xrayActive = state
     if state then
         applyXray()
@@ -762,7 +835,7 @@ createToggleSwitch(tabs.Utilities.Container, "X-Ray Vision (Tembus Dinding)", fu
     end
 end)
 
-createStandardButton(tabs.Utilities.Container, "🎒 Grab All Tools in Map", function()
+createStandardButton(mapSec, "🎒 Grab All Tools in Map", function()
     local backpack = Player:FindFirstChild("Backpack")
     if backpack then
         for _, obj in pairs(workspace:GetDescendants()) do
@@ -771,7 +844,7 @@ createStandardButton(tabs.Utilities.Container, "🎒 Grab All Tools in Map", fun
     end
 end)
 
-createStandardButton(tabs.Utilities.Container, "🔨 Give Classic BTools (Delete)", function()
+createStandardButton(mapSec, "🔨 Give Classic BTools (Delete)", function()
     local backpack = Player:FindFirstChild("Backpack")
     if backpack then
         local btool = Instance.new("Tool")
@@ -795,19 +868,23 @@ createStandardButton(tabs.Setting.Container, "🔴 Destroy Quantum Hub UI", func
     if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
     stopFlying()
     for slot, _ in pairs(waypointSlots) do clearWaypointESP(slot) end
+    ddScroll:Destroy()
+    ddScrollF:Destroy()
     MainGui:Destroy()
 end)
 
 createStandardButton(tabs.Setting.Container, "🔄 Re-Load UI Script", function()
+    ddScroll:Destroy()
+    ddScrollF:Destroy()
     MainGui:Destroy()
     task.wait(0.2)
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Ar-ScriptHub/AR-ScriptHub/refs/heads/main/main.lua"))()
 end)
 
--- TRIGGER LOADING UNTUK DIJALANKAN DI AWAL SEBELUM MAIN PANEL MUNCUL
+-- EXECUTE INTRO LOAD ANIMATION
 task.spawn(function()
     runLoading()
-    MainFrame.Visible = true -- Tampilkan menu utama setelah loading sukses
+    MainFrame.Visible = true 
 end)
 
-print("[QUANTUM HUB V3.7]: Successfully Loaded with Cyber Loading Screen.")
+print("[QUANTUM HUB V3.8]: Premium Sections Built Successfully.")
