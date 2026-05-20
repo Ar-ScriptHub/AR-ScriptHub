@@ -37,6 +37,28 @@ local Theme = {
     ConfirmGreen = Color3.fromRGB(90, 255, 140)
 }
 
+-- CONFIG STATE SYSTEM (SEMUA FUNGSI BERJALAN DISINI)
+local Config = {
+    FlyMode = false,
+    FlySpeed = 16,
+    Noclip = false,
+    SuperSpeed = false,
+    SuperSpeedVal = 16,
+    SuperJump = false,
+    SuperJumpVal = 50,
+    InfiniteJump = false,
+    AntiRagdoll = false,
+    InfiniteOxygen = false,
+    EnableESP = false,
+    ShowBoxes = false,
+    ShowNames = false,
+    ShowTracers = false,
+    TeamCheck = false,
+    MaxDistance = 1000,
+    ShadowsDisabled = false,
+    AntiLag = false
+}
+
 -- ====================================================================
 -- GLOBAL SYSTEM POP-UP CONFIRMATION (ANTI-KETUTUPAN)
 -- ====================================================================
@@ -443,8 +465,8 @@ local function createCard(parent, titleText, order)
     return container
 end
 
--- COMPONENT PRIMITIVES
-local function addToggle(parent, labelText, order)
+-- COMPONENT PRIMITIVES WITH FUNCTIONAL BINDING
+local function addToggle(parent, labelText, order, configKey, callback)
     local holder = Instance.new("Frame", parent) 
     holder.Size = UDim2.new(1, 0, 0, 24) 
     holder.BackgroundTransparency = 1 
@@ -455,16 +477,18 @@ local function addToggle(parent, labelText, order)
     local track = Instance.new("TextButton", holder) 
     track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
     local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
-    local active = false
+    
     track.MouseButton1Click:Connect(function()
-        active = not active
+        Config[configKey] = not Config[configKey]
+        local active = Config[configKey]
         TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -5)}):Play()
         TweenService:Create(track, TweenInfo.new(0.08), {BackgroundColor3 = active and Theme.Accent or Theme.Bg}):Play()
         tStr.Color = active and Theme.Accent or Theme.Stroke
+        if callback then callback(active) end
     end)
 end
 
-local function addSliderWithInput(parent, labelText, min, max, defaultVal, order)
+local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
     local holder = Instance.new("Frame", parent)
     holder.Size = UDim2.new(1, 0, 0, 38)
     holder.BackgroundTransparency = 1
@@ -486,8 +510,10 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 
     local function refreshVisuals(value)
         local clampedValue = math.clamp(value, min, max)
+        Config[configKey] = clampedValue
         local perc = (clampedValue - min) / (max - min)
         fill.Size = UDim2.new(perc, 0, 1, 0) knob.Position = UDim2.new(perc, -5, 0.5, -5) inputBox.Text = tostring(clampedValue)
+        if callback then callback(clampedValue) end
     end
 
     local sliding = false
@@ -503,23 +529,220 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
     inputBox.FocusLost:Connect(function(enterPressed) local num = tonumber(inputBox.Text) if num then refreshVisuals(num) else refreshVisuals(min) end end)
 end
 
--- PERAKITAN TAB PLAYER
+-- ====================================================================
+-- ENGINE BACKEND (FUNCTIONS IMPLEMENTATION)
+-- ====================================================================
+
+-- 1. Fly & Noclip Engine
+local flyPart
+RunService.Stepped:Connect(function()
+    if Config.Noclip and Player.Character then
+        for _, part in pairs(Player.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+local function updateFly()
+    if Config.FlyMode and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = Player.Character.HumanoidRootPart
+        if not flyPart or not flyPart:IsDescendantOf(workspace) then
+            flyPart = Instance.new("Part")
+            flyPart.Size = Vector3.new(2, 0.2, 2)
+            flyPart.Transparency = 1
+            flyPart.Anchored = true
+            flyPart.Parent = workspace
+        end
+        
+        task.spawn(function()
+            while Config.FlyMode and Player.Character and hrp and flyPart do
+                local cam = workspace.CurrentCamera
+                local moveDir = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0,1,0) end
+                
+                if moveDir.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + (moveDir.Unit * (Config.FlySpeed / 10))
+                end
+                hrp.Velocity = Vector3.new(0,0,0)
+                flyPart.CFrame = hrp.CFrame * CFrame.new(0, -2.1, 0)
+                task.wait()
+            end
+            if flyPart then flyPart:Destroy() flyPart = nil end
+        end)
+    else
+        if flyPart then flyPart:Destroy() flyPart = nil end
+    end
+end
+
+-- 2. Speed & Jump Engine
+Player.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum then
+        if Config.SuperSpeed then hum.WalkSpeed = Config.SuperSpeedVal end
+        if Config.SuperJump then hum.JumpPower = Config.SuperJumpVal hum.UseJumpPower = true end
+    end
+end)
+
+local function updateSpeed()
+    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+        Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
+    end
+end
+
+local function updateJump()
+    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+        hum.UseJumpPower = true
+        hum.JumpPower = Config.SuperJump and Config.SuperJumpVal or 50
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
+        if Config.InfiniteJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+            Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- 3. Utilities Engine (Anti-Ragdoll & Infinite Oxygen)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Config.AntiRagdoll and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+            local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        end
+        if Config.InfiniteOxygen and Player.Character then
+            local oxygen = Player.Character:FindFirstChild("Oxygen") or Player:FindFirstChild("Oxygen")
+            if oxygen and oxygen:IsA("NumberValue") then oxygen.Value = 100 end
+        end
+    end
+end)
+
+-- 4. ESP Framework
+local espObjects = {}
+local function createESP(targetPlayer)
+    if targetPlayer == Player then return end
+    local boxes, names, tracers = {}, {}, {}
+    
+    local function cleanESP()
+        if boxes.Box then boxes.Box:Destroy() end
+        if names.Label then names.Label:Destroy() end
+        if tracers.Line then tracers.Line:Destroy() end
+    end
+    
+    local updater = RunService.RenderStepped:Connect(function()
+        if not Config.EnableESP or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+            cleanESP() return
+        end
+        
+        local char = targetPlayer.Character
+        local hrp = char.HumanoidRootPart
+        local cam = workspace.CurrentCamera
+        local pos, onScreen = cam:WorldToViewportPoint(hrp.Position)
+        local distance = (Player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+        
+        if Config.TeamCheck and targetPlayer.Team == Player.Team then cleanESP() return end
+        if distance > Config.MaxDistance or not onScreen then cleanESP() return end
+        
+        -- Box ESP
+        if Config.ShowBoxes then
+            if not boxes.Box then
+                local b = Instance.new("BoxHandleAdornment")
+                b.Size = Vector3.new(4, 5.5, 4)
+                b.Color3 = Theme.Accent
+                b.AlwaysOnTop = true
+                b.ZIndex = 5
+                b.Transparency = 0.6
+                boxes.Box = b
+            end
+            boxes.Box.Adornee = char
+            boxes.Box.Parent = SafeGuiTarget
+        else
+            if boxes.Box then boxes.Box:Destroy() boxes.Box = nil end
+        end
+        
+        -- Name ESP
+        if Config.ShowNames then
+            if not names.Label then
+                local bgu = Instance.new("BillboardGui")
+                bgu.Size = UDim2.new(0, 200, 0, 50)
+                bgu.AlwaysOnTop = true
+                bgu.StudsOffset = Vector3.new(0, 3, 0)
+                local lbl = Instance.new("TextLabel", bgu)
+                lbl.Size = UDim2.new(1, 0, 1, 0)
+                lbl.BackgroundTransparency = 1
+                lbl.TextColor3 = Theme.TextMain
+                lbl.Font = Enum.Font.GothamBold
+                lbl.TextSize = 10
+                names.Label = bgu
+                names.Txt = lbl
+            end
+            names.Txt.Text = string.format("%s\n[%d m]", targetPlayer.DisplayName, math.round(distance))
+            names.Label.Adornee = hrp
+            names.Label.Parent = SafeGuiTarget
+        else
+            if names.Label then names.Label:Destroy() names.Label = nil end
+        end
+    end)
+    espObjects[targetPlayer] = {Connection = updater, Clean = cleanESP}
+end
+
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(function(p) if espObjects[p] then espObjects[p].Connection:Disconnect() espObjects[p].Clean() espObjects[p] = nil end end)
+for _, p in pairs(Players:GetPlayers()) do createESP(p) end
+
+-- 5. Environment Graphics Modifier (Anti-Lag & Shadows)
+local function updateGraphics()
+    game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
+    if Config.AntiLag then
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end
+end
+
+-- ====================================================================
+-- PERAKITAN TAB PLAYER (DISPLAY RAKITAN ASLI 100%)
+-- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly", 1)
-addToggle(flyCard, "Fly Mode", 1) addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2) addToggle(flyCard, "Noclip", 3)
+addToggle(flyCard, "Fly Mode", 1, "FlyMode", updateFly) 
+addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2, "FlySpeed") 
+addToggle(flyCard, "Noclip", 3, "Noclip")
+
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
-addToggle(walkCard, "Super Speed", 1) addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2)
+addToggle(walkCard, "Super Speed", 1, "SuperSpeed", updateSpeed) 
+addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2, "SuperSpeedVal", updateSpeed)
+
 local jumpCard = createCard(RightColumn, "Jump", 1)
-addToggle(jumpCard, "Super Jump", 1) addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2) addToggle(jumpCard, "Infinite Jump", 3)
+addToggle(jumpCard, "Super Jump", 1, "SuperJump", updateJump) 
+addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2, "SuperJumpVal", updateJump) 
+addToggle(jumpCard, "Infinite Jump", 3, "InfiniteJump")
+
 local physicsCard = createCard(LeftColumn, "Physics", 3)
-addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1) addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
+addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1, "Gravity", function(val) workspace.Gravity = val end) 
+addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2, "HipHeight", function(val) if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val end end)
+
 local utilCard = createCard(RightColumn, "Utilities", 2)
-addToggle(utilCard, "Anti Ragdoll", 1) addToggle(utilCard, "Infinite Oxygen", 2)
+addToggle(utilCard, "Anti Ragdoll", 1, "AntiRagdoll") 
+addToggle(utilCard, "Infinite Oxygen", 2, "InfiniteOxygen")
 
 -- PERAKITAN TAB ESP
 local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
-addToggle(playerEspCard, "Enable ESP", 1) addToggle(playerEspCard, "Show Boxes", 2) addToggle(playerEspCard, "Show Names", 3) addToggle(playerEspCard, "Show Tracers", 4)
+addToggle(playerEspCard, "Enable ESP", 1, "EnableESP") 
+addToggle(playerEspCard, "Show Boxes", 2, "ShowBoxes") 
+addToggle(playerEspCard, "Show Names", 3, "ShowNames") 
+addToggle(playerEspCard, "Show Tracers", 4, "ShowTracers")
+
 local espSettingsCard = createCard(espRightColumn, "ESP Settings", 1)
-addToggle(espSettingsCard, "Team Check", 1) addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
+addToggle(espSettingsCard, "Team Check", 1, "TeamCheck") 
+addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2, "MaxDistance")
 
 -- ====================================================================
 -- PERAKITAN TAB TELEPORTATION
@@ -716,7 +939,7 @@ end)
 refreshLandmarksUI()
 
 -- ====================================================================
--- PERAKITAN TAB SERVER (v6.7 - SERVER ENGINE & UTILITIES)
+-- PERAKITAN TAB SERVER
 -- ====================================================================
 local serverLeftColumn = Instance.new("Frame", menuContainers["Server"])
 serverLeftColumn.Name = "ServerLeftColumn"
@@ -737,7 +960,6 @@ local sLayoutR = Instance.new("UIListLayout", serverRightColumn)
 sLayoutR.Padding = UDim.new(0, 12)
 sLayoutR.SortOrder = Enum.SortOrder.LayoutOrder
 
--- SERVER STATS CARD
 local statsCard = createCard(serverLeftColumn, "Server Stats", 1)
 
 local function createStatLabel(parent, labelText, order)
@@ -757,37 +979,22 @@ local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
 local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 
--- FIX ENGINE ENGINE: REAL-TIME LOOP STATS DYNAMIC (ANTI-ERROR & ANTI-STUCK 0)
 task.spawn(function()
     while task.wait(0.5) do
         if not MainGui or not MainGui.Parent then break end
-        
-        -- Deteksi murni status visibilitas halaman server tanpa macet saat pindah tab
         if menuContainers["Server"] and menuContainers["Server"].Visible == true then
-            -- 1. FPS Tracker
             local fps = math.round(1 / RunService.RenderStepped:Wait())
             lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
             lblFps.RichText = true
             
-            -- 2. SAFE PING DETECTOR (Anti-Block Multi-Executor Fallback)
-            local startTick = tick()
             local pingValue = 0
-            pcall(function()
-                pingValue = math.round(Player:GetNetworkPing() * 1000)
-            end)
+            pcall(function() pingValue = math.round(Player:GetNetworkPing() * 1000) end)
             if pingValue <= 0 then
-                -- Fallback cerdas jika API Executor mematikan modul GetNetworkPing murni Roblox
-                pcall(function()
-                    pingValue = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
-                end)
-                if pingValue <= 0 then
-                    pingValue = math.round((tick() - startTick) * 1000) + math.random(12, 28)
-                end
+                pcall(function() pingValue = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
             end
             lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingValue) .. " ms</font>"
             lblPing.RichText = true
             
-            -- 3. Server Age Tracker
             local sTime = math.round(workspace.DistributedGameTime)
             local hours = string.format("%02d", math.floor(sTime / 3600))
             local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
@@ -798,7 +1005,6 @@ task.spawn(function()
     end
 end)
 
--- SERVER NAVIGATION CARD
 local navCard = createCard(serverLeftColumn, "Server Navigation", 2)
 
 local function createServerButton(parent, text, color, onClick, order)
@@ -838,7 +1044,6 @@ createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 6
     end)
 end, 2)
 
--- OPTIMIZATION CARD
 local optiCard = createCard(serverRightColumn, "Optimization", 1)
 
 createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(25, 45, 35), function()
@@ -852,8 +1057,8 @@ createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(2
     showConfirmation("Pembersihan selesai!\nBerhasil menghapus " .. tostring(count) .. " objek visual.", function() end)
 end, 1)
 
-addToggle(optiCard, "Shadows Disabler", 2)
-addToggle(optiCard, "Anti-Lag (Low Graphics)", 3)
+addToggle(optiCard, "Shadows Disabler", 2, "ShadowsDisabled", updateGraphics)
+addToggle(optiCard, "Anti-Lag (Low Graphics)", 3, "AntiLag", updateGraphics)
 
 -- ====================================================================
 -- ANIMATION SYSTEM INTRO & DEPLOY
