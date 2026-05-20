@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - STRICT ABSOLUTE OFFSET GRID (v6.1 - SHIFTED RIGHT)
+-- AR SCRIPT HUB - v6.2 FULL PRODUCTION DEPLOY (TELEPORT UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -149,7 +149,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.1</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.2</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -192,7 +192,7 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN DENGAN SCROLL
+-- CANVAS UTAMA KONTEN DENGAN SCROLL (PEMBATAS DIHAPUS, SCROLLBAR DI DALAM SPACE)
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -16, 1, -105)
@@ -201,9 +201,8 @@ MainContentFrame.BackgroundTransparency = 1
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
--- KUNCI UTAMA: Menghilangkan sekat pembatas otomatis dari Roblox
-MainContentFrame.VerticalScrollBarInset = Enum.ScrollBarInset.None -- Pembatas hilang total!
-MainContentFrame.ScrollBarThickness = 3 -- Dibuat agak tipis (3px) biar elegan di dalam space kosong
+MainContentFrame.VerticalScrollBarInset = Enum.ScrollBarInset.None -- Pembatas Hilang Total!
+MainContentFrame.ScrollBarThickness = 3 -- Ramping melayang di kanan
 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
 
@@ -211,20 +210,17 @@ local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 20)
 framePadding.PaddingLeft = UDim.new(0, 16)
-framePadding.PaddingRight = UDim.new(0, 0) -- Tetap 0 biar space kosong lu ga kegeser padding
+framePadding.PaddingRight = UDim.new(0, 0) -- Biar space kosong murni terbentuk dari koordinat
+
 local menuContainers = {}
 
--- FUNGSI KREASI HALAMAN (No-Grid, Absolute Positioning)
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    -- KUNCI 1: Halaman ditarik penuh sesuai area canvas (536px area efektif)
     page.Size = UDim2.new(0, 536, 0, 0)
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
-    
-    -- KUNCI 2: UIListLayout tengah dimatikan untuk menggunakan posisi offset absolut
     
     menuContainers[name] = page
     return page
@@ -273,10 +269,10 @@ addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- PLACEHOLDER MAKER
+-- PLACEHOLDER MAKER (Hanya untuk Server)
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(1, 0, 0, 150)
+    card.Size = UDim2.new(0, 519, 0, 150) -- Disesuaikan agar serasi lurus
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -287,129 +283,17 @@ local function buildPlaceholder(pageFrame, titleText)
     txt.Text = "<b>" .. titleText .. " MENU FRAMEWORK</b>\n\nArea kosong siap diisi komponen kustom."
     txt.RichText = true txt.Font = Enum.Font.GothamMedium txt.TextColor3 = Theme.TextMuted txt.TextSize = 12 txt.BackgroundTransparency = 1 txt.TextYAlignment = Enum.TextYAlignment.Center
 end
--- ====================================================================
--- PERAKITAN KONTEN SIMETRIS: TELEPORTATION (BAGIAN BARU)
--- ====================================================================
-
--- Buat struktur kolom kiri dan kanan khusus untuk halaman Teleportation
-local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn")
-local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
-
--- --- KOLOM KIRI ---
--- Card 1: Player Teleport
-local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
-
--- Komponen Input Nama Player
-local inputPlayerFrame = Instance.new("Frame", playerTpCard)
-inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28)
-inputPlayerFrame.BackgroundTransparency = 1
-inputPlayerFrame.LayoutOrder = 1
-
-local tpPlayerInput = Instance.new("TextBox", inputPlayerFrame)
-tpPlayerInput.Size = UDim2.new(1, 0, 1, 0)
-tpPlayerInput.BackgroundColor3 = Theme.Bg
-tpPlayerInput.Font = Enum.Font.GothamMedium
-tpPlayerInput.PlaceholderText = "Masukkan nama player..."
-tpPlayerInput.Text = ""
-tpPlayerInput.TextColor3 = Theme.TextMain
-tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
-tpPlayerInput.TextSize = 11
-tpPlayerInput.ClearTextOnFocus = true
-Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5)
-local inputStroke = Instance.new("UIStroke", tpPlayerInput)
-inputStroke.Color = Theme.Stroke
-
--- Tombol Eksekusi Teleport
-local btnPlayerTp = Instance.new("TextButton", playerTpCard)
-btnPlayerTp.Size = UDim2.new(1, 0, 0, 26)
-btnPlayerTp.BackgroundColor3 = Theme.Accent
-btnPlayerTp.Font = Enum.Font.GothamBold
-btnPlayerTp.Text = "⚡ Teleport ke Player"
-btnPlayerTp.TextColor3 = Theme.Bg
-btnPlayerTp.TextSize = 11
-btnPlayerTp.LayoutOrder = 2
-Instance.new("UICorner", btnPlayerTp).CornerRadius = UDim.new(0, 5)
-
--- Fungsi Logika Teleport ke Player
-btnPlayerTp.MouseButton1Click:Connect(function()
-    local targetName = tpPlayerInput.Text:lower()
-    if targetName ~= "" then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                    Player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
-                    break
-                end
-            end
-        end
-    end
-end)
-
--- Card 2: Custom Waypoints (Simpan Koordinat)
-local waypointCard = createCard(tpLeftColumn, "Custom Waypoints", 2)
-addToggle(waypointCard, "Auto-Save Position", 1)
-
-local btnSavePos = Instance.new("TextButton", waypointCard)
-btnSavePos.Size = UDim2.new(1, 0, 0, 24)
-btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 38, 68)
-btnSavePos.Font = Enum.Font.GothamBold
-btnSavePos.Text = "💾 Simpan Posisi Saat Ini"
-btnSavePos.TextColor3 = Theme.Accent
-btnSavePos.TextSize = 11
-btnSavePos.LayoutOrder = 2
-Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
-
-
--- --- KOLOM KANAN ---
--- Card 3: Map Landmarks / Teleportasi Area
-local areaTpCard = createCard(tpRightColumn, "Map Landmarks", 1)
-
--- Fungsi pembantu bikin tombol lokasi cepat
-local function addLocationButton(parent, locationName, cframeValue, order)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 26)
-    btn.BackgroundColor3 = Theme.CardBg
-    btn.Font = Enum.Font.GothamMedium
-    btn.Text = "📍 " .. locationName
-    btn.TextColor3 = Theme.TextMain
-    btn.TextSize = 11
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    local bStr = Instance.new("UIStroke", btn)
-    bStr.Color = Theme.Stroke
-    
-    btn.MouseButton1Click:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = cframeValue
-        end
-    end)
-    
-    -- Efek hover sederhana
-    btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
-    btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
-end
-
--- Dummy lokasi koordinat (Silakan ganti Vector3/CFrame-nya sesuai game yang lu mainkan, bro!)
-addLocationButton(areaTpCard, "Spawn Area", CFrame.new(0, 10, 0), 1)
-addLocationButton(areaTpCard, "Main Shop / Pasar", CFrame.new(100, 15, -250), 2)
-addLocationButton(areaTpCard, "VIP Zone", CFrame.new(-500, 20, 500), 3)
-addLocationButton(areaTpCard, "Dungeon / Arena", CFrame.new(1200, 5, 1200), 4)
 buildPlaceholder(serverPage, "SERVER")
 
 -- SETTING PAGE DISSOLVE
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,0,150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
-local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 519, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- KUNCI POSISI SIMETRIS ABSOLUT (262px Kiri, Sekat 5px, 262px Kanan Shifted)
--- ====================================================================
--- KUNCI POSISI BARU: CARD KECIL 5PX & MERAPAT PUSAT KIRI
--- ====================================================================
+-- SISTEM FILTER SEKAT 5PX & CARD RAMING 257PX PUSAT KIRI
 local function createLeftColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    -- Kolom kiri dikecilkan jadi 257px, posisi tetap nempel kiri (X = 0)
     col.Size = UDim2.new(0, 257, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
     col.Position = UDim2.new(0, 0, 0, 0) 
@@ -424,10 +308,9 @@ end
 local function createShiftedRightColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    -- Kolom kanan dikecilkan jadi 257px, koordinat X digeser ke kiri jadi 262
     col.Size = UDim2.new(0, 257, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 262, 0, 0) 
+    col.Position = UDim2.new(0, 262, 0, 0) -- 257 + 5px sekat tengah
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
@@ -436,11 +319,16 @@ local function createShiftedRightColumn(parentName, columnName)
     return col
 end
 
+-- Registrasi Kolom-Kolom Utama Halaman
 local LeftColumn = createLeftColumn("Player", "LeftColumn")
 local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
 local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
+
+local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn")
+local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
+
 -- FUNGSI KREASI CARD AUTOMATIC SIZE
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
@@ -582,7 +470,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if sliding and (input.UserInputType == MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
             local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
             local finalVal = math.round(min + (perc * (max - min)))
@@ -635,6 +523,100 @@ addToggle(espSettingsCard, "Team Check", 1)
 addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
+-- PERAKITAN CARD TAB TELEPORTATION
+-- ====================================================================
+local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
+
+local inputPlayerFrame = Instance.new("Frame", playerTpCard)
+inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28)
+inputPlayerFrame.BackgroundTransparency = 1
+inputPlayerFrame.LayoutOrder = 1
+
+local tpPlayerInput = Instance.new("TextBox", inputPlayerFrame)
+tpPlayerInput.Size = UDim2.new(1, 0, 1, 0)
+tpPlayerInput.BackgroundColor3 = Theme.Bg
+tpPlayerInput.Font = Enum.Font.GothamMedium
+tpPlayerInput.PlaceholderText = "Masukkan nama player..."
+tpPlayerInput.Text = ""
+tpPlayerInput.TextColor3 = Theme.TextMain
+tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
+tpPlayerInput.TextSize = 11
+tpPlayerInput.ClearTextOnFocus = true
+Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5)
+local inputStroke = Instance.new("UIStroke", tpPlayerInput)
+inputStroke.Color = Theme.Stroke
+
+local btnPlayerTp = Instance.new("TextButton", playerTpCard)
+btnPlayerTp.Size = UDim2.new(1, 0, 0, 26)
+btnPlayerTp.BackgroundColor3 = Theme.Accent
+btnPlayerTp.Font = Enum.Font.GothamBold
+btnPlayerTp.Text = "⚡ Teleport ke Player"
+btnPlayerTp.TextColor3 = Theme.Bg
+btnPlayerTp.TextSize = 11
+btnPlayerTp.LayoutOrder = 2
+Instance.new("UICorner", btnPlayerTp).CornerRadius = UDim.new(0, 5)
+
+btnPlayerTp.MouseButton1Click:Connect(function()
+    local targetName = tpPlayerInput.Text:lower()
+    if targetName ~= "" then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
+                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    Player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+                    break
+                end
+            end
+        end
+    end
+end)
+
+local waypointCard = createCard(tpLeftColumn, "Custom Waypoints", 2)
+addToggle(waypointCard, "Auto-Save Position", 1)
+
+local btnSavePos = Instance.new("TextButton", waypointCard)
+btnSavePos.Size = UDim2.new(1, 0, 0, 24)
+btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 38, 68)
+btnSavePos.Font = Enum.Font.GothamBold
+btnSavePos.Text = "💾 Simpan Posisi Saat Ini"
+btnSavePos.TextColor3 = Theme.Accent
+btnSavePos.TextSize = 11
+btnSavePos.LayoutOrder = 2
+Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
+
+-- Landmarks Area
+local areaTpCard = createCard(tpRightColumn, "Map Landmarks", 1)
+
+local function addLocationButton(parent, locationName, cframeValue, order)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, 0, 0, 26)
+    btn.BackgroundColor3 = Theme.CardBg
+    btn.Font = Enum.Font.GothamMedium
+    btn.Text = "📍 " .. locationName
+    btn.TextColor3 = Theme.TextMain
+    btn.TextSize = 11
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    local bStr = Instance.new("UIStroke", btn)
+    bStr.Color = Theme.Stroke
+    
+    btn.MouseButton1Click:Connect(function()
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            Player.Character.HumanoidRootPart.CFrame = cframeValue
+        end
+    end)
+    
+    btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
+    btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
+end
+
+-- Dummy Coordinates (Bisa lu ubah sesuka hati nanti)
+addLocationButton(areaTpCard, "Spawn Area", CFrame.new(0, 10, 0), 1)
+addLocationButton(areaTpCard, "Main Shop / Pasar", CFrame.new(100, 15, -250), 2)
+addLocationButton(areaTpCard, "VIP Zone", CFrame.new(-500, 20, 500), 3)
+addLocationButton(areaTpCard, "Dungeon / Arena", CFrame.new(1200, 5, 1200), 4)
+
+-- ====================================================================
 -- ANIMATION SYSTEM INTRO & DEPLOY
 -- ====================================================================
 task.spawn(function()
@@ -680,6 +662,6 @@ task.spawn(function()
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
-        print("[AR FRAMEWORK]: Right Column Shifted to Left (Sekat 5px, Ruang Kosong Kanan Deployed)!")
+        print("[AR FRAMEWORK v6.2]: Full Grid Shifted Layout deployed and synchronized successfully!")
     end)
 end)
