@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - OFFICIAL VERSION v5.6 (TWO-COLUMN GROUPED EDITION)
+-- AR SCRIPT HUB - v5.6 (CLEAN COMPACT TWO-COLUMN EDITION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -7,8 +7,6 @@ local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitFo
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 
 -- Bersihkan GUI Lama jika ada
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
@@ -21,7 +19,6 @@ MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 999999999
 
--- PALET WARNA: Dark Luxury Theme (Biru & Ungu Halus)
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
     BgTrans = 0.15,                          
@@ -37,7 +34,7 @@ local Theme = {
     CloseColor = Color3.fromRGB(255, 105, 105)     
 }
 
--- DRAGGABLE ENGINE (Mobile & PC Friendly)
+-- DRAGGABLE ENGINE
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -81,7 +78,7 @@ tbStroke.Color = Theme.AccentPurple
 tbStroke.Thickness = 1.5
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (Lebar disesuaikan agar grid kiri-kanan lega di Mobile)
+-- MAIN PANEL
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
@@ -94,9 +91,8 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1.5
 
--- HEADER ROW (JUDUL DI TENGAH, TOMBOL BERWARNA DI KANAN)
+-- HEADER ROW
 local Header = Instance.new("Frame", MainFrame)
-Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
@@ -144,7 +140,7 @@ Instance.new("UIStroke", CloseBtn).Color = Theme.Stroke
 
 makeDraggable(MainFrame, Header)
 
--- MODAL BOX CLOSE CONFIRMATION (POP-UP AMAN)
+-- MODAL BOX CLOSE CONFIRMATION
 local ConfirmModal = Instance.new("Frame", MainGui)
 ConfirmModal.Size = UDim2.new(0, 320, 0, 150)
 ConfirmModal.Position = UDim2.new(0.5, -160, 0.5, -75)
@@ -241,7 +237,7 @@ ContentView.BackgroundTransparency = 1
 local tabs = {Player = {}, ESP = {}, Teleport = {}, World = {}, Utilities = {}, Settings = {}}
 local activeTab = "Player"
 
--- ENGINE PEMBUAT GRID DUA KOLOM (KIRI & KANAN) ASLI
+-- ENGINE PEMBUAT GRID DUA KOLOM
 local function createTwoColumnGrid(parent)
     local baseScroll = Instance.new("ScrollingFrame", parent)
     baseScroll.Size = UDim2.new(1, 0, 1, 0)
@@ -277,7 +273,6 @@ local function createTwoColumnGrid(parent)
     return leftCol, rightCol
 end
 
--- Generate semua wadah tab kolom
 for tabName, _ in pairs(tabs) do
     local left, right = createTwoColumnGrid(ContentView)
     tabs[tabName].LeftCol = left
@@ -327,7 +322,7 @@ addTopbarButton("World", "🌐 World", 4)
 addTopbarButton("Utilities", "🛠️ Utilities", 5)
 addTopbarButton("Settings", "⚙️ Settings", 6)
 
--- FUNGSI MAKER GROUP CARD (Wadah utama per fitur kiri/kanan)
+-- FUNGSI MAKER GROUP CARD
 local function createGroupCard(parentCol, titleText)
     local card = Instance.new("Frame", parentCol)
     card.Size = UDim2.new(1, 0, 0, 0)
@@ -358,9 +353,9 @@ local function createGroupCard(parentCol, titleText)
     label.LayoutOrder = 0
     
     return card
-    end
+end
 
--- MINI COMPONENT: INSIDE-CARD TOGGLE SWITCH
+-- MINI COMPONENT: TOGGLE SWITCH (CLEAN NO TULISAN)
 local function addCardToggle(parentCard, labelText, default, order, callback)
     local holder = Instance.new("Frame", parentCard)
     holder.Size = UDim2.new(1, 0, 0, 26) 
@@ -403,7 +398,7 @@ local function addCardToggle(parentCard, labelText, default, order, callback)
     end)
 end
 
--- MINI COMPONENT: INSIDE-CARD SLIDER
+-- MINI COMPONENT: SLIDER (CLEAN NO TULISAN VALUES)
 local function addCardSlider(parentCard, labelText, min, max, default, order, callback)
     local holder = Instance.new("Frame", parentCard)
     holder.Size = UDim2.new(1, 0, 0, 32) 
@@ -411,7 +406,7 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     holder.LayoutOrder = order
 
     local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = labelText .. ": " .. default
+    lbl.Text = labelText -- Hanya Judul Slider Saja (Teks level angka & "Status" dihapus total!)
     lbl.Size = UDim2.new(1, 0, 0, 14)
     lbl.Font = Enum.Font.GothamMedium 
     lbl.TextColor3 = Theme.TextMuted 
@@ -443,7 +438,6 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
         fill.Size = UDim2.new(perc, 0, 1, 0)
         sBtn.Position = UDim2.new(perc, -5, 0.5, -5)
         local val = math.round(min + (perc * (max - min)))
-        lbl.Text = labelText .. ": " .. val
         callback(val)
     end
 
@@ -459,27 +453,12 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     end)
 end
 
--- MINI COMPONENT: INSIDE-CARD BUTTON
-local function addCardButton(parentCard, textDisplay, order, callback)
-    local btn = Instance.new("TextButton", parentCard)
-    btn.Size = UDim2.new(1, 0, 0, 26) 
-    btn.BackgroundColor3 = Theme.Bg
-    btn.Font = Enum.Font.GothamMedium 
-    btn.Text = textDisplay 
-    btn.TextColor3 = Theme.TextMain 
-    btn.TextSize = 11
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", btn).Color = Theme.Stroke
-    btn.MouseButton1Click:Connect(callback)
-end
-
 -- ====================================================================
--- MERGING LOGIC: TAB PLAYER MODIFIERS (GROUPED TWO-COLUMN)
+-- CORE PLACEMENT: TAB PLAYER 
 -- ====================================================================
 
--- --- [ KOLOM KIRI: FLY & NOCLIP SYSTEM CARD ] ---
-local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Ghost Engine")
+-- --- [ KOLOM KIRI: FLY & NOCLIP ] ---
+local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Noclip") -- Judul Baru
 local isFlying, flySpeed = false, 50
 local bodyGyro, bodyVelocity
 local noclipActive, noclipConnection
@@ -516,22 +495,18 @@ local function stopFlying()
 end
 
 -- 1. Toggle Fly
-addCardToggle(leftFlyGroup, "Fly Bypass", false, 1, function(state)
+addCardToggle(leftFlyGroup, "Fly", false, 1, function(state)
     isFlying = state
     if state then startFlying() else stopFlying() end
 end)
 
--- 2. Slider Speed
-addCardSlider(leftFlyGroup, "Speed Level", 1, 20, 5, 2, function(val)
+-- 2. Slider Fly Level
+addCardSlider(leftFlyGroup, "Fly Level", 1, 20, 5, 2, function(val)
     flySpeed = val * 10
-    pcall(function()
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = 16 + (val * 5) end
-    end)
 end)
 
--- 3. Toggle Noclip
-addCardToggle(leftFlyGroup, "Noclip (Ghost Pass)", false, 3, function(v)
+-- 3. Toggle Noclip (Tanpa embel-embel Ghost Pass)
+addCardToggle(leftFlyGroup, "Noclip", false, 3, function(v)
     noclipActive = v
     if v then
         if noclipConnection then noclipConnection:Disconnect() end
@@ -548,8 +523,8 @@ addCardToggle(leftFlyGroup, "Noclip (Ghost Pass)", false, 3, function(v)
 end)
 
 
--- --- [ KOLOM KANAN: JUMP POWER & INF JUMP SYSTEM CARD ] ---
-local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump & Physics Engine")
+-- --- [ KOLOM KANAN: JUMP ] ---
+local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump") -- Judul Baru
 local jumpToggleState = false local jumpLevel = 5
 local infJumpEnabled = false local infJumpConnection
 
@@ -558,20 +533,20 @@ local function updateJumpPower()
     if char and char:FindFirstChildOfClass("Humanoid") then
         local hum = char:FindFirstChildOfClass("Humanoid") 
         hum.UseJumpPower = true 
-        hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50
+        hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50 
     end
 end
 
--- 1. Toggle Bypass Jump
-addCardToggle(rightJumpGroup, "Jump Power Bypass", false, 1, function(v)
+-- 1. Toggle Jump Power (Teks Bypass Dihapus)
+addCardToggle(rightJumpGroup, "Jump Power", false, 1, function(v)
     jumpToggleState = v 
-    updateJumpPower()
+    updateJumpPower() 
 end)
 
 -- 2. Slider Jump Level
-addCardSlider(rightJumpGroup, "Power Level", 1, 20, 5, 2, function(lvl)
+addCardSlider(rightJumpGroup, "Jump Level", 1, 20, 5, 2, function(lvl)
     jumpLevel = lvl 
-    updateJumpPower()
+    updateJumpPower() 
 end)
 
 -- 3. Toggle Infinite Jump
@@ -584,67 +559,18 @@ infJumpConnection = UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-addCardToggle(rightJumpGroup, "Infinite Jump Mode", false, 3, function(state)
+addCardToggle(rightJumpGroup, "Infinite Jump", false, 3, function(state)
     infJumpEnabled = state
 end)
 
-
--- --- [ BARIS KEDUA KIRI: DEFENSE SYSTEM CARD ] ---
-local leftDefenseGroup = createGroupCard(tabs.Player.LeftCol, "Defense Shields Core")
-local AntiAfkConnection, AntiFlingConnection, AntiStunConnection 
-local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
-
-addCardToggle(leftDefenseGroup, "Anti-AFK Core System", false, 1, function(state)
-    if state then AntiAfkConnection = Player.Idled:Connect(function() local vu = game:GetService("VirtualUser") vu:CaptureController() vu:ClickButton2(Vector2.new(0,0)) end)
-    else if AntiAfkConnection then AntiAfkConnection:Disconnect() AntiAfkConnection = nil end end
-end)
-
-addCardToggle(leftDefenseGroup, "Anti-Fling Shield Mode", false, 2, function(state)
-    AntiFlingActive = state
-    if state then
-        AntiFlingConnection = RunService.Heartbeat:Connect(function()
-            local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") if not AntiFlingActive or not hrp then return end
-            if hrp.Velocity.Magnitude > 75 or hrp.RotVelocity.Magnitude > 75 then hrp.Velocity = Vector3.new(0,0,0) hrp.RotVelocity = Vector3.new(0,0,0) end
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= Player and p.Character then for _, part in pairs(p.Character:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end end
-            end
-        end)
-    else if AntiFlingConnection then AntiFlingConnection:Disconnect() AntiFlingConnection = nil end end
-end)
-
-
 -- ====================================================================
--- TEMPLATE INTEGRASI TAB LAIN YANG ADA DI MAIN.LUA LAMA
+-- SINKRONISASI TOMBOL KELUAR MODAL BOX PERMANEN
 -- ====================================================================
-
--- 1. Tab ESP (Visual Monitor)
-local visualGroup = createGroupCard(tabs.ESP.LeftCol, "Visual Configurations")
-addCardToggle(visualGroup, "Master Activation ESP", false, 1, function(v) end)
-addCardToggle(visualGroup, "Show Tag Names", true, 2, function(v) end)
-
--- 2. Tab Teleport Hub
-local tpGroup = createGroupCard(tabs.Teleport.LeftCol, "Engine Vector Settings")
-addCardToggle(tpGroup, "Use Tween Movement", false, 1, function(state) end)
-
--- 3. Tab World & Connections
-local worldGroup = createGroupCard(tabs.World.LeftCol, "Server Management")
-addCardButton(worldGroup, "⚡ Instant Rejoin Server", 1, function()
-    if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, Player) else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end
-end)
-
--- 4. Tab Settings (UI Clean Destroy Setup)
-local settingsGroup = createGroupCard(tabs.Settings.LeftCol, "Dashboard Configuration")
-addCardButton(settingsGroup, "🔄 Quick Reload Script Hub", 1, function() end)
-addCardButton(settingsGroup, "🔴 Self-Destroy System UI", 2, function() 
-    ConfirmModal.Visible = true
-end)
-
--- Hubungkan Tombol Modal Konfirmasi Keluar Permanen
 ConfirmCloseBtn.MouseButton1Click:Connect(function()
-    if noclipConnection then noclipConnection:Disconnect() end
-    if AntiFlingConnection then AntiFlingConnection:Disconnect() end
-    stopFlying()
-    MainGui:Destroy()
+    if noclipConnection then noclipConnection:Disconnect() end 
+    if infJumpConnection then infJumpConnection:Disconnect() end
+    stopFlying() 
+    MainGui:Destroy() 
 end)
 
-print("[AR SCRIPT HUB V5.6]: Grouped Card Two-Column Engine Deployed!")
+print("[AR SCRIPT HUB V5.6]: Clean Two-Column Framework Ready!")
