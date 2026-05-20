@@ -436,6 +436,40 @@ Player.CharacterAdded:Connect(function(char)
 end)
 
 -- ====================================================================
+-- ADVANCED TELEPORT SYSTEM ENGINE (INSTANT VS TWEEN METHOD)
+-- ====================================================================
+local useTweenTeleport = false
+
+-- Suntikan Toggle Pilihan Metode Teleport di bagian teratas Tab Teleport
+createToggleSwitch(tabs.Teleport.Container, "Tween Teleport (Anti-Rubberband)", function(state)
+    useTweenTeleport = state
+end)
+
+local function masterTeleport(targetCFrame)
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = Player.Character.HumanoidRootPart
+    local safeTarget = targetCFrame * CFrame.new(0, 3, 0) -- Kasih sedikit tinggi biar aman
+    
+    -- Reset gaya fisika awal biar ga ngebug
+    hrp.Velocity = Vector3.new(0, 0, 0)
+    hrp.RotVelocity = Vector3.new(0, 0, 0)
+    
+    if useTweenTeleport then
+        -- METODE TWEEN (Bypass Anti-Cheat / Halus)
+        local distance = (hrp.Position - safeTarget.Position).Magnitude
+        local speed = 180 -- Ukuran stud per detik (Cepat tapi aman dari kicked)
+        local duration = distance / speed
+        if duration < 0.2 then duration = 0.2 end -- Durasi minimal
+        
+        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = safeTarget})
+        tween:Play()
+    else
+        -- METODE INSTAN (Langsung Pindah Koordinat)
+        hrp.CFrame = safeTarget
+    end
+end
+
+-- ====================================================================
 -- TELEPORT LOGIC WITH DROPDOWN + ESP WAYPOINT
 -- ====================================================================
 local selectedPlayer = ""
@@ -486,8 +520,8 @@ ddTrigger.MouseButton1Click:Connect(function() ddScroll.Visible = not ddScroll.V
 btnTpPlayer.MouseButton1Click:Connect(function()
     if selectedPlayer ~= "" then
         local pObj = Players:FindFirstChild(selectedPlayer)
-        if pObj and pObj.Character and pObj.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = pObj.Character.HumanoidRootPart.CFrame
+        if pObj and pObj.Character and pObj.Character:FindFirstChild("HumanoidRootPart") then
+            masterTeleport(pObj.Character.HumanoidRootPart.CFrame)
         end
     end
 end)
@@ -524,8 +558,8 @@ local function createWaypointUI(slotName, displayName)
         end
     end)
     btnTp.MouseButton1Click:Connect(function()
-        if waypointSlots[slotName] and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = waypointSlots[slotName]
+        if waypointSlots[slotName] then
+            masterTeleport(waypointSlots[slotName])
         end
     end)
 end
@@ -611,12 +645,11 @@ local originalTransparencies = {}
 local function applyXray()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-            -- Skip karakter lokal kita biar ga ikut transparan
             if not obj:IsDescendantOf(Player.Character) and not obj:IsDescendantOf(workspace.CurrentCamera) then
                 if not originalTransparencies[obj] then
                     originalTransparencies[obj] = obj.Transparency
                 end
-                obj.Transparency = 0.55 -- Mengubah dinding jadi semi-transparan
+                obj.Transparency = 0.55
             end
         end
     end
@@ -635,7 +668,6 @@ createToggleSwitch(tabs.Utilities.Container, "X-Ray Vision (Tembus Dinding)", fu
     xrayActive = state
     if state then
         applyXray()
-        -- Monitor jika ada objek baru yang dirender/spawn oleh map biar ikut tembus pandang
         _G.XrayConnection = workspace.DescendantAdded:Connect(function(obj)
             if xrayActive and (obj:IsA("BasePart") or obj:IsA("MeshPart")) then
                 task.wait()
@@ -674,184 +706,23 @@ createStandardButton(tabs.Utilities.Container, "🔨 Give Classic BTools (Delete
     end
 end)
 
--- ADVANCED BOOMBOX GENERATOR WITH SAVED HISTORY SYSTEM
-createStandardButton(tabs.Utilities.Container, "📻 Give Client Boombox", function()
-    local backpack = Player:FindFirstChild("Backpack")
-    if backpack then
-        local boombox = Instance.new("Tool")
-        boombox.Name = "Client Boombox"
-        boombox.RequiresHandle = false
-        
-        local sound = Instance.new("Sound")
-        sound.Name = "RadioSound"
-        sound.Looped = true
-        sound.Volume = 2
-        
-        boombox.Activated:Connect(function()
-            if boombox.Parent == Player.Character then
-                local hrp = Player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    sound.Parent = hrp
-                    
-                    if SafeGuiTarget:FindFirstChild("Quantum_Boombox_Panel") then
-                        SafeGuiTarget.Quantum_Boombox_Panel:Destroy()
-                    end
-                    
-                    local bGui = Instance.new("ScreenGui", SafeGuiTarget)
-                    bGui.Name = "Quantum_Boombox_Panel"
-                    
-                    local pnl = Instance.new("Frame", bGui)
-                    pnl.Size = UDim2.new(0, 260, 0, 190)
-                    pnl.Position = UDim2.new(0.5, -130, 0.4, -95)
-                    pnl.BackgroundColor3 = Theme.Bg
-                    Instance.new("UICorner", pnl).CornerRadius = UDim.new(0, 10)
-                    local pnlStroke = Instance.new("UIStroke", pnl)
-                    pnlStroke.Color = Theme.Accent
-                    pnlStroke.Thickness = 1.5
-                    
-                    local headerBar = Instance.new("Frame", pnl)
-                    headerBar.Size = UDim2.new(1, 0, 0, 30)
-                    headerBar.BackgroundTransparency = 1
-                    makeDraggable(pnl, headerBar)
-                    
-                    local title = Instance.new("TextLabel", headerBar)
-                    title.Size = UDim2.new(0.8, 0, 1, 0)
-                    title.Position = UDim2.new(0, 10, 0, 0)
-                    title.Text = "BOOMBOX CONTROLLER"
-                    title.Font = Enum.Font.GothamBold
-                    title.TextColor3 = Theme.TextMain
-                    title.TextSize = 11
-                    title.TextXAlignment = Enum.TextXAlignment.Left
-                    title.BackgroundTransparency = 1
-                    
-                    local cls = Instance.new("TextButton", headerBar)
-                    cls.Size = UDim2.new(0, 30, 1, 0)
-                    cls.Position = UDim2.new(1, -30, 0, 0)
-                    cls.Text = "X"
-                    cls.Font = Enum.Font.GothamBold
-                    cls.TextColor3 = Theme.TextMuted
-                    cls.TextSize = 12
-                    cls.BackgroundTransparency = 1
-                    cls.MouseButton1Click:Connect(function() bGui:Destroy() end)
-                    
-                    local box = Instance.new("TextBox", pnl)
-                    box.Size = UDim2.new(1, -20, 0, 32)
-                    box.Position = UDim2.new(0, 10, 0, 35)
-                    box.PlaceholderText = "Paste Audio ID Here..."
-                    box.Text = ""
-                    box.BackgroundColor3 = Theme.CardBg
-                    box.TextColor3 = Theme.TextMain
-                    box.Font = Enum.Font.GothamMedium
-                    box.TextSize = 12
-                    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
-                    Instance.new("UIStroke", box).Color = Theme.Stroke
-                    
-                    local playBtn = Instance.new("TextButton", pnl)
-                    playBtn.Size = UDim2.new(1, -20, 0, 32)
-                    playBtn.Position = UDim2.new(0, 10, 0, 73)
-                    playBtn.Text = "⚡ PLAY AUDIO"
-                    playBtn.BackgroundColor3 = Theme.Accent
-                    playBtn.TextColor3 = Theme.Bg
-                    playBtn.Font = Enum.Font.GothamBold
-                    playBtn.TextSize = 12
-                    Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0, 5)
-                    
-                    local histLbl = Instance.new("TextLabel", pnl)
-                    histLbl.Size = UDim2.new(1, -20, 0, 15)
-                    histLbl.Position = UDim2.new(0, 10, 0, 112)
-                    histLbl.Text = "SAVED HISTORY (CLICK TO LOAD):"
-                    histLbl.Font = Enum.Font.GothamBold
-                    histLbl.TextColor3 = Theme.TextMuted
-                    histLbl.TextSize = 9
-                    histLbl.TextXAlignment = Enum.TextXAlignment.Left
-                    histLbl.BackgroundTransparency = 1
-                    
-                    local histScroll = Instance.new("ScrollingFrame", pnl)
-                    histScroll.Size = UDim2.new(1, -20, 0, 50)
-                    histScroll.Position = UDim2.new(0, 10, 0, 130)
-                    histScroll.BackgroundTransparency = 1
-                    histScroll.ScrollBarThickness = 2
-                    histScroll.ScrollBarImageColor3 = Theme.Accent
-                    local histLayout = Instance.new("UIListLayout", histScroll)
-                    histLayout.Orientation = Enum.Orientation.Horizontal
-                    histLayout.Padding = UDim.new(0, 5)
-                    
-                    local function renderHistory()
-                        for _, c in pairs(histScroll:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-                        for i, savedId in ipairs(_G.BoomboxHistory) do
-                            local hBtn = Instance.new("TextButton", histScroll)
-                            hBtn.Size = UDim2.new(0, 70, 1, 0)
-                            hBtn.BackgroundColor3 = Theme.CardBg
-                            hBtn.Text = tostring(savedId)
-                            hBtn.Font = Enum.Font.GothamMedium
-                            hBtn.TextColor3 = Theme.Accent
-                            hBtn.TextSize = 10
-                            Instance.new("UICorner", hBtn).CornerRadius = UDim.new(0, 4)
-                            Instance.new("UIStroke", hBtn).Color = Theme.Stroke
-                            
-                            hBtn.MouseButton1Click:Connect(function() box.Text = tostring(savedId) end)
-                        end
-                        histScroll.CanvasSize = UDim2.new(0, #_G.BoomboxHistory * 75, 0, 0)
-                    end
-                    renderHistory()
-                    
-                    playBtn.MouseButton1Click:Connect(function()
-                        local id = tonumber(box.Text:match("%d+"))
-                        if id then
-                            sound.SoundId = "rbxassetid://" .. id
-                            sound:Play()
-                            
-                            local exists = false
-                            for _, v in pairs(_G.BoomboxHistory) do if v == id then exists = true end end
-                            if not exists then
-                                table.insert(_G.BoomboxHistory, 1, id)
-                                if #_G.BoomboxHistory > 5 then table.remove(_G.BoomboxHistory, 6) end
-                                renderHistory()
-                            end
-                        end
-                    end)
-                end
-            end
-        end)
-        
-        boombox.Unequipped:Connect(function() sound:Stop() end)
-        boombox.Parent = backpack
-    end
-end)
-
 -- ====================================================================
--- SETTING LOGICS
+-- SETTINGS PANEL SYSTEM CLOSING
 -- ====================================================================
-createLevelControl(tabs.Setting.Container, "UI Transparency", 0, 0, 85, function(lvl)
-    local trans = lvl / 100 MainFrame.BackgroundTransparency = trans Header.BackgroundTransparency = trans
-end)
-
-local unCard = Instance.new("Frame", tabs.Setting.Container)
-unCard.Size = UDim2.new(1, -5, 0, 38) unCard.BackgroundColor3 = Color3.fromRGB(35, 15, 20)
-Instance.new("UICorner", unCard).CornerRadius = UDim.new(0, 6)
-local unStroke = Instance.new("UIStroke", unCard) unStroke.Color = Color3.fromRGB(120, 40, 50)
-
-local btnDestroy = Instance.new("TextButton", unCard)
-btnDestroy.Size = UDim2.new(1, 0, 1, 0) btnDestroy.BackgroundTransparency = 1
-btnDestroy.Font = Enum.Font.GothamBold btnDestroy.Text = "UNLOAD QUANTUM PANEL"
-btnDestroy.TextColor3 = Color3.fromRGB(255, 100, 110) btnDestroy.TextSize = 11
-btnDestroy.MouseButton1Click:Connect(function() 
-    stopFlying() 
-    if infJumpConnection then infJumpConnection:Disconnect() end
-    if headSitConnection then headSitConnection:Disconnect() end
-    if noclipConnection then noclipConnection:Disconnect() end
+createStandardButton(tabs.Setting.Container, "🔴 Destroy Quantum Hub UI", function()
     if _G.XrayConnection then _G.XrayConnection:Disconnect() _G.XrayConnection = nil end
-    removeXray()
-    
-    if SafeGuiTarget:FindFirstChild("Quantum_Boombox_Panel") then SafeGuiTarget.Quantum_Boombox_Panel:Destroy() end
-    
-    local char = Player.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        hum.WalkSpeed = 16
-        hum.JumpPower = 50
-    end
-    
+    if headSitConnection then headSitConnection:Disconnect() headSitConnection = nil end
+    if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end
+    if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+    stopFlying()
     for slot, _ in pairs(waypointSlots) do clearWaypointESP(slot) end
-    MainGui:Destroy() 
+    MainGui:Destroy()
 end)
+
+createStandardButton(tabs.Setting.Container, "🔄 Re-Load UI Script", function()
+    MainGui:Destroy()
+    task.wait(0.2)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Ar-ScriptHub/AR-ScriptHub/refs/heads/main/main.lua"))()
+end)
+
+print("[QUANTUM HUB V3.7]: Successfully Loaded and Protected.")
