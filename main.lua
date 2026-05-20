@@ -313,13 +313,21 @@ local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Paddin
 
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 0) 
+    -- KUNCI: Lebar dikurangi sedikit (-6) agar pas di dalam layout ber-padding
+    card.Size = UDim2.new(1, -6, 0, 0) 
     card.AutomaticSize = Enum.AutomaticSize.Y
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-    Instance.new("UIStroke", card).Color = Theme.Stroke
+    
+    local stroke = Instance.new("UIStroke", card)
+    stroke.Color = Theme.Stroke
+    stroke.Thickness = 1
+    -- Rekomendasi tambahan: Set border agar merender ke arah dalam frame
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border 
+    
+    -- [Sisa kode penulisan judul dan container ke bawahnya tetap sama]
     
     local ttl = Instance.new("TextLabel", card)
     ttl.Size = UDim2.new(1, -12, 0, 26)
