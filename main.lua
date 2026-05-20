@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - OFFICIAL VERSION v5.6 (NOCLIP PRIORITY UPDATE)
+-- AR SCRIPT HUB - OFFICIAL VERSION v5.6 (PRO FIX & OPTIMIZED)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -32,6 +32,13 @@ local Theme = {
     TextMain = Color3.fromRGB(245, 245, 255),
     TextMuted = Color3.fromRGB(140, 145, 175)
 }
+
+-- GLOBAL VARIABLES MANAGEMENT
+local GlobalTargetName = ""
+local UseTweenTeleport = false
+local noclipActive, floatActive, flying, infJumpActive = false, false, false, false
+local noclipConnection, floatConnection, flyConnection, infJumpConnection, headSitC, flingConnection
+local floatPart, bg, bv
 
 -- DRAGGABLE ENGINE
 local function makeDraggable(frame, dragHandle)
@@ -163,11 +170,9 @@ local function switchTab(tabName)
             if k == tabName then
                 v.Button.TextColor3 = Theme.Accent
                 v.Button.Font = Enum.Font.GothamBold
-                TweenService:Create(v.Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 4, 0, 30)}):Play()
             else
                 v.Button.TextColor3 = Theme.TextMuted
                 v.Button.Font = Enum.Font.GothamMedium
-                TweenService:Create(v.Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 30)}):Play()
             end
         end
     end
@@ -303,9 +308,6 @@ local function createStandardButton(parent, textDisplay, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
-local GlobalTargetName = ""
-local UseTweenTeleport = false
-
 local function executeTeleport(targetCFrame)
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -323,20 +325,60 @@ local function executeTeleport(targetCFrame)
 end
 
 -- ====================================================================
--- TAB 1: PLAYER MODIFIERS (NOCLIP IS NOW TOP PRIORITY #1)
+-- CLEANUP MANAGEMENT FUNCTION
+-- ====================================================================
+local function cleanAllConnections()
+    noclipActive = false
+    if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+    
+    floatActive = false
+    if floatConnection then floatConnection:Disconnect() floatConnection = nil end
+    if floatPart then floatPart:Destroy() floatPart = nil end
+    
+    flying = false
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if bg then bg:Destroy() bg = nil end
+    if bv then bv:Destroy() bv = nil end
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false) hum:ChangeState(Enum.HumanoidStateType.Running) end
+    
+    if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end
+    if headSitC then headSitC:Disconnect() headSitC = nil end
+    
+    -- Fling Reset Protection
+    if flingConnection then flingConnection:Disconnect() flingConnection = nil end
+    if Player.Character then
+        for _, part in pairs(Player.Character:GetChildren()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end
+
+-- ====================================================================
+-- TAB 1: PLAYER MODIFIERS
 -- ====================================================================
 -- 1. GHOST NAVIGATION (NOCLIP & FLOAT MOVED TO LAYOUT ORDER 1)
 local pExtraNav = createSectionCard(tabs.Player.Container, "Ghost Environment Bypass", 1)
-local noclipActive, floatActive = false, false local noclipConnection, floatConnection, floatPart
-createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v)
+
+createToggleSwitch(pExtraNav, "Noclip (Safe Ghost Pass)", function(v)
     noclipActive = v
     if v then
         if noclipConnection then noclipConnection:Disconnect() end
         noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then for _, p in pairs(Player.Character:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end end
+            if noclipActive and Player.Character then 
+                for _, p in pairs(Player.Character:GetDescendants()) do 
+                    -- HRP disisakan agar tidak jatuh tembus ke Void/Bumi secara instan
+                    if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then 
+                        p.CanCollide = false 
+                    end 
+                end 
+            end
         end)
-    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
+    else 
+        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end 
+    end
 end)
+
 createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state)
     floatActive = state local char = Player.Character
     if state then
@@ -348,7 +390,7 @@ end)
 
 -- 2. FLY MODULE (Layout Order 2)
 local pFly = createSectionCard(tabs.Player.Container, "Fly", 2)
-local flying = false local flyLevel = 5 local bg, bv
+local flyLevel = 5
 local function stopFlying()
     flying = false if bg then bg:Destroy() bg = nil end if bv then bv:Destroy() bv = nil end
     local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
@@ -387,8 +429,8 @@ end
 createToggleSwitch(pWalk, "Bypass Speed", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
--- 4. JUMP MODULE (Layout Order 4)
-local pJump = createSectionCard(tabs.Player.Container, "Jump", 4)
+-- 4. JUMP & AIR NAVIGATION MODULE (Layout Order 4)
+local pJump = createSectionCard(tabs.Player.Container, "Jump & Air Mechanics", 4)
 local jumpToggleState = false local jumpLevel = 5
 local function updateJumpPower()
     local char = Player.Character
@@ -398,6 +440,14 @@ local function updateJumpPower()
 end
 createToggleSwitch(pJump, "Bypass Jump", function(v) jumpToggleState = v updateJumpPower() end)
 createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
+
+-- FIXED BUG: Penambahan fungsionalitas Infinite Jump Core yang tertinggal
+infJumpConnection = UserInputService.JumpRequest:Connect(function()
+    if infJumpActive and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+        Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+createToggleSwitch(pJump, "Infinite Jump Engine", function(state) infJumpActive = state end)
 
 -- 5. DEFENSE MODULE (Layout Order 5)
 local pDefense = createSectionCard(tabs.Player.Container, "Defense", 5)
@@ -458,9 +508,18 @@ local function applyEspToCharacter(targetPlayer, char)
 end
 
 createToggleSwitch(espSec, "Master Activation ESP", function(v)
+    if _G.EspAddC then _G.EspAddC:Disconnect() end
     EspSettings.Active = v
-    if v then for _, p in pairs(Players:GetPlayers()) do if p.Character then applyEspToCharacter(p, p.Character) end end
-    else for _, p in pairs(Players:GetPlayers()) do if p.Character then local b = p.Character.Head:FindFirstChild("A_BB_" .. p.Name) if b then b:Destroy() end local h = MainGui:FindFirstChild("A_HL_" .. p.Name) if h then h:Destroy() end end end end
+    if v then 
+        for _, p in pairs(Players:GetPlayers()) do if p.Character then applyEspToCharacter(p, p.Character) end end
+        _G.EspAddC = Players.PlayerAdded:Connect(function(newPlayer)
+            newPlayer.CharacterAdded:Connect(function(newChar)
+                if EspSettings.Active then applyEspToCharacter(newPlayer, newChar) end
+            end)
+        end)
+    else 
+        for _, p in pairs(Players:GetPlayers()) do if p.Character then local b = p.Character.Head:FindFirstChild("A_BB_" .. p.Name) if b then b:Destroy() end local h = MainGui:FindFirstChild("A_HL_" .. p.Name) if h then h:Destroy() end end end 
+    end
 end)
 createToggleSwitch(espSec, "Show Tag Names", function(v) EspSettings.Names = v end)
 createToggleSwitch(espSec, "Show Distance Meter", function(v) EspSettings.Distance = v end)
@@ -568,7 +627,7 @@ end)
 -- TAB 5: UTILITIES MODULE
 -- ====================================================================
 local actSec = createSectionCard(tabs.Utilities.Container, "Interactivity Exploits", 1)
-local flingActive = false local flingConnection local bV, aV, att
+local flingActive = false local bV, aV, att
 
 local function cleanFlingParts()
     flingActive = false if flingConnection then flingConnection:Disconnect() flingConnection = nil end
@@ -580,14 +639,17 @@ local function runTimerFling(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then return end
     local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart") local myHrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") if not targetHrp or not myHrp then return end
     cleanFlingParts() flingActive = true
+    
+    -- Mengurangi power rotasi ekstrim (99999 -> 5000) untuk meminimalkan deteksi otomatis Anti-Cheat fisika
     bV = Instance.new("BodyVelocity", myHrp) bV.MaxForce = Vector3.new(9e9, 9e9, 9e9) bV.Velocity = Vector3.new(0,0,0)
-    aV = Instance.new("AngularVelocity", myHrp) aV.MaxTorque = 9e9 aV.AngularVelocity = Vector3.new(99999, 99999, 99999) aV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+    aV = Instance.new("AngularVelocity", myHrp) aV.MaxTorque = 9e9 aV.AngularVelocity = Vector3.new(5000, 5000, 5000) aV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
     att = Instance.new("Attachment", myHrp) aV.Attachment0 = att
+    
     for _, part in pairs(Player.Character:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
     local startTime = tick()
     flingConnection = RunService.Heartbeat:Connect(function()
         local currentHum = targetPlayer.Character and targetPlayer.Character:FindFirstChildOfClass("Humanoid") local currentHrp = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not flingActive or not currentHum or currentHum.Health <= 0 or not currentHrp or (tick() - startTime) >= 3 then cleanFlingParts() return end
+        if not flingActive or not currentHum or currentHum.Health <= 0 or not currentHrp or (tick() - startTime) >= 4 then cleanFlingParts() return end
         myHrp.CFrame = currentHrp.CFrame * CFrame.new(0, 0, 0.05) bV.Velocity = currentHrp.Velocity
     end)
 end
@@ -595,9 +657,8 @@ end
 createStandardButton(actSec, "🚀 Fling Target (Brutal Spin v3)", function() if GlobalTargetName ~= "" and not flingActive then local t = Players:FindFirstChild(GlobalTargetName) if t then runTimerFling(t) end end end)
 createStandardButton(actSec, "🛑 Stop Fling (Unfling Manual)", function() cleanFlingParts() end)
 
-local headSitting = false local headSitC
 createToggleSwitch(actSec, "Headsit Target Follower", function(state)
-    headSitting = state if headSitC then headSitC:Disconnect() headSitC = nil end
+    local headSitting = state if headSitC then headSitC:Disconnect() headSitC = nil end
     if not state then if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").Sit = false end return end
     headSitC = RunService.Heartbeat:Connect(function()
         if headSitting and GlobalTargetName ~= "" then
@@ -622,18 +683,32 @@ createStandardButton(utilSec2, "🎒 Replicate Target Backpack Tools", function(
 end)
 createStandardButton(utilSec2, "🎒 Sweep Map Tools to Inventory", function() local bp = Player:FindFirstChild("Backpack") if bp then for _, o in pairs(workspace:GetDescendants()) do if o:IsA("Tool") then o.Parent = bp end end end end)
 
+
 -- ====================================================================
 -- TAB 6: SETTINGS MODULE
 -- ====================================================================
 local setSec = createSectionCard(tabs.Settings.Container, "Dashboard Configuration", 1)
-createStandardButton(setSec, "🔄 Quick Reload Script Hub", function()
-    cleanFlingParts() if _G.EspAddC then _G.EspAddC:Disconnect() end if headSitC then headSitC:Disconnect() end if infJumpConnection then infJumpConnection:Disconnect() end
-    if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
-    task.wait(0.2) pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/pastebin/raw/your_link_here"))() end)
-end)
-createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
-    cleanFlingParts() if _G.EspAddC then _G.EspAddC:Disconnect() end if headSitC then headSitC:Disconnect() end if infJumpConnection then infJumpConnection:Disconnect() end
-    if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
+
+-- Tambahan Interface Settings: Pengatur Transparansi Floating Button agar tidak mengganggu pandangan game
+createLevelControl(setSec, "UI Button Transparency (%)", 15, 0, 90, function(lvl)
+    ToggleButton.BackgroundTransparency = lvl / 100
 end)
 
-print("[AR SCRIPT HUB V5.6]: Noclip successfully moved to the absolute top layout.")
+createStandardButton(setSec, "🔄 Quick Reload Script Hub", function()
+    cleanAllConnections()
+    if _G.EspAddC then _G.EspAddC:Disconnect() end
+    MainGui:Destroy()
+    task.wait(0.3)
+    pcall(function() 
+        -- Masukkan link pastebin raw script utama kamu di sini jika ditaruh di github/pastebin
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/pastebin/raw/your_link_here"))() 
+    end)
+end)
+
+createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
+    cleanAllConnections()
+    if _G.EspAddC then _G.EspAddC:Disconnect() end
+    MainGui:Destroy()
+end)
+
+print("[AR SCRIPT HUB V5.6]: Successfully Deployed and Optimized.")
