@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - QUANTUM ADMIN HUB (V3.9 - SAKTI TOOLS FIX)
+-- AR SCRIPT HUB - QUANTUM ADMIN HUB (V4.0 - ADVANCED UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -84,8 +84,9 @@ task.spawn(function()
 end)
 
 local sequences = {
-    {0.20, "Injecting Quantum Engine (v3.9)..."},
+    {0.20, "Injecting Quantum Engine (v4.0)..."},
     {0.50, "Fixing Tool Replications Engine..."},
+    {0.80, "Deploying Safe Fling & ESP Modules..."},
     {1.00, "Ready!"}
 }
 
@@ -217,7 +218,7 @@ Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "AR SCRIPT HUB v3.9"
+Title.Text = "AR SCRIPT HUB v4.0"
 Title.RichText = true
 Title.Size = UDim2.new(0.8, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
@@ -260,7 +261,7 @@ local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
     f.Size = UDim2.new(1, 0, 1, 0)
     f.BackgroundTransparency = 1
-    f.CanvasSize = UDim2.new(0, 0, 0, 520) 
+    f.CanvasSize = UDim2.new(0, 0, 0, 550) 
     f.ScrollBarThickness = 2
     f.ScrollBarImageColor3 = Theme.Accent
     f.Visible = (name == activeTab)
@@ -414,7 +415,7 @@ local function createStandardButton(parent, textDisplay, callback)
 end
 
 -- ====================================================================
--- MOVEMENT SECTION INJECTIONS (NOCLIP ATAS & SEKAT BERSIH)
+-- MOVEMENT SECTION INJECTIONS
 -- ====================================================================
 local noclipSec = createSectionCard(tabs.Movement.Container, "Noclip Core", 65, 1)
 local noclipConnection
@@ -488,7 +489,41 @@ end
 createToggleSwitch(flySec, "Fly Hack Enabled", function(v) if v then startFlying() else stopFlying() end end)
 createLevelControl(flySec, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
-local wsSec = createSectionCard(tabs.Movement.Container, "Speed Regulation", 95, 3)
+-- FITUR PREMIUM BARU: FLOAT ENGINE SYSTEM
+local floatSec = createSectionCard(tabs.Movement.Container, "Float Engine (IY Concept)", 65, 3)
+local floatActive = false
+local floatPart = nil
+local floatConnection
+
+local function toggleFloat(state)
+    floatActive = state
+    local char = Player.Character
+    if state then
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+        floatPart = Instance.new("Part")
+        floatPart.Name = "Quantum_FloatPlatform"
+        floatPart.Size = Vector3.new(4, 0.5, 4)
+        floatPart.Transparency = 1
+        floatPart.Anchored = true
+        floatPart.CanCollide = true
+        floatPart.Parent = workspace
+        floatPart.CFrame = hrp.CFrame * CFrame.new(0, -3.25, 0)
+        
+        floatConnection = RunService.RenderStepped:Connect(function()
+            if floatActive and char and char:FindFirstChild("HumanoidRootPart") and floatPart then
+                local currentHrp = char.HumanoidRootPart
+                floatPart.CFrame = CFrame.new(currentHrp.Position.X, floatPart.Position.Y, currentHrp.Position.Z)
+            end
+        end)
+    else
+        if floatConnection then floatConnection:Disconnect() floatConnection = nil end
+        if floatPart then floatPart:Destroy() floatPart = nil end
+    end
+end
+createToggleSwitch(floatSec, "Enable Float Melayang", function(state) toggleFloat(state) end)
+
+local wsSec = createSectionCard(tabs.Movement.Container, "Speed Regulation", 95, 4)
 local walkToggleState = false
 local walkLevel = 1
 local function updateWalkSpeed()
@@ -500,7 +535,7 @@ end
 createToggleSwitch(wsSec, "WalkSpeed Bypass", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(wsSec, "Speed Multiplier", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
-local jumpSec = createSectionCard(tabs.Movement.Container, "Vertical Boosters", 125, 4)
+local jumpSec = createSectionCard(tabs.Movement.Container, "Vertical Boosters", 125, 5)
 local jumpToggleState = false
 local jumpLevel = 5
 local function updateJumpPower()
@@ -563,7 +598,7 @@ local function masterTeleport(targetCFrame)
     end
 end
 
--- TELEPORT DROPDOWN LAYER SECURITY
+-- TELEPORT DROPDOWN
 local selectedPlayer = ""
 local ddMain = Instance.new("Frame", tabs.Teleport.Container)
 ddMain.Size = UDim2.new(1, -5, 0, 42) ddMain.BackgroundTransparency = 1
@@ -660,7 +695,7 @@ createWaypointUI("Slot4", "Waypoint 4")
 createWaypointUI("Slot5", "Waypoint 5")
 
 -- ====================================================================
--- UTILITIES SYSTEM & FIX FUNCTIONAL COPY TARGET TOOLS
+-- UTILITIES SYSTEM & NEW PREMIUM INJECTIONS
 -- ====================================================================
 local funTargetName = ""
 local headSitting = false
@@ -704,26 +739,18 @@ local function updateFunDropdown()
 end
 ddTriggerF.MouseButton1Click:Connect(function() ddScrollF.Visible = not ddScrollF.Visible if ddScrollF.Visible then updateFunDropdown() end end)
 
-local actionSec = createSectionCard(tabs.Utilities.Container, "Target Interaction", 110, 1)
+local actionSec = createSectionCard(tabs.Utilities.Container, "Target Interaction", 145, 1)
 
--- FIX UTAMA: KODE DIBIKIN FUNGSIONAL AGAR ITEM BISA DIPAKAI TOTAL (CLIENT RE-REGISTER)
 local function rebuildAndInjectTool(originalTool, destination)
     local nt = originalTool:Clone()
-    
-    -- Daftarkan ulang koneksi aktivasi agar bisa diklik di client kita sendiri
     nt.Activated:Connect(function()
-        if nt:FindFirstChild("RemoteEvent") then
-            nt.RemoteEvent:FireServer()
-        end
+        if nt:FindFirstChild("RemoteEvent") then nt.RemoteEvent:FireServer() end
     end)
-    
-    -- Bypass Grip & Setup Manual jika script internal Roblox macet
     if nt:FindFirstChild("Handle") then
         nt.Handle.Anchored = false
         local touchTrans = nt.Handle:FindFirstChildOfClass("TouchTransmitter")
-        if touchTrans then touchTrans:Destroy() end -- Hapus transmitter agar ga ngebug teleport balik
+        if touchTrans then touchTrans:Destroy() end
     end
-    
     nt.Parent = destination
 end
 
@@ -733,26 +760,68 @@ createStandardButton(actionSec, "🎒 Copy Target Tools", function()
         local myBackpack = Player:FindFirstChild("Backpack")
         if target and myBackpack then
             local copiedCount = 0
-            
             if target.Character then
                 for _, obj in pairs(target.Character:GetChildren()) do
-                    if obj:IsA("Tool") then
-                        rebuildAndInjectTool(obj, myBackpack)
-                        copiedCount = copiedCount + 1
-                    end
+                    if obj:IsA("Tool") then rebuildAndInjectTool(obj, myBackpack) copiedCount = copiedCount + 1 end
                 end
             end
-            
             if target:FindFirstChild("Backpack") then
                 for _, obj in pairs(target.Backpack:GetChildren()) do
-                    if obj:IsA("Tool") then
-                        rebuildAndInjectTool(obj, myBackpack)
-                        copiedCount = copiedCount + 1
-                    end
+                    if obj:IsA("Tool") then rebuildAndInjectTool(obj, myBackpack) copiedCount = copiedCount + 1 end
                 end
             end
-            print("[QUANTUM COPIER]: Fixed & Injected " .. copiedCount .. " tools into your backpack.")
         end
+    end
+end)
+
+-- FITUR PREMIUM BARU: FLING ENGINE V2 (TIMER 3 DETIK & AUTO-CUT ANTI CRASH)
+local flingActive = false
+local flingConnection
+local function runTimerFling(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    local targetChar = targetPlayer.Character
+    local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+    local myChar = Player.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    
+    if not targetHrp or not myHrp or not targetHum or targetHum.Health <= 0 then return end
+    flingActive = true
+    
+    local bV = Instance.new("BodyVelocity", myHrp)
+    bV.MaxForce = Vector3.new(9e9, 9e9, 9e9) bV.Velocity = Vector3.new(0, 0, 0)
+    local aV = Instance.new("AngularVelocity", myHrp)
+    aV.MaxTorque = 9e9 aV.AngularVelocity = Vector3.new(0, 99999, 0) aV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+    local att = Instance.new("Attachment", myHrp) aV.Attachment0 = att
+    
+    for _, part in pairs(myChar:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
+    local startTime = tick()
+    
+    flingConnection = RunService.Heartbeat:Connect(function()
+        local currentHum = targetPlayer.Character and targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local currentHrp = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local timeElapsed = tick() - startTime
+        
+        if not flingActive or not currentHum or currentHum.Health <= 0 or not currentHrp or timeElapsed >= 3 then
+            if flingConnection then flingConnection:Disconnect() flingConnection = nil end
+            flingActive = false
+            if bV then bV:Destroy() end if aV then aV:Destroy() end if att then att:Destroy() end
+            
+            if currentHum and currentHum.Health > 0 and flingActive == false then
+                task.wait(1)
+                if currentHum.Health > 0 then runTimerFling(targetPlayer) end
+            end
+            return
+        end
+        myHrp.CFrame = currentHrp.CFrame * CFrame.new(0, 0, 0.1)
+        bV.Velocity = currentHrp.Velocity
+    end)
+end
+
+createStandardButton(actionSec, "🚀 Fling Target (Timer & Auto-Cut)", function()
+    if funTargetName ~= "" and not flingActive then
+        local target = Players:FindFirstChild(funTargetName)
+        if target then runTimerFling(target) end
     end
 end)
 
@@ -775,8 +844,8 @@ createToggleSwitch(actionSec, "Headsit Target", function(state)
     end)
 end)
 
--- SEKAT UNTUK MAP UTILITIES
-local mapSec = createSectionCard(tabs.Utilities.Container, "Map Exploration Tools", 145, 2)
+-- SEKAT UNTUK MAP VISUAL & ESP HACKS
+local visualSec = createSectionCard(tabs.Utilities.Container, "Visual & ESP Hacks", 175, 2)
 local xrayActive = false
 local originalTransparencies = {}
 
@@ -796,7 +865,7 @@ local function removeXray()
     table.clear(originalTransparencies)
 end
 
-createToggleSwitch(mapSec, "X-Ray Vision (Transparan)", function(state)
+createToggleSwitch(visualSec, "X-Ray Vision (Transparan)", function(state)
     xrayActive = state
     if state then
         applyXray()
@@ -815,14 +884,46 @@ createToggleSwitch(mapSec, "X-Ray Vision (Transparan)", function(state)
     end
 end)
 
-createStandardButton(mapSec, "🎒 Grab All Tools in Map", function()
+-- FITUR PREMIUM BARU: HIGHLIGHT WALLHACK ESP
+local EspActive = false
+local EspObjects = {}
+local function applyEspToCharacter(targetPlayer, char)
+    if targetPlayer == Player or not char then return end
+    if EspObjects[targetPlayer.Name] then EspObjects[targetPlayer.Name]:Destroy() EspObjects[targetPlayer.Name] = nil end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "Quantum_ESP_" .. targetPlayer.Name
+    highlight.FillColor = Theme.Accent highlight.FillTransparency = 0.5
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255) highlight.OutlineTransparency = 0.2
+    highlight.Adornee = char highlight.Parent = MainGui
+    EspObjects[targetPlayer.Name] = highlight
+end
+
+local function togglePlayerEsp(state)
+    EspActive = state
+    if state then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then applyEspToCharacter(p, p.Character) end
+            p.CharacterAdded:Connect(function(newChar) if EspActive then task.wait(0.5) applyEspToCharacter(p, newChar) end end)
+        end
+        _G.EspPlayerJoinConnection = Players.PlayerAdded:Connect(function(p)
+            p.CharacterAdded:Connect(function(newChar) if EspActive then task.wait(0.5) applyEspToCharacter(p, newChar) end end)
+        end)
+    else
+        if _G.EspPlayerJoinConnection then _G.EspPlayerJoinConnection:Disconnect() _G.EspPlayerJoinConnection = nil end
+        for name, obj in pairs(EspObjects) do if obj then obj:Destroy() end end
+        table.clear(EspObjects)
+    end
+end
+createToggleSwitch(visualSec, "Player ESP (Wallhack)", function(state) togglePlayerEsp(state) end)
+
+createStandardButton(visualSec, "🎒 Grab All Tools in Map", function()
     local backpack = Player:FindFirstChild("Backpack")
     if backpack then
         for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("Tool") then obj.Parent = backpack end end
     end
 end)
 
-createStandardButton(mapSec, "🔨 Give Classic BTools (Delete)", function()
+createStandardButton(visualSec, "🔨 Give Classic BTools (Delete)", function()
     local backpack = Player:FindFirstChild("Backpack")
     if backpack then
         local btool = Instance.new("Tool")
@@ -841,9 +942,13 @@ end)
 -- ====================================================================
 createStandardButton(tabs.Setting.Container, "🔴 Destroy Quantum Hub UI", function()
     if _G.XrayConnection then _G.XrayConnection:Disconnect() _G.XrayConnection = nil end
+    if _G.EspPlayerJoinConnection then _G.EspPlayerJoinConnection:Disconnect() _G.EspPlayerJoinConnection = nil end
+    for name, obj in pairs(EspObjects) do if obj then obj:Destroy() end end
     if headSitConnection then headSitConnection:Disconnect() headSitConnection = nil end
     if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end
     if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+    if floatConnection then floatConnection:Disconnect() floatConnection = nil end
+    if floatPart then floatPart:Destroy() end
     stopFlying()
     for slot, _ in pairs(waypointSlots) do clearWaypointESP(slot) end
     ddScroll:Destroy() ddScrollF:Destroy() MainGui:Destroy()
@@ -861,4 +966,4 @@ task.spawn(function()
     MainFrame.Visible = true 
 end)
 
-print("[QUANTUM HUB V3.9]: Tool Copier Framework Fixed Completely.")
+print("[QUANTUM HUB V4.0]: All Premium Modules Successfully Deployed.")
