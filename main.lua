@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - OFFICIAL VERSION v5.5 (RADICAL LAYOUT REDESIGN)
+-- AR SCRIPT HUB - OFFICIAL VERSION v5.6 (NOCLIP PRIORITY UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -21,15 +21,14 @@ MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 999999999
 
--- THEME COLOR PALETTE (PREMIUM SOFT SEMI-TRANSPARENT NEON)
 local Theme = {
-    Bg = Color3.fromRGB(12, 10, 24),         -- Darker Premium Indigo Slate
-    BgTrans = 0.20,                          -- Super Sexy Glassmorphism (80% Transparan Blur Look)
-    CardBg = Color3.fromRGB(20, 22, 38),     -- Card Background
-    CardTrans = 0.4,                         -- Soft Semi-Transparent Card
-    Stroke = Color3.fromRGB(56, 52, 92),     -- Elegant Muted Purple Outline
-    Accent = Color3.fromRGB(115, 170, 255),  -- Electric Soft Blue
-    AccentPurple = Color3.fromRGB(190, 130, 255), -- Orchid Violet Neon
+    Bg = Color3.fromRGB(12, 10, 24),         
+    BgTrans = 0.20,                          
+    CardBg = Color3.fromRGB(20, 22, 38),     
+    CardTrans = 0.4,                         
+    Stroke = Color3.fromRGB(56, 52, 92),     
+    Accent = Color3.fromRGB(115, 170, 255),  
+    AccentPurple = Color3.fromRGB(190, 130, 255), 
     TextMain = Color3.fromRGB(245, 245, 255),
     TextMuted = Color3.fromRGB(140, 145, 175)
 }
@@ -77,7 +76,7 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (OPTIMIZED TO PERFECT RATIO: 460 x 380)
+-- MAIN PANEL
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
@@ -96,7 +95,7 @@ Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR SCRIPT HUB <font color='#c092ff'>v5.5</font>"
+Title.Text = "✨ AR SCRIPT HUB <font color='#c092ff'>v5.6</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 14, 0, 0)
@@ -119,7 +118,7 @@ makeDraggable(MainFrame, Header)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- SIDEBAR NAV MENU (100PX WIDTH FOR NO TEXT CLIPPING)
+-- SIDEBAR NAV MENU
 local NavFrame = Instance.new("Frame", MainFrame)
 NavFrame.Size = UDim2.new(0, 100, 1, -65)
 NavFrame.Position = UDim2.new(0, 14, 0, 50)
@@ -137,7 +136,7 @@ local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
     f.Size = UDim2.new(1, 0, 1, 0)
     f.BackgroundTransparency = 1
-    f.CanvasSize = UDim2.new(0, 0, 0, 0) -- Diatur otomatis oleh UIListLayout nanti
+    f.CanvasSize = UDim2.new(0, 0, 0, 0)
     f.AutomaticCanvasSize = Enum.AutomaticSize.Y
     f.ScrollBarThickness = 3
     f.ScrollBarImageColor3 = Theme.Accent
@@ -195,11 +194,11 @@ addTabButton("World", "🌐 World", 4)
 addTabButton("Utilities", "🛠️ Utilities", 5)
 addTabButton("Settings", "⚙️ Settings", 6)
 
--- SMART AUTO-SIZING COMPONENTS GENERATOR (ANTI-LEAK Shield)
+-- COMPONENTS GENERATOR
 local function createSectionCard(parent, titleText, layoutOrder)
     local section = Instance.new("Frame", parent)
     section.Size = UDim2.new(1, -6, 0, 0)
-    section.AutomaticSize = Enum.AutomaticSize.Y -- CARD BISA MELAR OTOMATIS IKUTIN ISI!
+    section.AutomaticSize = Enum.AutomaticSize.Y 
     section.BackgroundColor3 = Theme.CardBg
     section.BackgroundTransparency = Theme.CardTrans
     section.LayoutOrder = layoutOrder
@@ -227,7 +226,6 @@ local function createSectionCard(parent, titleText, layoutOrder)
     innerLayout.Padding = UDim.new(0, 8)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
-    -- Tambah padding bawah biar card ga mepet bgt di ujung bawah
     local padding = Instance.new("UIPadding", container)
     padding.PaddingBottom = UDim.new(0, 10)
 
@@ -305,7 +303,6 @@ local function createStandardButton(parent, textDisplay, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- TELEPORT SELECTION CORE
 local GlobalTargetName = ""
 local UseTweenTeleport = false
 
@@ -326,9 +323,31 @@ local function executeTeleport(targetCFrame)
 end
 
 -- ====================================================================
--- TAB 1: PLAYER MODIFIERS
+-- TAB 1: PLAYER MODIFIERS (NOCLIP IS NOW TOP PRIORITY #1)
 -- ====================================================================
-local pFly = createSectionCard(tabs.Player.Container, "Fly", 1)
+-- 1. GHOST NAVIGATION (NOCLIP & FLOAT MOVED TO LAYOUT ORDER 1)
+local pExtraNav = createSectionCard(tabs.Player.Container, "Ghost Environment Bypass", 1)
+local noclipActive, floatActive = false, false local noclipConnection, floatConnection, floatPart
+createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v)
+    noclipActive = v
+    if v then
+        if noclipConnection then noclipConnection:Disconnect() end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if noclipActive and Player.Character then for _, p in pairs(Player.Character:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end end
+        end)
+    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
+end)
+createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state)
+    floatActive = state local char = Player.Character
+    if state then
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        floatPart = Instance.new("Part", workspace) floatPart.Size = Vector3.new(5, 0.5, 5) floatPart.Transparency = 1 floatPart.Anchored = true floatPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -3.25, 0)
+        floatConnection = RunService.RenderStepped:Connect(function() if floatActive and char and char:FindFirstChild("HumanoidRootPart") and floatPart then floatPart.CFrame = CFrame.new(char.HumanoidRootPart.Position.X, floatPart.Position.Y, char.HumanoidRootPart.Position.Z) end end)
+    else if floatConnection then floatConnection:Disconnect() floatConnection = nil end if floatPart then floatPart:Destroy() floatPart = nil end end
+end)
+
+-- 2. FLY MODULE (Layout Order 2)
+local pFly = createSectionCard(tabs.Player.Container, "Fly", 2)
 local flying = false local flyLevel = 5 local bg, bv
 local function stopFlying()
     flying = false if bg then bg:Destroy() bg = nil end if bv then bv:Destroy() bv = nil end
@@ -358,7 +377,8 @@ createToggleSwitch(pFly, "Fly Hack Enabled", function(v)
 end)
 createLevelControl(pFly, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
-local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 2)
+-- 3. WALKSPEED MODULE (Layout Order 3)
+local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 3)
 local walkToggleState = false local walkLevel = 1
 local function updateWalkSpeed()
     local char = Player.Character
@@ -367,7 +387,8 @@ end
 createToggleSwitch(pWalk, "Bypass Speed", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
-local pJump = createSectionCard(tabs.Player.Container, "Jump", 3)
+-- 4. JUMP MODULE (Layout Order 4)
+local pJump = createSectionCard(tabs.Player.Container, "Jump", 4)
 local jumpToggleState = false local jumpLevel = 5
 local function updateJumpPower()
     local char = Player.Character
@@ -378,7 +399,8 @@ end
 createToggleSwitch(pJump, "Bypass Jump", function(v) jumpToggleState = v updateJumpPower() end)
 createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
-local pDefense = createSectionCard(tabs.Player.Container, "Defense", 4)
+-- 5. DEFENSE MODULE (Layout Order 5)
+local pDefense = createSectionCard(tabs.Player.Container, "Defense", 5)
 local AntiAfkConnection, AntiFlingConnection, AntiStunConnection local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
 createToggleSwitch(pDefense, "Anti-AFK Core System", function(state)
     if state then AntiAfkConnection = Player.Idled:Connect(function() local vu = game:GetService("VirtualUser") vu:CaptureController() vu:ClickButton2(Vector2.new(0,0)) end)
@@ -406,26 +428,6 @@ createToggleSwitch(pDefense, "Anti-Stun Ragdoll Lock", function(state)
     else if AntiStunConnection then AntiStunConnection:Disconnect() AntiStunConnection = nil end end
 end)
 createToggleSwitch(pDefense, "Invisible Mode Glitch", function(state) IsInvisible = state local char = Player.Character if char and char:FindFirstChild("LowerTorso") then char.LowerTorso.RootJoint.Part0 = state and nil or char.HumanoidRootPart end end)
-
-local pExtraNav = createSectionCard(tabs.Player.Container, "Extra Environmental Tools", 5)
-local noclipActive, floatActive = false, false local noclipConnection, floatConnection, floatPart
-createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v)
-    noclipActive = v
-    if v then
-        if noclipConnection then noclipConnection:Disconnect() end
-        noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then for _, p in pairs(Player.Character:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end end
-        end)
-    else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
-end)
-createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state)
-    floatActive = state local char = Player.Character
-    if state then
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        floatPart = Instance.new("Part", workspace) floatPart.Size = Vector3.new(5, 0.5, 5) floatPart.Transparency = 1 floatPart.Anchored = true floatPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -3.25, 0)
-        floatConnection = RunService.RenderStepped:Connect(function() if floatActive and char and char:FindFirstChild("HumanoidRootPart") and floatPart then floatPart.CFrame = CFrame.new(char.HumanoidRootPart.Position.X, floatPart.Position.Y, char.HumanoidRootPart.Position.Z) end end)
-    else if floatConnection then floatConnection:Disconnect() floatConnection = nil end if floatPart then floatPart:Destroy() floatPart = nil end end
-end)
 
 -- ====================================================================
 -- TAB 2: ESP SYSTEM
@@ -478,7 +480,7 @@ for _, c in ipairs(colorsData) do
 end
 
 -- ====================================================================
--- TAB 3: TELEPORT HUB (FIXED LEAK)
+-- TAB 3: TELEPORT HUB
 -- ====================================================================
 local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 1)
 createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state) UseTweenTeleport = state end)
@@ -491,7 +493,6 @@ createStandardButton(gotoSec, "🎯 Teleport to Locked Target", function()
     end
 end)
 
--- List Player (Diberi ukuran Box Tinggi Statis di dalam card auto-size agar rapi)
 local listUserSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 3)
 local listContainerFix = Instance.new("Frame", listUserSec) listContainerFix.Size = UDim2.new(1,0,0,110) listContainerFix.BackgroundTransparency = 1
 local pListScroll = Instance.new("ScrollingFrame", listContainerFix) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,0) pListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 4)
@@ -508,7 +509,6 @@ local function rebuildPlayerList()
 end
 rebuildPlayerList() Players.PlayerAdded:Connect(rebuildPlayerList) Players.PlayerRemoving:Connect(rebuildPlayerList)
 
--- 5 SLOT WAYPOINTS
 local wpSec = createSectionCard(tabs.Teleport.Container, "Map Waypoints Vectors (1-5)", 4)
 local waypointSlots = {WP1 = nil, WP2 = nil, WP3 = nil, WP4 = nil, WP5 = nil}
 
@@ -636,4 +636,4 @@ createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
     if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
 end)
 
-print("[AR SCRIPT HUB V5.5]: Core Resized & Re-designed flawlessly.")
+print("[AR SCRIPT HUB V5.6]: Noclip successfully moved to the absolute top layout.")
