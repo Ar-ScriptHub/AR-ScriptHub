@@ -524,8 +524,53 @@ addToggle(espSettingsCard, "Team Check", 1)
 addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- PERAKITAN CARD TAB TELEPORTATION
+-- PERAKITAN CARD TAB TELEPORTATION (v6.3 - PERMANENT SAVING SYSTEM)
 -- ====================================================================
+local HttpService = game:GetService("HttpService")
+local FILE_NAME = "AR_Hub_Waypoints.json"
+local CurrentPlaceId = tostring(game.PlaceId)
+
+-- Struktur Data Utama untuk menampung Waypoint di RAM
+local AllWaypoints = {}
+
+-- Fungsi Load Data dari Penyimpanan Storage (.json)
+local function loadWaypointsFromStorage()
+    AllWaypoints = {} -- Reset RAM
+    local success, content = pcall(function()
+        return readfile(FILE_NAME)
+    end)
+    
+    if success and content then
+        local decodeSuccess, decodedData = pcall(function()
+            return HttpService:JSONDecode(content)
+        end)
+        if decodeSuccess and type(decodedData) == "table" then
+            AllWaypoints = decodedData
+        end
+    else
+        -- Jika file belum ada, buat file teks kosong baru
+        pcall(function()
+            writefile(FILE_NAME, HttpService:JSONEncode({}))
+        end)
+    end
+    
+    -- Pastikan slot untuk Map/PlaceId saat ini sudah tersedia berupa table
+    if not AllWaypoints[CurrentPlaceId] then
+        AllWaypoints[CurrentPlaceId] = {}
+    end
+end
+
+-- Fungsi Save Data RAM ke dalam file Storage (.json)
+local function saveWaypointsToStorage()
+    pcall(function()
+        writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints))
+    end)
+end
+
+-- Ambil data lama saat skrip pertama kali dijalankan
+loadWaypointsFromStorage()
+
+-- Pembuatan UI Konten Kolom Kiri & Kanan
 local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
 
 local inputPlayerFrame = Instance.new("Frame", playerTpCard)
@@ -571,51 +616,126 @@ btnPlayerTp.MouseButton1Click:Connect(function()
     end
 end)
 
+
+-- CARD KIRI: TEMPAT INPUT & SIMPAN CUSTOM WAYPOINT
 local waypointCard = createCard(tpLeftColumn, "Custom Waypoints", 2)
-addToggle(waypointCard, "Auto-Save Position", 1)
+
+local inputWpFrame = Instance.new("Frame", waypointCard)
+inputWpFrame.Size = UDim2.new(1, 0, 0, 28)
+inputWpFrame.BackgroundTransparency = 1
+inputWpFrame.LayoutOrder = 1
+
+local wpNameInput = Instance.new("TextBox", inputWpFrame)
+wpNameInput.Size = UDim2.new(1, 0, 1, 0)
+wpNameInput.BackgroundColor3 = Theme.Bg
+wpNameInput.Font = Enum.Font.GothamMedium
+wpNameInput.PlaceholderText = "Nama waypoint baru..."
+wpNameInput.Text = ""
+wpNameInput.TextColor3 = Theme.TextMain
+wpNameInput.PlaceholderColor3 = Theme.TextMuted
+wpNameInput.TextSize = 11
+wpNameInput.ClearTextOnFocus = true
+Instance.new("UICorner", wpNameInput).CornerRadius = UDim.new(0, 5)
+local wpInputStroke = Instance.new("UIStroke", wpNameInput)
+wpInputStroke.Color = Theme.Stroke
 
 local btnSavePos = Instance.new("TextButton", waypointCard)
-btnSavePos.Size = UDim2.new(1, 0, 0, 24)
-btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 38, 68)
+btnSavePos.Size = UDim2.new(1, 0, 0, 26)
+btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
 btnSavePos.Font = Enum.Font.GothamBold
 btnSavePos.Text = "💾 Simpan Posisi Saat Ini"
 btnSavePos.TextColor3 = Theme.Accent
 btnSavePos.TextSize = 11
 btnSavePos.LayoutOrder = 2
 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
+local saveStroke = Instance.new("UIStroke", btnSavePos)
+saveStroke.Color = Theme.Stroke
 
--- Landmarks Area
-local areaTpCard = createCard(tpRightColumn, "Map Landmarks", 1)
 
-local function addLocationButton(parent, locationName, cframeValue, order)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 26)
-    btn.BackgroundColor3 = Theme.CardBg
-    btn.Font = Enum.Font.GothamMedium
-    btn.Text = "📍 " .. locationName
-    btn.TextColor3 = Theme.TextMain
-    btn.TextSize = 11
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    local bStr = Instance.new("UIStroke", btn)
-    bStr.Color = Theme.Stroke
-    
-    btn.MouseButton1Click:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = cframeValue
+-- CARD KANAN: TEMPAT MENAMPILKAN LANDMARKS HASIL SAVE
+local areaTpCard = createCard(tpRightColumn, "Saved Landmarks", 1)
+
+-- Fungsi Render Ulang Tombol di Kolom Kanan (Clear lalu Gambar Ulang)
+local function refreshLandmarksUI()
+    -- Bersihkan tombol lama di dalam card agar tidak menumpuk saat di-update
+    for _, child in pairs(areaTpCard:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
         end
-    end)
+    end
     
-    btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
-    btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
+    -- Ambil data koordinat khusus map/place ini
+    local currentMapData = AllWaypoints[CurrentPlaceId] or {}
+    local indexOrder = 1
+    
+    for wpName, coord in pairs(currentMapData) do
+        local btn = Instance.new("TextButton", areaTpCard)
+        btn.Size = UDim2.new(1, 0, 0, 26)
+        btn.BackgroundColor3 = Theme.CardBg
+        btn.Font = Enum.Font.GothamMedium
+        btn.Text = "📍 " .. wpName
+        btn.TextColor3 = Theme.TextMain
+        btn.TextSize = 11
+        btn.LayoutOrder = indexOrder
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+        local bStr = Instance.new("UIStroke", btn)
+        bStr.Color = Theme.Stroke
+        
+        -- Logika Teleportasi saat Landmark diklik
+        btn.MouseButton1Click:Connect(function()
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                -- Konversi data Array di JSON kembali ke tipe data CFrame Roblox
+                local targetCFrame = CFrame.new(coord[1], coord[2], coord[3])
+                Player.Character.HumanoidRootPart.CFrame = targetCFrame
+            end
+        end)
+        
+        -- Efek Hover Estetik
+        btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
+        btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
+        
+        indexOrder = indexOrder + 1
+    end
+    
+    -- Jika map masih kosong belum ada landmark
+    if indexOrder == 1 then
+        local emptyTxt = Instance.new("TextButton", areaTpCard) -- Menggunakan TextButton tipis sebagai teks info biar serasi layoutorder
+        emptyTxt.Size = UDim2.new(1, 0, 0, 20)
+        emptyTxt.BackgroundTransparency = 1
+        emptyTxt.Font = Enum.Font.GothamMedium
+        emptyTxt.Text = "Belum ada landmark tersimpan."
+        emptyTxt.TextColor3 = Theme.TextMuted
+        emptyTxt.TextSize = 10
+        emptyTxt.LayoutOrder = 1
+    end
 end
 
--- Dummy Coordinates
-addLocationButton(areaTpCard, "Spawn Area", CFrame.new(0, 10, 0), 1)
-addLocationButton(areaTpCard, "Main Shop / Pasar", CFrame.new(100, 15, -250), 2)
-addLocationButton(areaTpCard, "VIP Zone", CFrame.new(-500, 20, 500), 3)
-addLocationButton(areaTpCard, "Dungeon / Arena", CFrame.new(1200, 5, 1200), 4)
+-- Logika Eksekusi ketika tombol "Simpan Posisi" diklik
+btnSavePos.MouseButton1Click:Connect(function()
+    local name = wpNameInput.Text
+    if name ~= "" and name ~= "Nama waypoint baru..." then
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            local currentPos = Player.Character.HumanoidRootPart.Position
+            
+            -- Simpan posisi dalam format Array biasa {X, Y, Z} agar bisa disimpan ke format JSON teks file
+            AllWaypoints[CurrentPlaceId][name] = {
+                math.round(currentPos.X * 100) / 100,
+                math.round(currentPos.Y * 100) / 100,
+                math.round(currentPos.Z * 100) / 100
+            }
+            
+            -- Tulis permanen ke storage komputer/HP
+            saveWaypointsToStorage()
+            
+            -- Reset kolom input teks dan gambar ulang list di sebelah kanan
+            wpNameInput.Text = ""
+            refreshLandmarksUI()
+        end
+    end
+end)
+
+-- Pertama kali buka tab langsung render list landmark yang tersimpan di map tersebut
+refreshLandmarksUI()
 
 -- ====================================================================
 -- ANIMATION SYSTEM INTRO & DEPLOY
