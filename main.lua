@@ -486,6 +486,15 @@ addToggle(jumpCard, "Super Jump", 1)
 addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump", 3)
 
+-- 4. CARD PHYSICS (Kolom Kiri - Di bawah Superspeed)
+local physicsCard = createCard(LeftColumn, "Physics", 3)
+addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1)
+addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
+
+-- 5. CARD UTILITIES (Kolom Kanan - Di bawah Jump)
+local utilCard = createCard(RightColumn, "Utilities", 2)
+addToggle(utilCard, "Anti Ragdoll", 1)
+addToggle(utilCard, "Infinite Oxygen", 2)
 -- ====================================================================
 -- LOGIKA ANIMASI INTRO LOADING SCREEN
 -- ====================================================================
