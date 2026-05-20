@@ -756,18 +756,32 @@ local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
 local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 
+-- ====================================================================
+-- FIX ENGINE: LOOP STATS SERVER DYNAMIC UPDATE (ANTI-STUCK 0)
+-- ====================================================================
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(0.5) do -- Update lebih cepat setiap 0.5 detik biar responsif
         if not MainGui or not MainGui.Parent then break end
-        if menuContainers["Server"].Visible then
+        
+        -- Cek murni apakah halaman Server sedang aktif di layar
+        if menuContainers["Server"] and menuContainers["Server"].Visible == true then
+            -- 1. Hitung FPS murni game
             local fps = math.round(1 / RunService.RenderStepped:Wait())
             lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
             lblFps.RichText = true
             
-            local ping = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
-            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>"
+            -- 2. Hitung PING murni (ditambahkan pcall biar aman kalau koneksi naik turun)
+            local successPing, pingValue = pcall(function()
+                return math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
+            end)
+            if successPing and pingValue then
+                lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingValue) .. " ms</font>"
+            else
+                lblPing.Text = "Ping: <font color='#ff5a5a'>Error</font>"
+            end
             lblPing.RichText = true
             
+            -- 3. Hitung SERVER AGE (Umur Server murni dari Workspace Instance)
             local sTime = math.round(workspace.DistributedGameTime)
             local hours = string.format("%02d", math.floor(sTime / 3600))
             local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
