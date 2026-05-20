@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.2 FULL PRODUCTION DEPLOY (FIXED LOADING STUCK)
+-- AR SCRIPT HUB - v6.4 FULL PRODUCTION DEPLOY (WAYPOINT MGMT UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -27,7 +27,9 @@ local Theme = {
     Accent = Color3.fromRGB(115, 170, 255),  
     AccentPurple = Color3.fromRGB(190, 130, 255), 
     TextMain = Color3.fromRGB(245, 245, 255),
-    TextMuted = Color3.fromRGB(140, 145, 175)
+    TextMuted = Color3.fromRGB(140, 145, 175),
+    DeleteRed = Color3.fromRGB(255, 90, 90),
+    DeleteBg = Color3.fromRGB(50, 25, 35)
 }
 
 -- ====================================================================
@@ -149,7 +151,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.2</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.4</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -272,7 +274,7 @@ addTopBarButton("⚙️ Setting", "Setting", 5)
 -- PLACEHOLDER MAKER (Hanya untuk Server)
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(0, 519, 0, 150) 
+    card.Size = UDim2.new(0, 518, 0, 150) 
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -286,15 +288,15 @@ end
 buildPlaceholder(serverPage, "SERVER")
 
 -- SETTING PAGE DISSOLVE
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 519, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 518, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- SISTEM FILTER SEKAT 5PX & CARD RAMING 257PX PUSAT KIRI
+-- KUNCI BARU v6.4: LEBAR CARD 255PX & SEKAT TENGAH LONGGAR PAS 8PX
 local function createLeftColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    col.Size = UDim2.new(0, 257, 0, 0)
+    col.Size = UDim2.new(0, 255, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
     col.Position = UDim2.new(0, 0, 0, 0) 
     col.BackgroundTransparency = 1
@@ -308,9 +310,9 @@ end
 local function createShiftedRightColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    col.Size = UDim2.new(0, 257, 0, 0)
+    col.Size = UDim2.new(0, 255, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 262, 0, 0) 
+    col.Position = UDim2.new(0, 263, 0, 0) -- 255 + 8px sekat tengah murni
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
@@ -319,13 +321,11 @@ local function createShiftedRightColumn(parentName, columnName)
     return col
 end
 
--- Registrasi Kolom-Kolom Utama Halaman
+-- Registrasi Kolom Utama
 local LeftColumn = createLeftColumn("Player", "LeftColumn")
 local RightColumn = createShiftedRightColumn("Player", "RightColumn")
-
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
 local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
-
 local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn")
 local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
 
@@ -470,7 +470,6 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        -- KUNCI PERBAIKAN: Ditambahkan Enum.UserInputType secara utuh biar loading ga crash
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
             local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
@@ -524,55 +523,33 @@ addToggle(espSettingsCard, "Team Check", 1)
 addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- PERAKITAN CARD TAB TELEPORTATION (v6.3 - PERMANENT SAVING SYSTEM)
+-- PERAKITAN CARD TAB TELEPORTATION (v6.4 - MANAGEMENT WITH DELETE ACTIVE)
 -- ====================================================================
 local HttpService = game:GetService("HttpService")
 local FILE_NAME = "AR_Hub_Waypoints.json"
 local CurrentPlaceId = tostring(game.PlaceId)
 
--- Struktur Data Utama untuk menampung Waypoint di RAM
 local AllWaypoints = {}
 
--- Fungsi Load Data dari Penyimpanan Storage (.json)
 local function loadWaypointsFromStorage()
-    AllWaypoints = {} -- Reset RAM
-    local success, content = pcall(function()
-        return readfile(FILE_NAME)
-    end)
-    
+    AllWaypoints = {}
+    local success, content = pcall(function() return readfile(FILE_NAME) end)
     if success and content then
-        local decodeSuccess, decodedData = pcall(function()
-            return HttpService:JSONDecode(content)
-        end)
-        if decodeSuccess and type(decodedData) == "table" then
-            AllWaypoints = decodedData
-        end
+        local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
+        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
     else
-        -- Jika file belum ada, buat file teks kosong baru
-        pcall(function()
-            writefile(FILE_NAME, HttpService:JSONEncode({}))
-        end)
+        pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
     end
-    
-    -- Pastikan slot untuk Map/PlaceId saat ini sudah tersedia berupa table
-    if not AllWaypoints[CurrentPlaceId] then
-        AllWaypoints[CurrentPlaceId] = {}
-    end
+    if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
 end
 
--- Fungsi Save Data RAM ke dalam file Storage (.json)
 local function saveWaypointsToStorage()
-    pcall(function()
-        writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints))
-    end)
+    pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints)) end)
 end
 
--- Ambil data lama saat skrip pertama kali dijalankan
 loadWaypointsFromStorage()
 
--- Pembuatan UI Konten Kolom Kiri & Kanan
 local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
-
 local inputPlayerFrame = Instance.new("Frame", playerTpCard)
 inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28)
 inputPlayerFrame.BackgroundTransparency = 1
@@ -616,10 +593,8 @@ btnPlayerTp.MouseButton1Click:Connect(function()
     end
 end)
 
-
--- CARD KIRI: TEMPAT INPUT & SIMPAN CUSTOM WAYPOINT
+-- CARD KIRI: SAVE WAYPOINT
 local waypointCard = createCard(tpLeftColumn, "Custom Waypoints", 2)
-
 local inputWpFrame = Instance.new("Frame", waypointCard)
 inputWpFrame.Size = UDim2.new(1, 0, 0, 28)
 inputWpFrame.BackgroundTransparency = 1
@@ -636,8 +611,7 @@ wpNameInput.PlaceholderColor3 = Theme.TextMuted
 wpNameInput.TextSize = 11
 wpNameInput.ClearTextOnFocus = true
 Instance.new("UICorner", wpNameInput).CornerRadius = UDim.new(0, 5)
-local wpInputStroke = Instance.new("UIStroke", wpNameInput)
-wpInputStroke.Color = Theme.Stroke
+Instance.new("UIStroke", wpNameInput).Color = Theme.Stroke
 
 local btnSavePos = Instance.new("TextButton", waypointCard)
 btnSavePos.Size = UDim2.new(1, 0, 0, 26)
@@ -648,59 +622,113 @@ btnSavePos.TextColor3 = Theme.Accent
 btnSavePos.TextSize = 11
 btnSavePos.LayoutOrder = 2
 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5)
-local saveStroke = Instance.new("UIStroke", btnSavePos)
-saveStroke.Color = Theme.Stroke
+Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
 
-
--- CARD KANAN: TEMPAT MENAMPILKAN LANDMARKS HASIL SAVE
+-- CARD KANAN: DYNAMIC LANDMARKS
 local areaTpCard = createCard(tpRightColumn, "Saved Landmarks", 1)
 
--- Fungsi Render Ulang Tombol di Kolom Kanan (Clear lalu Gambar Ulang)
-local function refreshLandmarksUI()
-    -- Bersihkan tombol lama di dalam card agar tidak menumpuk saat di-update
+local refreshLandmarksUI -- Deklarasi forward reference
+
+local function deleteWaypoint(wpName)
+    if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
+        AllWaypoints[CurrentPlaceId][wpName] = nil
+        saveWaypointsToStorage()
+        refreshLandmarksUI()
+    end
+end
+
+function refreshLandmarksUI()
     for _, child in pairs(areaTpCard:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
+        if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end
     end
     
-    -- Ambil data koordinat khusus map/place ini
     local currentMapData = AllWaypoints[CurrentPlaceId] or {}
     local indexOrder = 1
     
     for wpName, coord in pairs(currentMapData) do
-        local btn = Instance.new("TextButton", areaTpCard)
-        btn.Size = UDim2.new(1, 0, 0, 26)
+        -- ROW CONTAINER (Bungkus tombol biar horizontal lurus sempurna)
+        local rowFrame = Instance.new("Frame", areaTpCard)
+        rowFrame.Size = UDim2.new(1, 0, 0, 26)
+        rowFrame.BackgroundTransparency = 1
+        rowFrame.LayoutOrder = indexOrder
+        
+        -- Tombol Teleport (Sisi Kiri, Lebar dikurangi 32px)
+        local btn = Instance.new("TextButton", rowFrame)
+        btn.Size = UDim2.new(1, -32, 1, 0)
         btn.BackgroundColor3 = Theme.CardBg
         btn.Font = Enum.Font.GothamMedium
         btn.Text = "📍 " .. wpName
         btn.TextColor3 = Theme.TextMain
         btn.TextSize = 11
-        btn.LayoutOrder = indexOrder
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-        local bStr = Instance.new("UIStroke", btn)
-        bStr.Color = Theme.Stroke
+        local bStr = Instance.new("UIStroke", btn) bStr.Color = Theme.Stroke
         
-        -- Logika Teleportasi saat Landmark diklik
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Konversi data Array di JSON kembali ke tipe data CFrame Roblox
-                local targetCFrame = CFrame.new(coord[1], coord[2], coord[3])
-                Player.Character.HumanoidRootPart.CFrame = targetCFrame
+                Player.Character.HumanoidRootPart.CFrame = CFrame.new(coord[1], coord[2], coord[3])
+            end
+        end)
+        btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
+        btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
+        
+       -- ====================================================================
+        -- TOMBOL DELETE DENGAN SISTEM KONFIRMASI INTERAKTIF (v6.5)
+        -- ====================================================================
+        local delBtn = Instance.new("TextButton", rowFrame)
+        delBtn.Size = UDim2.new(0, 26, 1, 0)
+        delBtn.Position = UDim2.new(1, -26, 0, 0)
+        delBtn.BackgroundColor3 = Theme.DeleteBg
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.Text = "×"
+        delBtn.TextColor3 = Theme.DeleteRed
+        delBtn.TextSize = 16
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+        local dStr = Instance.new("UIStroke", delBtn) dStr.Color = Theme.Stroke
+        
+        -- State untuk mengecek apakah user sudah klik pertama kali
+        local isConfirming = false
+        local confirmThread = nil
+        
+        delBtn.MouseButton1Click:Connect(function()
+            if not isConfirming then
+                -- KLIK PERTAMA: Minta konfirmasi
+                isConfirming = true
+                delBtn.Text = "?"
+                delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                delBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 50) -- Merah terang tanda peringatan
+                dStr.Color = Color3.fromRGB(255, 100, 100)
+                
+                -- Bikin timer otomatis cancel (3 detik) kalau gak diklik lagi
+                confirmThread = task.delay(3, function()
+                    if isConfirming then
+                        isConfirming = false
+                        delBtn.Text = "×"
+                        delBtn.TextColor3 = Theme.DeleteRed
+                        delBtn.BackgroundColor3 = Theme.DeleteBg
+                        dStr.Color = Theme.Stroke
+                    end
+                end)
+            else
+                -- KLIK KEDUA (YAKIN): Eksekusi hapus data murni
+                if confirmThread then task.cancel(confirmThread) end -- Matikan timer cancel
+                deleteWaypoint(wpName)
             end
         end)
         
-        -- Efek Hover Estetik
-        btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
-        btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
+        -- Efek Hover Estetik (Hanya aktif kalau lagi gak mode konfirmasi)
+        delBtn.MouseEnter:Connect(function() 
+            if not isConfirming then dStr.Color = Theme.DeleteRed end 
+        end)
+        delBtn.MouseLeave:Connect(function() 
+            if not isConfirming then dStr.Color = Theme.Stroke end 
+        end)
         
         indexOrder = indexOrder + 1
     end
     
-    -- Jika map masih kosong belum ada landmark
     if indexOrder == 1 then
-        local emptyTxt = Instance.new("TextButton", areaTpCard) -- Menggunakan TextButton tipis sebagai teks info biar serasi layoutorder
-        emptyTxt.Size = UDim2.new(1, 0, 0, 20)
+        local emptyTxt = Instance.new("TextLabel", areaTpCard)
+        emptyTxt.Size = UDim2.new(1, 0, 0, 24)
         emptyTxt.BackgroundTransparency = 1
         emptyTxt.Font = Enum.Font.GothamMedium
         emptyTxt.Text = "Belum ada landmark tersimpan."
@@ -710,31 +738,23 @@ local function refreshLandmarksUI()
     end
 end
 
--- Logika Eksekusi ketika tombol "Simpan Posisi" diklik
 btnSavePos.MouseButton1Click:Connect(function()
     local name = wpNameInput.Text
     if name ~= "" and name ~= "Nama waypoint baru..." then
         if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             local currentPos = Player.Character.HumanoidRootPart.Position
-            
-            -- Simpan posisi dalam format Array biasa {X, Y, Z} agar bisa disimpan ke format JSON teks file
             AllWaypoints[CurrentPlaceId][name] = {
                 math.round(currentPos.X * 100) / 100,
                 math.round(currentPos.Y * 100) / 100,
                 math.round(currentPos.Z * 100) / 100
             }
-            
-            -- Tulis permanen ke storage komputer/HP
             saveWaypointsToStorage()
-            
-            -- Reset kolom input teks dan gambar ulang list di sebelah kanan
             wpNameInput.Text = ""
             refreshLandmarksUI()
         end
     end
 end)
 
--- Pertama kali buka tab langsung render list landmark yang tersimpan di map tersebut
 refreshLandmarksUI()
 
 -- ====================================================================
@@ -752,11 +772,8 @@ task.spawn(function()
         local progress = i / 100
         TweenService:Create(LoadFill, TweenInfo.new(0.03, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
         LoadProgressText.Text = tostring(i) .. "%"
-        
         for _, stage in ipairs(statusMessages) do
-            if i == math.round(stage.time * 30) then 
-                LoadStatus.Text = stage.msg
-            end
+            if i == math.round(stage.time * 30) then LoadStatus.Text = stage.msg end
         end
         task.wait(0.03) 
     end
@@ -776,13 +793,10 @@ task.spawn(function()
     fadeTween:Play()
     fadeTween.Completed:Connect(function()
         LoadingFrame:Destroy() 
-        
         MainFrame.Visible = true
         ToggleButton.Visible = true
-        
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
-        
-        print("[AR FRAMEWORK v6.2]: Loaded and deployed successfully without any crash!")
+        print("[AR FRAMEWORK v6.4]: Full Deploy complete. 8px Grid Shifted + Delete Active.")
     end)
 end)
