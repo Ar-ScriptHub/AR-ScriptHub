@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - QUANTUM ADMIN HUB (V5.3 - AESTHETIC & TELEPORT UPDATE)
+-- AR SCRIPT HUB - OFFICIAL VERSION v5.4 (UI BUGFIX & REBRANDING)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -10,28 +10,28 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
--- Bersihkan GUI Lama
-if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Quantum_Hub") then
-    SafeGuiTarget.AR_Quantum_Hub:Destroy()
+-- Bersihkan GUI Lama jika ada
+if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
+    SafeGuiTarget.AR_Script_Hub:Destroy()
 end
 
 local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "AR_Quantum_Hub"
+MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 999999999
 
 -- THEME COLOR PALETTE (SOFT SEMI-TRANSPARENT BLUE & PURPLE)
 local Theme = {
-    Bg = Color3.fromRGB(15, 12, 28),         -- Dark Slate dengan Tint Ungu
-    BgTrans = 0.25,                          -- Transparansi Acrylic Soft (75% Opaque)
-    CardBg = Color3.fromRGB(24, 26, 46),     -- Card Biru Indigo Soft
-    CardTrans = 0.4,                         -- Card semi transparan
-    Stroke = Color3.fromRGB(54, 52, 90),     -- Stroke Ungu Meredup
-    Accent = Color3.fromRGB(100, 160, 255),  -- Soft Neon Blue
-    AccentPurple = Color3.fromRGB(180, 120, 255), -- Soft Orchid Purple
+    Bg = Color3.fromRGB(14, 12, 26),         -- Dark Slate dengan Tint Ungu Soft
+    BgTrans = 0.22,                          -- Transparansi Acrylic Premium (~78% Opaque)
+    CardBg = Color3.fromRGB(22, 24, 42),     -- Card Biru Indigo Soft
+    CardTrans = 0.35,                        -- Card semi transparan
+    Stroke = Color3.fromRGB(50, 48, 85),     -- Stroke Ungu Meredup
+    Accent = Color3.fromRGB(110, 165, 255),  -- Soft Neon Blue
+    AccentPurple = Color3.fromRGB(185, 125, 255), -- Soft Orchid Purple
     TextMain = Color3.fromRGB(245, 245, 255),
-    TextMuted = Color3.fromRGB(150, 155, 185)
+    TextMuted = Color3.fromRGB(145, 150, 180)
 }
 
 -- DRAGGABLE ENGINE
@@ -64,12 +64,12 @@ end
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
-ToggleButton.Size = UDim2.new(0, 42, 0, 42)
+ToggleButton.Size = UDim2.new(0, 45, 0, 45)
 ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0)
 ToggleButton.BackgroundColor3 = Theme.Bg
 ToggleButton.BackgroundTransparency = 0.1
 ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Text = "QT"
+ToggleButton.Text = "AR"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 15
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
@@ -77,12 +77,12 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (SIZE: 400 x 330 COMPACT)
+-- MAIN PANEL (SIZE ADJUSTED TO 415 x 350 FOR PERFECT SPACING)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 400, 0, 330)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -165)
+MainFrame.Size = UDim2.new(0, 415, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -207, 0.5, -175)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
@@ -96,7 +96,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "QUANTUM HUB <font color='#a878ff'>v5.3</font>"
+Title.Text = "AR SCRIPT HUB <font color='#b282ff'>v5.4</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 12, 0, 0)
@@ -112,22 +112,22 @@ CloseBtn.Size = UDim2.new(0, 40, 1, 0)
 CloseBtn.Position = UDim2.new(1, -40, 0, 0)
 CloseBtn.Font = Enum.Font.GothamMedium
 CloseBtn.TextColor3 = Theme.TextMuted
-CloseBtn.TextSize = 20
+CloseBtn.TextSize = 22
 CloseBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- SIDEBAR MENU (85PX)
+-- SIDEBAR MENU (90PX)
 local NavFrame = Instance.new("Frame", MainFrame)
-NavFrame.Size = UDim2.new(0, 85, 1, -50)
+NavFrame.Size = UDim2.new(0, 90, 1, -55)
 NavFrame.Position = UDim2.new(0, 12, 0, 45)
 NavFrame.BackgroundTransparency = 1
 
 local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -120, 1, -55)
-ContentFrame.Position = UDim2.new(0, 108, 0, 45)
+ContentFrame.Size = UDim2.new(1, -125, 1, -60)
+ContentFrame.Position = UDim2.new(0, 112, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 
 local tabs = {Player = {}, ESP = {}, Teleport = {}, World = {}, Utilities = {}, Settings = {}}
@@ -137,13 +137,13 @@ local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
     f.Size = UDim2.new(1, 0, 1, 0)
     f.BackgroundTransparency = 1
-    f.CanvasSize = UDim2.new(0, 0, 0, 620) -- Tinggi canvas ideal
-    f.ScrollBarThickness = 2
+    f.CanvasSize = UDim2.new(0, 0, 0, 680) -- Lebihan tinggi canvas agar scroll smooth
+    f.ScrollBarThickness = 3
     f.ScrollBarImageColor3 = Theme.Accent
     f.Visible = (name == activeTab)
     tabs[name].Container = f
     local layout = Instance.new("UIListLayout", f)
-    layout.Padding = UDim.new(0, 8)
+    layout.Padding = UDim.new(0, 10)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
 end
 
@@ -172,12 +172,12 @@ end
 
 local function addTabButton(name, textDisplay, order)
     local btn = Instance.new("TextButton", NavFrame)
-    btn.Size = UDim2.new(1, 0, 0, 24)
-    btn.Position = UDim2.new(0, 0, 0, (order - 1) * 27)
+    btn.Size = UDim2.new(1, 0, 0, 26)
+    btn.Position = UDim2.new(0, 0, 0, (order - 1) * 29)
     btn.BackgroundTransparency = 1
     btn.Font = (name == activeTab) and Enum.Font.GothamBold or Enum.Font.GothamMedium
     btn.Text = textDisplay
-    btn.TextSize = 10
+    btn.TextSize = 11
     btn.TextColor3 = (name == activeTab) and Theme.Accent or Theme.TextMuted
     btn.TextXAlignment = Enum.TextXAlignment.Left
     tabs[name].Button = btn
@@ -191,10 +191,10 @@ addTabButton("World", "🌐 World", 4)
 addTabButton("Utilities", "🛠️ Utilities", 5)
 addTabButton("Settings", "⚙️ Settings", 6)
 
--- COMPONENTS GENERATOR
+-- COMPONENTS GENERATOR (FIXED HEIGHT LEAKING & CLIPPING)
 local function createSectionCard(parent, titleText, height, layoutOrder)
     local section = Instance.new("Frame", parent)
-    section.Size = UDim2.new(1, -4, 0, height)
+    section.Size = UDim2.new(1, -6, 0, height)
     section.BackgroundColor3 = Theme.CardBg
     section.BackgroundTransparency = Theme.CardTrans
     section.LayoutOrder = layoutOrder
@@ -203,21 +203,21 @@ local function createSectionCard(parent, titleText, height, layoutOrder)
     sStroke.Color = Theme.Stroke
     
     local sTitle = Instance.new("TextLabel", section)
-    sTitle.Size = UDim2.new(1, -10, 0, 20)
-    sTitle.Position = UDim2.new(0, 8, 0, 4)
+    sTitle.Size = UDim2.new(1, -10, 0, 22)
+    sTitle.Position = UDim2.new(0, 10, 0, 4)
     sTitle.Text = titleText:upper()
     sTitle.Font = Enum.Font.GothamBold
     sTitle.TextColor3 = Theme.AccentPurple
-    sTitle.TextSize = 9
+    sTitle.TextSize = 9.5
     sTitle.BackgroundTransparency = 1
     sTitle.TextXAlignment = Enum.TextXAlignment.Left
     
     local container = Instance.new("Frame", section)
-    container.Size = UDim2.new(1, -14, 1, -26)
-    container.Position = UDim2.new(0, 7, 0, 22)
+    container.Size = UDim2.new(1, -16, 1, -28)
+    container.Position = UDim2.new(0, 8, 0, 24)
     container.BackgroundTransparency = 1
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 5)
+    innerLayout.Padding = UDim.new(0, 6)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
     return container
@@ -294,11 +294,10 @@ local function createStandardButton(parent, textDisplay, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- TARGET STORAGE GLOBAL
+-- TARGET LOGIC VARIABLES
 local GlobalTargetName = ""
-local UseTweenTeleport = false -- Master Toggle Tween vs Instant
+local UseTweenTeleport = false
 
--- MAIN SYSTEM TP FUNCTION (SUPPORT TWEEN & INSTANT)
 local function executeTeleport(targetCFrame)
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -306,7 +305,7 @@ local function executeTeleport(targetCFrame)
     
     if UseTweenTeleport then
         local distance = (hrp.Position - targetCFrame.Position).Magnitude
-        local speed = 250 -- Nilai speed rata-rata aman bypass anti-cheat
+        local speed = 250
         local tweenTime = distance / speed
         local tween = TweenService:Create(hrp, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
         tween:Play()
@@ -316,10 +315,10 @@ local function executeTeleport(targetCFrame)
 end
 
 -- ====================================================================
--- TAB 1: PLAYER MODULES (RE-ORDERED AND CLEANED)
+-- TAB 1: PLAYER MODULES (PROPERLY ALIGNED)
 -- ====================================================================
--- 1. FLY MODULE
-local pFly = createSectionCard(tabs.Player.Container, "Fly", 88, 1)
+-- 1. FLY MODULE (Height: 90)
+local pFly = createSectionCard(tabs.Player.Container, "Fly", 90, 1)
 local flying = false local flyLevel = 5 local bg, bv
 local function stopFlying()
     flying = false if bg then bg:Destroy() bg = nil end if bv then bv:Destroy() bv = nil end
@@ -349,8 +348,8 @@ createToggleSwitch(pFly, "Fly Hack Enabled", function(v)
 end)
 createLevelControl(pFly, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
--- 2. WALKSPEED MODULE
-local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 58, 2)
+-- 2. WALKSPEED MODULE (Height: 60)
+local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 60, 2)
 local walkToggleState = false local walkLevel = 1
 local function updateWalkSpeed()
     local char = Player.Character
@@ -359,8 +358,8 @@ end
 createToggleSwitch(pWalk, "Bypass Speed", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
--- 3. JUMP MODULE
-local pJump = createSectionCard(tabs.Player.Container, "Jump", 58, 3)
+-- 3. JUMP MODULE (Height: 60)
+local pJump = createSectionCard(tabs.Player.Container, "Jump", 60, 3)
 local jumpToggleState = false local jumpLevel = 5
 local function updateJumpPower()
     local char = Player.Character
@@ -371,8 +370,8 @@ end
 createToggleSwitch(pJump, "Bypass Jump", function(v) jumpToggleState = v updateJumpPower() end)
 createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
--- 4. DEFENSE MODULE
-local pDefense = createSectionCard(tabs.Player.Container, "Defense", 145, 4)
+-- 4. DEFENSE MODULE (Height: 150)
+local pDefense = createSectionCard(tabs.Player.Container, "Defense", 150, 4)
 local AntiAfkConnection, AntiFlingConnection, AntiStunConnection local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
 
 createToggleSwitch(pDefense, "Anti-AFK Core System", function(state)
@@ -402,15 +401,15 @@ createToggleSwitch(pDefense, "Anti-Stun Ragdoll Lock", function(state)
 end)
 createToggleSwitch(pDefense, "Invisible Mode Glitch", function(state) IsInvisible = state local char = Player.Character if char and char:FindFirstChild("LowerTorso") then char.LowerTorso.RootJoint.Part0 = state and nil or char.HumanoidRootPart end end)
 
--- EXTRA UTILS SEEDED IN PLAYER TABS BELOW NO-CLIP & FLOAT
-local pExtraNav = createSectionCard(tabs.Player.Container, "Extra Environmental Ghost", 88, 5)
+-- EXTRA NAVS AT PLAYER BOTTOM (Height: 90)
+local pExtraNav = createSectionCard(tabs.Player.Container, "Extra Navigation Environment", 90, 5)
 local noclipActive, floatActive = false, false local noclipConnection, floatConnection, floatPart
 createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v)
     noclipActive = v
     if v then
         if noclipConnection then noclipConnection:Disconnect() end
         noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then convert = function(o) if o:IsA("BasePart") then o.CanCollide = false end end for _, p in pairs(Player.Character:GetChildren()) do convert(p) end end
+            if noclipActive and Player.Character then for _, p in pairs(Player.Character:GetChildren()) do if p:IsA("BasePart") then p.CanCollide = false end end end
         end)
     else if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end end
 end)
@@ -426,15 +425,15 @@ end)
 -- ====================================================================
 -- TAB 2: ESP SYSTEM
 -- ====================================================================
-local espSec = createSectionCard(tabs.ESP.Container, "Visual Monitor Configurations", 145, 1)
-local EspSettings = { Active = false, Names = true, Distance = true, Health = true, Color = Color3.fromRGB(100, 160, 255) } local EspObjects = {}
+local espSec = createSectionCard(tabs.ESP.Container, "Visual Monitor Configurations", 150, 1)
+local EspSettings = { Active = false, Names = true, Distance = true, Health = true, Color = Color3.fromRGB(110, 165, 255) } local EspObjects = {}
 
 local function applyEspToCharacter(targetPlayer, char)
     if targetPlayer == Player or not char then return end
     task.wait(0.4) local head = char:WaitForChild("Head", 5) local hum = char:FindFirstChildOfClass("Humanoid") if not head or not hum then return end
     if EspObjects[targetPlayer.Name] then EspObjects[targetPlayer.Name]:Destroy() EspObjects[targetPlayer.Name] = nil end
-    local hl = Instance.new("Highlight") hl.Name = "Q_HL_" .. targetPlayer.Name hl.FillColor = EspSettings.Color hl.FillTransparency = 0.5 hl.OutlineColor = Color3.fromRGB(255,255,255) hl.Adornee = char hl.Parent = MainGui
-    local bb = Instance.new("BillboardGui", head) bb.Name = "Q_BB_" .. targetPlayer.Name bb.Size = UDim2.new(0, 130, 0, 40) bb.AlwaysOnTop = true bb.ExtentsOffset = Vector3.new(0, 2.5, 0)
+    local hl = Instance.new("Highlight") hl.Name = "A_HL_" .. targetPlayer.Name hl.FillColor = EspSettings.Color hl.FillTransparency = 0.5 hl.OutlineColor = Color3.fromRGB(255,255,255) hl.Adornee = char hl.Parent = MainGui
+    local bb = Instance.new("BillboardGui", head) bb.Name = "A_BB_" .. targetPlayer.Name bb.Size = UDim2.new(0, 130, 0, 40) bb.AlwaysOnTop = true bb.ExtentsOffset = Vector3.new(0, 2.5, 0)
     local lbl = Instance.new("TextLabel", bb) lbl.Size = UDim2.new(1, 0, 1, 0) lbl.BackgroundTransparency = 1 lbl.Font = Enum.Font.GothamBold lbl.TextSize = 10 lbl.TextColor3 = EspSettings.Color lbl.TextStrokeTransparency = 0.5
     
     local connection
@@ -454,16 +453,16 @@ end
 createToggleSwitch(espSec, "Master Activation ESP", function(v)
     EspSettings.Active = v
     if v then for _, p in pairs(Players:GetPlayers()) do if p.Character then applyEspToCharacter(p, p.Character) end end
-    else for _, p in pairs(Players:GetPlayers()) do if p.Character then local b = p.Character.Head:FindFirstChild("Q_BB_" .. p.Name) if b then b:Destroy() end local h = MainGui:FindFirstChild("Q_HL_" .. p.Name) if h then h:Destroy() end end end end
+    else for _, p in pairs(Players:GetPlayers()) do if p.Character then local b = p.Character.Head:FindFirstChild("A_BB_" .. p.Name) if b then b:Destroy() end local h = MainGui:FindFirstChild("A_HL_" .. p.Name) if h then h:Destroy() end end end end
 end)
 createToggleSwitch(espSec, "Show Tag Names", function(v) EspSettings.Names = v end)
 createToggleSwitch(espSec, "Show Distance Meter", function(v) EspSettings.Distance = v end)
 createToggleSwitch(espSec, "Show Health Monitor", function(v) EspSettings.Health = v end)
 
-local colorSec = createSectionCard(tabs.ESP.Container, "🎨 ESP Color Palette Selection", 115, 2)
+local colorSec = createSectionCard(tabs.ESP.Container, "🎨 ESP Color Palette Selection", 120, 2)
 local colorsData = {
-    {Name = "🔵 Cyber Blue Soft", Color = Color3.fromRGB(100, 160, 255)},
-    {Name = "🟣 Orchid Purple Soft", Color = Color3.fromRGB(180, 120, 255)},
+    {Name = "🔵 Cyber Blue Soft", Color = Color3.fromRGB(110, 165, 255)},
+    {Name = "🟣 Orchid Purple Soft", Color = Color3.fromRGB(185, 125, 255)},
     {Name = "🔴 Crimson Hell", Color = Color3.fromRGB(255, 90, 90)},
     {Name = "🟡 Golden Honey", Color = Color3.fromRGB(255, 210, 100)},
     {Name = "⚪ Absolute White", Color = Color3.fromRGB(255, 255, 255)}
@@ -474,31 +473,30 @@ for _, c in ipairs(colorsData) do
 end
 
 -- ====================================================================
--- TAB 3: TELEPORT MODULE (GOTO PLAYER + WAYPOINTS 1-5 + TWEEN ENGINE)
+-- TAB 3: TELEPORT MODULE (PROPER SHIFTING & NO OVERLAP LEAK)
 -- ====================================================================
-local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 35, 1)
-createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state)
-    UseTweenTeleport = state
-end)
+-- 1. Engine Configuration (Height: 38)
+local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 38, 1)
+createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state) UseTweenTeleport = state end)
 
-local gotoSec = createSectionCard(tabs.Teleport.Container, "Goto Player Tracker", 55, 2)
+-- 2. Goto Tracker Button (Height: 58)
+local gotoSec = createSectionCard(tabs.Teleport.Container, "Goto Player Tracker", 58, 2)
 createStandardButton(gotoSec, "🎯 Teleport to Locked Target", function()
     if GlobalTargetName ~= "" then
         local t = Players:FindFirstChild(GlobalTargetName)
-        if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
-            executeTeleport(t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0))
-        end
+        if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then executeTeleport(t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)) end
     end
 end)
 
-local listUserSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 115, 3)
-local pListScroll = Instance.new("ScrollingFrame", listUserSec) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,320) pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 3)
+-- 3. Selector List (Height: 125)
+local listUserSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 125, 3)
+local pListScroll = Instance.new("ScrollingFrame", listUserSec) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,350) pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 3)
 
 local function rebuildPlayerList()
     for _, child in pairs(pListScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= Player then
-            local pBtn = Instance.new("TextButton", pListScroll) pBtn.Size = UDim2.new(1, -4, 0, 18) pBtn.BackgroundColor3 = Theme.Bg pBtn.BackgroundTransparency = 0.4 pBtn.Font = Enum.Font.GothamMedium pBtn.Text = " " .. p.Name pBtn.TextColor3 = (GlobalTargetName == p.Name) and Theme.Accent or Theme.TextMain pBtn.TextSize = 10 pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            local pBtn = Instance.new("TextButton", pListScroll) pBtn.Size = UDim2.new(1, -6, 0, 18) pBtn.BackgroundColor3 = Theme.Bg pBtn.BackgroundTransparency = 0.4 pBtn.Font = Enum.Font.GothamMedium pBtn.Text = " " .. p.Name pBtn.TextColor3 = (GlobalTargetName == p.Name) and Theme.Accent or Theme.TextMain pBtn.TextSize = 10 pBtn.TextXAlignment = Enum.TextXAlignment.Left
             Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 3) Instance.new("UIStroke", pBtn).Color = Theme.Stroke
             pBtn.MouseButton1Click:Connect(function() GlobalTargetName = p.Name rebuildPlayerList() end)
         end
@@ -506,27 +504,26 @@ local function rebuildPlayerList()
 end
 rebuildPlayerList() Players.PlayerAdded:Connect(rebuildPlayerList) Players.PlayerRemoving:Connect(rebuildPlayerList)
 
--- 5 SLOT WAYPOINTS INTEGRATION
-local wpSec = createSectionCard(tabs.Teleport.Container, "Map Waypoints Vectors (1-5)", 150, 4)
+-- 4. Waypoints (Height: 170 - EXPANDED TO FIT 5 SLOTS PERFECTLY)
+local wpSec = createSectionCard(tabs.Teleport.Container, "Map Waypoints Vectors (1-5)", 170, 4)
 local waypointSlots = {WP1 = nil, WP2 = nil, WP3 = nil, WP4 = nil, WP5 = nil}
 
 local function createWpRow(slotKey, labelDisplayName)
-    local row = Instance.new("Frame", wpSec) row.Size = UDim2.new(1, 0, 0, 22) row.BackgroundTransparency = 1
+    local row = Instance.new("Frame", wpSec) row.Size = UDim2.new(1, 0, 0, 24) row.BackgroundTransparency = 1
     
     local label = Instance.new("TextLabel", row)
-    label.Text = "📌 " .. labelDisplayName
-    label.Font = Enum.Font.GothamMedium label.TextColor3 = Theme.TextMain label.TextSize = 10
-    label.Size = UDim2.new(0.45, 0, 1, 0) label.TextXAlignment = Enum.TextXAlignment.Left label.BackgroundTransparency = 1
+    label.Text = "📌 " .. labelDisplayName label.Font = Enum.Font.GothamMedium label.TextColor3 = Theme.TextMain label.TextSize = 11
+    label.Size = UDim2.new(0.5, 0, 1, 0) label.TextXAlignment = Enum.TextXAlignment.Left label.BackgroundTransparency = 1
     
     local btnSave = Instance.new("TextButton", row)
-    btnSave.Text = "Save" btnSave.Size = UDim2.new(0, 45, 0, 18) btnSave.Position = UDim2.new(0.65, 0, 0, 2)
+    btnSave.Text = "Save" btnSave.Size = UDim2.new(0, 42, 0, 18) btnSave.Position = UDim2.new(0.65, 0, 0.5, -9)
     btnSave.BackgroundColor3 = Theme.Bg btnSave.TextColor3 = Theme.AccentPurple btnSave.Font = Enum.Font.GothamBold btnSave.TextSize = 9
     Instance.new("UICorner", btnSave).CornerRadius = UDim.new(0, 3) Instance.new("UIStroke", btnSave).Color = Theme.Stroke
     
     local btnTp = Instance.new("TextButton", row)
-    btnTp.Text = "TP" btnTp.Size = UDim2.new(0, 35, 0, 18) btnTp.Position = UDim2.new(0.85, 0, 0, 2)
-    btnTp.BackgroundColor3 = Theme.Bg btnTp.TextColor3 = Theme.Accent btnSu = Instance.new("UIStroke", btnTp) btnSu.Color = Theme.Stroke
-    btnTp.Font = Enum.Font.GothamBold btnTp.TextSize = 9 Instance.new("UICorner", btnTp).CornerRadius = UDim.new(0, 3)
+    btnTp.Text = "TP" btnTp.Size = UDim2.new(0, 32, 0, 18) btnTp.Position = UDim2.new(0.86, 0, 0.5, -9)
+    btnTp.BackgroundColor3 = Theme.Bg btnTp.TextColor3 = Theme.Accent btnTp.Font = Enum.Font.GothamBold btnTp.TextSize = 9
+    Instance.new("UICorner", btnTp).CornerRadius = UDim.new(0, 3) Instance.new("UIStroke", btnTp).Color = Theme.Stroke
     
     btnSave.MouseButton1Click:Connect(function()
         if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -534,24 +531,19 @@ local function createWpRow(slotKey, labelDisplayName)
             btnSave.Text = "Saved!" task.delay(0.6, function() btnSave.Text = "Save" end)
         end
     end)
-    
-    btnTp.MouseButton1Click:Connect(function()
-        if waypointSlots[slotKey] then
-            executeTeleport(waypointSlots[slotKey])
-        end
-    end)
+    btnTp.MouseButton1Click:Connect(function() if waypointSlots[slotKey] then executeTeleport(waypointSlots[slotKey]) end end)
 end
 
-createWpRow("WP1", "Waypoint Slot 1")
-createWpRow("WP2", "Waypoint Slot 2")
-createWpRow("WP3", "Waypoint Slot 3")
-createWpRow("WP4", "Waypoint Slot 4")
-createWpRow("WP5", "Waypoint Slot 5")
+createWpRow("WP1", "WP Slot 1")
+createWpRow("WP2", "WP Slot 2")
+createWpRow("WP3", "WP Slot 3")
+createWpRow("WP4", "WP Slot 4")
+createWpRow("WP5", "WP Slot 5")
 
 -- ====================================================================
--- TAB 4: WORLD MODULE (PURE SERVER CONNECTIONS)
+-- TAB 4: WORLD MODULE
 -- ====================================================================
-local worldSec = createSectionCard(tabs.World.Container, "Server Connection Manager", 85, 1)
+local worldSec = createSectionCard(tabs.World.Container, "Server Connection Manager", 90, 1)
 createStandardButton(worldSec, "⚡ Instant Rejoin Server", function()
     if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, Player) else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end
 end)
@@ -640,4 +632,4 @@ createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
     if noclipConnection then noclipConnection:Disconnect() end if floatConnection then floatConnection:Disconnect() end if floatPart then floatPart:Destroy() end stopFlying() MainGui:Destroy()
 end)
 
-print("[QUANTUM HUB V5.3]: Aesthetic Soft Glow Applied. Structural Re-Order Complete.")
+print("[AR SCRIPT HUB V5.4]: Alignment & Formatting Fix Applied successfully.")
