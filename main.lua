@@ -495,41 +495,49 @@ addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
 local utilCard = createCard(RightColumn, "Utilities", 2)
 addToggle(utilCard, "Anti Ragdoll", 1)
 addToggle(utilCard, "Infinite Oxygen", 2)
--- ====================================================================
--- LOGIKA FUNGSIONAL: INFINITE OXYGEN
--- ====================================================================
-local InfiniteOxygenEnabled = false
-local OxygenConnection = nil
 
-local function toggleInfiniteOxygen(state)
-    InfiniteOxygenEnabled = state
-    
-    -- Jika diaktifkan, buat loop untuk bypass state tenggelam
-    if InfiniteOxygenEnabled then
-        OxygenConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not InfiniteOxygenEnabled then return end
-            local char = Player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            
-            if hum then
-                -- BYPASS METHOD 1: Paksa balik status jika terdeteksi mati/tenggelam
-                if hum:GetState() == Enum.HumanoidStateType.Died then return end
-                
-                -- BYPASS METHOD 2: Cari objek instansiasi "Air" atau "Oxygen" bawaan game standar dan kunci nilainya
-                local airObj = char:FindFirstChild("Air") or char:FindFirstChild("Oxygen") or (Player:FindFirstChild("leaderstats") and Player.leaderstats:FindFirstChild("Air"))
-                if airObj and airObj:IsA("ValueBase") then
-                    airObj.Value = 100 -- Kunci di angka maksimal 100%
-                end
-            end
-        end)
-    else
-        -- Jika dimatikan, putuskan koneksi loop agar hemat memori (anti lag)
-        if OxygenConnection then
-            OxygenConnection:Disconnect()
-            OxygenConnection = nil
-        end
-    end
-end
+-- ====================================================================
+-- PERAKITAN CARD PADA LAYOUT TAB ESP 
+-- ====================================================================
+
+-- Kita buat pembagi kolom kiri dan kanan khusus untuk halaman ESP agar rapi
+local espLeftColumn = Instance.new("Frame", espPage)
+espLeftColumn.Name = "EspLeftColumn"
+espLeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
+espLeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+espLeftColumn.BackgroundTransparency = 1
+
+local espRightColumn = Instance.new("Frame", espPage)
+espRightColumn.Name = "EspRightColumn"
+espRightColumn.Size = UDim2.new(0.5, -6, 0, 0)
+espRightColumn.AutomaticSize = Enum.AutomaticSize.Y
+espRightColumn.BackgroundTransparency = 1
+
+local espPageLayout = Instance.new("UIListLayout", espPage)
+espPageLayout.FillDirection = Enum.FillDirection.Horizontal
+espPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+espPageLayout.Padding = UDim.new(0, 12)
+
+Instance.new("UIListLayout", espLeftColumn).Padding = UDim.new(0, 12)
+Instance.new("UIListLayout", espRightColumn).Padding = UDim.new(0, 12)
+
+-- Hapus placeholder lama agar tidak tumpang tindih
+if espPage:FindFirstChild("Frame") then espPage.Frame:Destroy() end
+
+
+-- 1. CARD PLAYER ESP (Kolom Kiri)
+local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
+addToggle(playerEspCard, "Enable ESP", 1)
+addToggle(playerEspCard, "Show Boxes", 2)
+addToggle(playerEspCard, "Show Names", 3)
+addToggle(playerEspCard, "Show Tracers", 4)
+
+
+-- 2. CARD ESP SETTINGS (Kolom Kanan)
+local espSettingsCard = createCard(espRightColumn, "ESP Settings", 1)
+addToggle(espSettingsCard, "Team Check", 1) -- Menyembunyikan ESP teman satu tim
+addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2) -- Jarak maksimal deteksi ESP
+
 -- ====================================================================
 -- LOGIKA ANIMASI INTRO LOADING SCREEN
 -- ====================================================================
