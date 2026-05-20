@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - STRICT AUTO-SIZING & ANTI-BOX LEAKING FRAMEWORK (v5.7)
+-- AR SCRIPT HUB - EXT-SCROLLBAR & ANTI-CLIPPING FRAMEWORK (v5.8)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -129,12 +129,12 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (REVISI: Ditambah lebar dari 560 ke 580 agar lebih luas)
+-- MAIN PANEL
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 580, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -290, 0.5, -170)
+MainFrame.Size = UDim2.new(0, 560, 0, 340) -- Dikembalikan ke ukuran ideal awal kamu yang pas (560)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 MainFrame.Visible = false
@@ -149,7 +149,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v5.7</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v5.8</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -195,19 +195,24 @@ paddingNav.PaddingLeft = UDim.new(0, 6)
 -- CANVAS UTAMA KONTEN DENGAN SCROLL
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
-MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
-MainContentFrame.Position = UDim2.new(0, 16, 0, 95)
+-- PERBAIKAN REVISI: Lebar ditarik penuh ke kanan (-10 dari border) agar area scrolling luas tanpa tertabrak
+MainContentFrame.Size = UDim2.new(1, -10, 1, -105)
+MainContentFrame.Position = UDim2.new(0, 4, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
-MainContentFrame.ScrollBarThickness = 4
-MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
+-- KUNCI UTAMA: Memindahkan scrollbar bawaan ke posisi paling luar (Nempel di border kanan MainFrame)
+MainContentFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
+MainContentFrame.ScrollBarThickness = 4
+MainContentFrame.ScrollBarImageColor3 = Theme.Accent
+
+-- Memberi padding aman agar konten kiri dan kanan tidak menempel border luar panel
 local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 4)
-framePadding.PaddingLeft = UDim.new(0, 3)
-framePadding.PaddingRight = UDim.new(0, 3)
+framePadding.PaddingLeft = UDim.new(0, 12)  -- Jarak aman dari border kiri panel
+framePadding.PaddingRight = UDim.new(0, 12) -- Jarak aman dari scrollbar luar di kanan panel
 
 local menuContainers = {}
 
@@ -287,19 +292,18 @@ local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,-6
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- GRID GENERATOR FOR PLAYER PAGE (REVISI: Lebar disesuaikan dengan sekat tengah baru)
+-- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN SEIMBANG)
 local LeftColumn = Instance.new("Frame", playerPage)
 LeftColumn.Name = "LeftColumn"
-LeftColumn.Size = UDim2.new(0.5, -6, 0, 0) -- Diubah ke -6 agar sekat pas
+LeftColumn.Size = UDim2.new(0.5, -6, 0, 0) 
 LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
-LeftColumn.Position = UDim2.new(0, 2, 0, 0)
 LeftColumn.BackgroundTransparency = 1
 
 local RightColumn = Instance.new("Frame", playerPage)
 RightColumn.Name = "RightColumn"
-RightColumn.Size = UDim2.new(0.5, -12, 0, 0) -- Tetap -12 untuk ruang scrollbar ekstra aman
+RightColumn.Size = UDim2.new(0.5, -6, 0, 0) -- Proporsi sekarang adil dan seimbang 50:50 karena scrollbar sudah ditendang keluar
 RightColumn.AutomaticSize = Enum.AutomaticSize.Y
-RightColumn.Position = UDim2.new(0.5, 4, 0, 0) -- Digeser sedikit ke kiri (dari 6 ke 4) karena sekat mengecil
+RightColumn.Position = UDim2.new(0.5, 6, 0, 0) 
 RightColumn.BackgroundTransparency = 1
 
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -308,7 +312,7 @@ local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Paddin
 -- FUNGSI KREASI CARD ANTI BOCOR (FIXED AUTOMATICSIZE)
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, -2, 0, 0) -- Memberikan kelegaan maksimal pada sisi kanan-kiri card
+    card.Size = UDim2.new(1, 0, 0, 0) -- Menggunakan lebar penuh kolom karena area luar sudah aman
     card.AutomaticSize = Enum.AutomaticSize.Y 
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
@@ -492,26 +496,23 @@ local espLeftColumn = Instance.new("Frame", espPage)
 espLeftColumn.Name = "EspLeftColumn"
 espLeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
 espLeftColumn.AutomaticSize = Enum.AutomaticSize.Y
-espLeftColumn.Position = UDim2.new(0, 2, 0, 0)
 espLeftColumn.BackgroundTransparency = 1
 
--- REVISI: Mengurangi sekat dan menyinkronkan posisi layout ESP
 local espRightColumn = Instance.new("Frame", espPage)
 espRightColumn.Name = "EspRightColumn"
-espRightColumn.Size = UDim2.new(0.5, -12, 0, 0)
+espRightColumn.Size = UDim2.new(0.5, -6, 0, 0)
 espRightColumn.AutomaticSize = Enum.AutomaticSize.Y
-espRightColumn.Position = UDim2.new(0.5, 4, 0, 0)
+espRightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 espRightColumn.BackgroundTransparency = 1
 
 local espPageLayout = Instance.new("UIListLayout", espPage)
 espPageLayout.FillDirection = Enum.FillDirection.Horizontal
 espPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-espPageLayout.Padding = UDim.new(0, 8) -- REVISI: Mengurangi padding antar sekat halaman dari 12 ke 8
+espPageLayout.Padding = UDim.new(0, 12)
 
 Instance.new("UIListLayout", espLeftColumn).Padding = UDim.new(0, 12)
 Instance.new("UIListLayout", espRightColumn).Padding = UDim.new(0, 12)
 
--- Hapus placeholder bawaan
 if espPage:FindFirstChild("Frame") then espPage.Frame:Destroy() end
 
 local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
@@ -567,10 +568,9 @@ task.spawn(function()
         MainFrame.Visible = true
         ToggleButton.Visible = true
         
-        -- Efek Pop-In Panel (REVISI: Ukuran pop-in disesuaikan dengan lebar baru 580)
-        MainFrame.Size = UDim2.new(0, 540, 0, 300)
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 580, 0, 340)}):Play()
+        MainFrame.Size = UDim2.new(0, 520, 0, 300)
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
-        print("[AR FRAMEWORK]: Main Panel Deployed Successfully After Clean Load!")
+        print("[AR FRAMEWORK]: Main Panel Deployed with Exterior Border ScrollBar!")
     end)
 end)
