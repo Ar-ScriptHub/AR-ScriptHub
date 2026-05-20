@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - TOP BAR LAYOUT FRAMEWORK ONLY (CLEAN VERSION)
+-- AR SCRIPT HUB - FIXED TOP BAR LAYOUT ONLY (CLEAN VERSION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -7,7 +7,7 @@ local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitFo
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Bersihkan GUI Lama jika masih menempel di memori
+-- Bersihkan GUI Lama agar memori ter-reset sepenuhnya
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
     SafeGuiTarget.AR_Script_Hub:Destroy()
 end
@@ -30,7 +30,7 @@ local Theme = {
     TextMuted = Color3.fromRGB(140, 145, 175)
 }
 
--- DRAGGABLE ENGINE (Sistem Geser GUI)
+-- SISTEM DRAGGABLE (Untuk menggeser menu utama)
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -56,7 +56,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- FLOATING TOGGLE BUTTON (Tombol AR Kecil untuk Buka/Tutup)
+-- FLOATING TOGGLE BUTTON (Tombol pemicu kecil di layar)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
@@ -77,7 +77,7 @@ makeDraggable(ToggleButton, ToggleButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 520, 0, 340) -- Diperlebar sedikit agar serasi dengan Top Bar
+MainFrame.Size = UDim2.new(0, 520, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
@@ -86,7 +86,7 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1.5
 
--- HEADER BLOCK (Judul & Tombol Close)
+-- HEADER (Judul Panel)
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
@@ -116,7 +116,7 @@ ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFr
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
 -- ====================================================================
--- NEW: TOP BAR NAVIGATION MENU (Menggantikan Sidebar)
+-- FIXED: TOP BAR NAVIGATION MENU (Menggunakan UIListLayout Horizontal)
 -- ====================================================================
 local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
@@ -129,23 +129,23 @@ local navStroke = Instance.new("UIStroke", TopBarNav)
 navStroke.Color = Theme.Stroke
 navStroke.Thickness = 1
 
-local NavLayout = Instance.new("UIFillLayout", TopBarNav) -- Mengatur posisi tombol horizontal otomatis
+-- Menggunakan UIListLayout agar susunan tombol berjejer ke kanan secara tepat
+local NavLayout = Instance.new("UIListLayout", TopBarNav)
 NavLayout.FillDirection = Enum.FillDirection.Horizontal
-NavLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+NavLayout.SortOrder = Enum.SortOrder.LayoutOrder
 NavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-NavLayout.Padding = UDim.new(0, 4)
+NavLayout.Padding = UDim.new(0, 6)
 
 local paddingNav = Instance.new("UIPadding", TopBarNav)
-paddingNav.PaddingLeft = UDim.new(0, 6)
+paddingNav.PaddingLeft = UDim.new(0, 8)
 
--- CONTAINER UTAMA (Tempat meletakkan isi Dashboard/Menu Utama)
+-- CANVAS UTAMA (Konten Menu Utama)
 local MainContentFrame = Instance.new("Frame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
 MainContentFrame.Position = UDim2.new(0, 16, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
 
--- Placeholder untuk Menu Utama/Dashboard Utama
 local WelcomeCard = Instance.new("Frame", MainContentFrame)
 WelcomeCard.Size = UDim2.new(1, 0, 1, 0)
 WelcomeCard.BackgroundColor3 = Theme.CardBg
@@ -156,24 +156,25 @@ Instance.new("UIStroke", WelcomeCard).Color = Theme.Stroke
 local WelcomeText = Instance.new("TextLabel", WelcomeCard)
 WelcomeText.Size = UDim2.new(1, -24, 1, -24)
 WelcomeText.Position = UDim2.new(0, 12, 0, 12)
-WelcomeText.Text = "<b>WELCOME TO MAIN MENU</b>\n\nLayout top bar berhasil di-deploy. Silakan isi area canvas ini dengan modul atau sistem baru yang Anda inginkan."
+WelcomeText.Text = "<b>WELCOME TO MAIN MENU</b>\n\nStruktur tata letak Top Bar telah diperbaiki. Modul eksekusi cheat lama telah dibersihkan sepenuhnya dari sistem."
 WelcomeText.RichText = true
 WelcomeText.Font = Enum.Font.GothamMedium
 WelcomeText.TextColor3 = Theme.TextMuted
-WelcomeText.TextSize = 13
+WelcomeText.TextSize = 12
 WelcomeText.TextWrapped = true
 WelcomeText.BackgroundTransparency = 1
 WelcomeText.TextYAlignment = Enum.TextYAlignment.Center
 
--- Fungsi untuk menambahkan Tombol di Top Bar secara rapi
-local function addTopBarButton(textDisplay, isAction)
+-- Fungsi Otomatisasi Tombol Menu Atas
+local function addTopBarButton(textDisplay, isAction, order)
     local btn = Instance.new("TextButton", TopBarNav)
-    btn.Size = UDim2.new(0, 110, 0, 26)
+    btn.Size = UDim2.new(0, 100, 0, 24)
     btn.BackgroundColor3 = isAction and Theme.Bg or Color3.fromRGB(30, 32, 54)
     btn.Font = Enum.Font.GothamBold
     btn.Text = textDisplay
     btn.TextSize = 11
     btn.TextColor3 = isAction and Theme.AccentPurple or Theme.TextMain
+    btn.LayoutOrder = order
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     local bStroke = Instance.new("UIStroke", btn)
     bStroke.Color = Theme.Stroke
@@ -181,13 +182,14 @@ local function addTopBarButton(textDisplay, isAction)
     return btn
 end
 
--- Menambahkan tombol contoh pada Top Bar Layout baru
-local HomeBtn = addTopBarButton("🏠 Dashboard", false)
-local ClearBtn = addTopBarButton("🔴 Destroy UI", true)
+-- Menghasilkan struktur tombol pada baris atas
+local HomeBtn = addTopBarButton("🏠 Dashboard", false, 1)
+local AdminBtn = addTopBarButton("🛠️ Tools", false, 2)
+local ClearBtn = addTopBarButton("🔴 Destroy UI", true, 3)
 
--- Aksi tombol Destroy UI untuk membersihkan interface dari layar saat tes selesai
+-- Membersihkan interface saat tombol ditekan
 ClearBtn.MouseButton1Click:Connect(function()
     MainGui:Destroy()
 end)
 
-print("[AR FRAMEWORK]: Top Bar Layout Deployed Successfully!")
+print("[AR FRAMEWORK]: Clean Top Bar Layout Deployed Successfully!")
