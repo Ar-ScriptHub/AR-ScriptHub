@@ -133,7 +133,7 @@ makeDraggable(ToggleButton, ToggleButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 340) -- Kunci tinggi di 340 agar nyaman di-scroll
+MainFrame.Size = UDim2.new(0, 560, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
@@ -203,7 +203,6 @@ MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
--- PERBAIKAN UTAMA: UIPadding ditambahkan agar sisi ATAS & KIRI konten tidak terpotong garis tepi panel!
 local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 4)
@@ -289,7 +288,6 @@ local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
 -- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN)
--- PERBAIKAN UTAMA: Posisi dan ukuran kolom disetel presisi agar sisi kiri punya jarak aman (offset X = 2)
 local LeftColumn = Instance.new("Frame", playerPage)
 LeftColumn.Name = "LeftColumn"
 LeftColumn.Size = UDim2.new(0.5, -8, 0, 0)
@@ -297,9 +295,10 @@ LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
 LeftColumn.Position = UDim2.new(0, 2, 0, 0)
 LeftColumn.BackgroundTransparency = 1
 
+-- REVISI UTAMA: Kolom Kanan dipersempit tambahan -4 piksel (total -12) agar memberi jarak aman bagi scrollbar
 local RightColumn = Instance.new("Frame", playerPage)
 RightColumn.Name = "RightColumn"
-RightColumn.Size = UDim2.new(0.5, -8, 0, 0)
+RightColumn.Size = UDim2.new(0.5, -12, 0, 0) 
 RightColumn.AutomaticSize = Enum.AutomaticSize.Y
 RightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 RightColumn.BackgroundTransparency = 1
@@ -310,7 +309,6 @@ local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Paddin
 -- FUNGSI KREASI CARD ANTI BOCOR (FIXED AUTOMATICSIZE)
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    -- PERBAIKAN UTAMA: Lebar diberi margin offset (-4) agar garis tepi/border tidak berhimpitan dan teriris
     card.Size = UDim2.new(1, -4, 0, 0)
     card.AutomaticSize = Enum.AutomaticSize.Y 
     card.BackgroundColor3 = Theme.CardBg
@@ -321,7 +319,7 @@ local function createCard(parent, titleText, order)
     local stroke = Instance.new("UIStroke", card)
     stroke.Color = Theme.Stroke
     stroke.Thickness = 1
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border -- Mengharuskan border merender ke arah dalam
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border 
     
     local ttl = Instance.new("TextLabel", card)
     ttl.Size = UDim2.new(1, -12, 0, 26)
@@ -498,9 +496,10 @@ espLeftColumn.AutomaticSize = Enum.AutomaticSize.Y
 espLeftColumn.Position = UDim2.new(0, 2, 0, 0)
 espLeftColumn.BackgroundTransparency = 1
 
+-- REVISI UTAMA: Kolom Kanan ESP juga dipersempit tambahan -4 piksel agar simetris dan aman dari scrollbar
 local espRightColumn = Instance.new("Frame", espPage)
 espRightColumn.Name = "EspRightColumn"
-espRightColumn.Size = UDim2.new(0.5, -8, 0, 0)
+espRightColumn.Size = UDim2.new(0.5, -12, 0, 0)
 espRightColumn.AutomaticSize = Enum.AutomaticSize.Y
 espRightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 espRightColumn.BackgroundTransparency = 1
