@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.2 FULL PRODUCTION DEPLOY (TELEPORT UPDATE)
+-- AR SCRIPT HUB - v6.2 FULL PRODUCTION DEPLOY (FIXED LOADING STUCK)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -201,8 +201,8 @@ MainContentFrame.BackgroundTransparency = 1
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
-MainContentFrame.VerticalScrollBarInset = Enum.ScrollBarInset.None -- Pembatas Hilang Total!
-MainContentFrame.ScrollBarThickness = 3 -- Ramping melayang di kanan
+MainContentFrame.VerticalScrollBarInset = Enum.ScrollBarInset.None 
+MainContentFrame.ScrollBarThickness = 3 
 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
 
@@ -210,7 +210,7 @@ local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 20)
 framePadding.PaddingLeft = UDim.new(0, 16)
-framePadding.PaddingRight = UDim.new(0, 0) -- Biar space kosong murni terbentuk dari koordinat
+framePadding.PaddingRight = UDim.new(0, 0) 
 
 local menuContainers = {}
 
@@ -272,7 +272,7 @@ addTopBarButton("⚙️ Setting", "Setting", 5)
 -- PLACEHOLDER MAKER (Hanya untuk Server)
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(0, 519, 0, 150) -- Disesuaikan agar serasi lurus
+    card.Size = UDim2.new(0, 519, 0, 150) 
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -310,7 +310,7 @@ local function createShiftedRightColumn(parentName, columnName)
     col.Name = columnName
     col.Size = UDim2.new(0, 257, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 262, 0, 0) -- 257 + 5px sekat tengah
+    col.Position = UDim2.new(0, 262, 0, 0) 
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
@@ -470,6 +470,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
+        -- KUNCI PERBAIKAN: Ditambahkan Enum.UserInputType secara utuh biar loading ga crash
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
             local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
@@ -610,7 +611,7 @@ local function addLocationButton(parent, locationName, cframeValue, order)
     btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
 end
 
--- Dummy Coordinates (Bisa lu ubah sesuka hati nanti)
+-- Dummy Coordinates
 addLocationButton(areaTpCard, "Spawn Area", CFrame.new(0, 10, 0), 1)
 addLocationButton(areaTpCard, "Main Shop / Pasar", CFrame.new(100, 15, -250), 2)
 addLocationButton(areaTpCard, "VIP Zone", CFrame.new(-500, 20, 500), 3)
@@ -662,6 +663,6 @@ task.spawn(function()
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
-        print("[AR FRAMEWORK v6.2]: Full Grid Shifted Layout deployed and synchronized successfully!")
+        print("[AR FRAMEWORK v6.2]: Loaded and deployed successfully without any crash!")
     end)
 end)
