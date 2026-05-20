@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v5.6 (CLEAN COMPACT TWO-COLUMN EDITION)
+-- AR SCRIPT HUB - CLEAN UI FRAMEWORK ONLY (NO EXPLOIT FUNCTIONS)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -21,17 +21,14 @@ MainGui.DisplayOrder = 999999999
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
-    BgTrans = 0.15,                          
-    TopbarBg = Color3.fromRGB(18, 16, 36),     
-    CardBg = Color3.fromRGB(22, 20, 42),     
+    BgTrans = 0.20,                          
+    CardBg = Color3.fromRGB(20, 22, 38),     
     CardTrans = 0.4,                         
-    Stroke = Color3.fromRGB(48, 44, 76),     
+    Stroke = Color3.fromRGB(56, 52, 92),     
     Accent = Color3.fromRGB(115, 170, 255),  
     AccentPurple = Color3.fromRGB(190, 130, 255), 
     TextMain = Color3.fromRGB(245, 245, 255),
-    TextMuted = Color3.fromRGB(140, 145, 175),
-    MinimizeColor = Color3.fromRGB(115, 170, 255), 
-    CloseColor = Color3.fromRGB(255, 105, 105)     
+    TextMuted = Color3.fromRGB(140, 145, 175)
 }
 
 -- DRAGGABLE ENGINE
@@ -64,355 +61,240 @@ end
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
-ToggleButton.Size = UDim2.new(0, 48, 0, 48)
+ToggleButton.Size = UDim2.new(0, 46, 0, 46)
 ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0)
 ToggleButton.BackgroundColor3 = Theme.Bg
-ToggleButton.BackgroundTransparency = 0.1
+ToggleButton.BackgroundTransparency = 0.15
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "AR"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 16
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
 local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
-tbStroke.Thickness = 1.5
 makeDraggable(ToggleButton, ToggleButton)
 
 -- MAIN PANEL
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 540, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -270, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 460, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1.5
 
--- HEADER ROW
+-- HEADER
 local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 40)
+Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "AR SCRIPT HUB v5.6"
-Title.Size = UDim2.new(1, 0, 1, 0)
+Title.Text = "✨ AR UI FRAMEWORK <font color='#c092ff'>v5.6</font>"
+Title.RichText = true
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0, 14, 0, 0)
 Title.Font = Enum.Font.GothamBold
 Title.TextColor3 = Theme.TextMain
 Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Center
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
-local ControlsContainer = Instance.new("Frame", Header)
-ControlsContainer.Size = UDim2.new(0, 80, 1, 0)
-ControlsContainer.Position = UDim2.new(1, -85, 0, 0)
-ControlsContainer.BackgroundTransparency = 1
-
-local ControlsLayout = Instance.new("UIListLayout", ControlsContainer)
-ControlsLayout.FillDirection = Enum.FillDirection.Horizontal
-ControlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-ControlsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-ControlsLayout.Padding = UDim.new(0, 6)
-
-local MinimizeBtn = Instance.new("TextButton", ControlsContainer)
-MinimizeBtn.Text = "—"
-MinimizeBtn.Size = UDim2.new(0, 28, 0, 28)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextColor3 = Theme.MinimizeColor
-MinimizeBtn.TextSize = 12
-MinimizeBtn.BackgroundColor3 = Theme.TopbarBg
-MinimizeBtn.BackgroundTransparency = 0.4
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", MinimizeBtn).Color = Theme.Stroke
-
-local CloseBtn = Instance.new("TextButton", ControlsContainer)
+local CloseBtn = Instance.new("TextButton", Header)
 CloseBtn.Text = "×"
-CloseBtn.Size = UDim2.new(0, 28, 0, 28)
+CloseBtn.Size = UDim2.new(0, 45, 1, 0)
+CloseBtn.Position = UDim2.new(1, -45, 0, 0)
 CloseBtn.Font = Enum.Font.GothamMedium
-CloseBtn.TextColor3 = Theme.CloseColor
-CloseBtn.TextSize = 20
-CloseBtn.BackgroundColor3 = Theme.TopbarBg
-CloseBtn.BackgroundTransparency = 0.4
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", CloseBtn).Color = Theme.Stroke
+CloseBtn.TextColor3 = Theme.TextMuted
+CloseBtn.TextSize = 24
+CloseBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
-
--- MODAL BOX CLOSE CONFIRMATION
-local ConfirmModal = Instance.new("Frame", MainGui)
-ConfirmModal.Size = UDim2.new(0, 320, 0, 150)
-ConfirmModal.Position = UDim2.new(0.5, -160, 0.5, -75)
-ConfirmModal.BackgroundColor3 = Theme.Bg
-ConfirmModal.BackgroundTransparency = 0.05
-ConfirmModal.Visible = false
-ConfirmModal.ZIndex = 100
-Instance.new("UICorner", ConfirmModal).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", ConfirmModal).Color = Theme.Stroke
-
-local ModalTitle = Instance.new("TextLabel", ConfirmModal)
-ModalTitle.Text = "⚠️ KONFIRMASI"
-ModalTitle.Font = Enum.Font.GothamBold
-ModalTitle.TextSize = 13
-ModalTitle.TextColor3 = Theme.CloseColor
-ModalTitle.Size = UDim2.new(1, 0, 0, 35)
-ModalTitle.BackgroundTransparency = 1
-
-local ModalDesc = Instance.new("TextLabel", ConfirmModal)
-ModalDesc.Text = "Apakah Anda yakin ingin menutup menu ini secara permanen?\n(Perlu menjalankan script ulang untuk membuka kembali)"
-ModalDesc.Font = Enum.Font.GothamMedium
-ModalDesc.TextSize = 11
-ModalDesc.TextColor3 = Theme.TextMain
-ModalDesc.Size = UDim2.new(1, -24, 0, 45)
-ModalDesc.Position = UDim2.new(0, 12, 0, 35)
-ModalDesc.BackgroundTransparency = 1
-ModalDesc.TextWrapped = true
-
-local ModalButtonsContainer = Instance.new("Frame", ConfirmModal)
-ModalButtonsContainer.Size = UDim2.new(1, -24, 0, 36)
-ModalButtonsContainer.Position = UDim2.new(0, 12, 1, -48)
-ModalButtonsContainer.BackgroundTransparency = 1
-
-local ModalBtnsLayout = Instance.new("UIListLayout", ModalButtonsContainer)
-ModalBtnsLayout.FillDirection = Enum.FillDirection.Horizontal
-ModalBtnsLayout.Padding = UDim.new(0, 10)
-
-local CancelBtn = Instance.new("TextButton", ModalButtonsContainer)
-CancelBtn.Size = UDim2.new(0, 140, 1, 0)
-CancelBtn.BackgroundColor3 = Theme.TopbarBg
-CancelBtn.Font = Enum.Font.GothamMedium
-CancelBtn.Text = "Batal"
-CancelBtn.TextColor3 = Theme.TextMain
-CancelBtn.TextSize = 12
-Instance.new("UICorner", CancelBtn).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", CancelBtn).Color = Theme.Stroke
-
-local ConfirmCloseBtn = Instance.new("TextButton", ModalButtonsContainer)
-ConfirmCloseBtn.Size = UDim2.new(0, 146, 1, 0)
-ConfirmCloseBtn.BackgroundColor3 = Theme.CloseColor
-ConfirmCloseBtn.BackgroundTransparency = 0.2
-ConfirmCloseBtn.Font = Enum.Font.GothamBold
-ConfirmCloseBtn.Text = "Ya, Tutup"
-ConfirmCloseBtn.TextColor3 = Theme.TextMain
-ConfirmCloseBtn.TextSize = 12
-Instance.new("UICorner", ConfirmCloseBtn).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", ConfirmCloseBtn).Color = Theme.CloseColor
-
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
-MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
-CloseBtn.MouseButton1Click:Connect(function() ConfirmModal.Visible = true end)
-CancelBtn.MouseButton1Click:Connect(function() ConfirmModal.Visible = false end)
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- HORIZONTAL SCROLLING TOPBAR NAVIGATION
-local TopbarContainer = Instance.new("ScrollingFrame", MainFrame)
-TopbarContainer.Size = UDim2.new(1, -32, 0, 36)
-TopbarContainer.Position = UDim2.new(0, 16, 0, 42)
-TopbarContainer.BackgroundColor3 = Theme.TopbarBg
-TopbarContainer.BackgroundTransparency = 0.3
-TopbarContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-TopbarContainer.AutomaticCanvasSize = Enum.AutomaticSize.X
-TopbarContainer.ScrollBarThickness = 0
-TopbarContainer.ScrollingDirection = Enum.ScrollingDirection.X
-Instance.new("UICorner", TopbarContainer).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", TopbarContainer).Color = Theme.Stroke
+-- SIDEBAR NAV MENU
+local NavFrame = Instance.new("Frame", MainFrame)
+NavFrame.Size = UDim2.new(0, 100, 1, -65)
+NavFrame.Position = UDim2.new(0, 14, 0, 50)
+NavFrame.BackgroundTransparency = 1
 
-local TopbarLayout = Instance.new("UIListLayout", TopbarContainer)
-TopbarLayout.FillDirection = Enum.FillDirection.Horizontal
-TopbarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TopbarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-TopbarLayout.Padding = UDim.new(0, 4)
-
-local TopbarPadding = Instance.new("UIPadding", TopbarContainer)
-TopbarPadding.PaddingLeft = UDim.new(0, 6)
-TopbarPadding.PaddingRight = UDim.new(0, 6)
-
--- CONTENT FRAME SYSTEM
-local ContentView = Instance.new("Frame", MainFrame)
-ContentView.Name = "ContentView"
-ContentView.Size = UDim2.new(1, -32, 1, -98)
-ContentView.Position = UDim2.new(0, 16, 0, 84)
-ContentView.BackgroundTransparency = 1
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, -142, 1, -65)
+ContentFrame.Position = UDim2.new(0, 128, 0, 50)
+ContentFrame.BackgroundTransparency = 1
 
 local tabs = {Player = {}, ESP = {}, Teleport = {}, World = {}, Utilities = {}, Settings = {}}
 local activeTab = "Player"
 
--- ENGINE PEMBUAT GRID DUA KOLOM
-local function createTwoColumnGrid(parent)
-    local baseScroll = Instance.new("ScrollingFrame", parent)
-    baseScroll.Size = UDim2.new(1, 0, 1, 0)
-    baseScroll.BackgroundTransparency = 1
-    baseScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    baseScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    baseScroll.ScrollBarThickness = 2
-    baseScroll.ScrollBarImageColor3 = Theme.AccentPurple
-
-    local gridContainer = Instance.new("Frame", baseScroll)
-    gridContainer.Size = UDim2.new(1, 0, 1, 0)
-    gridContainer.BackgroundTransparency = 1
-
-    local leftCol = Instance.new("Frame", gridContainer)
-    leftCol.Name = "LeftColumn"
-    leftCol.Size = UDim2.new(0.49, 0, 0, 0)
-    leftCol.AutomaticSize = Enum.AutomaticSize.Y
-    leftCol.BackgroundTransparency = 1
-    local lLayout = Instance.new("UIListLayout", leftCol)
-    lLayout.Padding = UDim.new(0, 12)
-    lLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    local rightCol = Instance.new("Frame", gridContainer)
-    rightCol.Name = "RightColumn"
-    rightCol.Size = UDim2.new(0.49, 0, 0, 0)
-    rightCol.Position = UDim2.new(0.51, 0, 0, 0)
-    rightCol.AutomaticSize = Enum.AutomaticSize.Y
-    rightCol.BackgroundTransparency = 1
-    local rLayout = Instance.new("UIListLayout", rightCol)
-    rLayout.Padding = UDim.new(0, 12)
-    rLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    return leftCol, rightCol
+local function createContainer(name)
+    local f = Instance.new("ScrollingFrame", ContentFrame)
+    f.Size = UDim2.new(1, 0, 1, 0)
+    f.BackgroundTransparency = 1
+    f.CanvasSize = UDim2.new(0, 0, 0, 0)
+    f.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    f.ScrollBarThickness = 3
+    f.ScrollBarImageColor3 = Theme.Accent
+    f.Visible = (name == activeTab)
+    tabs[name].Container = f
+    
+    local layout = Instance.new("UIListLayout", f)
+    layout.Padding = UDim.new(0, 12)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
 end
 
-for tabName, _ in pairs(tabs) do
-    local left, right = createTwoColumnGrid(ContentView)
-    tabs[tabName].LeftCol = left
-    tabs[tabName].RightCol = right
-    tabs[tabName].Container = left.Parent.Parent
-    tabs[tabName].Container.Visible = (tabName == activeTab)
-end
+createContainer("Player")
+createContainer("ESP")
+createContainer("Teleport")
+createContainer("World")
+createContainer("Utilities")
+createContainer("Settings")
 
--- Navigation Switcher Engine
 local function switchTab(tabName)
     activeTab = tabName
     for k, v in pairs(tabs) do
         v.Container.Visible = (k == tabName)
         if v.Button then
             if k == tabName then
-                v.Button.TextColor3 = Theme.AccentPurple
+                v.Button.TextColor3 = Theme.Accent
                 v.Button.Font = Enum.Font.GothamBold
-                TweenService:Create(v.Button, TweenInfo.new(0.15), {BackgroundTransparency = 0.85}):Play()
+                TweenService:Create(v.Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 4, 0, 30)}):Play()
             else
                 v.Button.TextColor3 = Theme.TextMuted
                 v.Button.Font = Enum.Font.GothamMedium
-                TweenService:Create(v.Button, TweenInfo.new(0.15), {BackgroundTransparency = 1}):Play()
+                TweenService:Create(v.Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 30)}):Play()
             end
         end
     end
 end
 
-local function addTopbarButton(name, textDisplay, order)
-    local btn = Instance.new("TextButton", TopbarContainer)
-    btn.Size = UDim2.new(0, 90, 1, -8)
-    btn.BackgroundColor3 = Theme.AccentPurple
-    btn.BackgroundTransparency = (name == activeTab) and 0.85 or 1
+local function addTabButton(name, textDisplay, order)
+    local btn = Instance.new("TextButton", NavFrame)
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.Position = UDim2.new(0, 0, 0, (order - 1) * 34)
+    btn.BackgroundTransparency = 1
     btn.Font = (name == activeTab) and Enum.Font.GothamBold or Enum.Font.GothamMedium
     btn.Text = textDisplay
-    btn.TextSize = 11
-    btn.TextColor3 = (name == activeTab) and Theme.AccentPurple or Theme.TextMuted
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    btn.MouseButton1Click:Connect(function() switchTab(name) end)
+    btn.TextSize = 12
+    btn.TextColor3 = (name == activeTab) and Theme.Accent or Theme.TextMuted
+    btn.TextXAlignment = Enum.TextXAlignment.Left
     tabs[name].Button = btn
+    btn.MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
-addTopbarButton("Player", "👤 Player", 1)
-addTopbarButton("ESP", "👁️ ESP System", 2)
-addTopbarButton("Teleport", "🌀 Teleport", 3)
-addTopbarButton("World", "🌐 World", 4)
-addTopbarButton("Utilities", "🛠️ Utilities", 5)
-addTopbarButton("Settings", "⚙️ Settings", 6)
+addTabButton("Player", "👤 Player", 1)
+addTabButton("ESP", "👁️ ESP System", 2)
+addTabButton("Teleport", "🌀 Teleport", 3)
+addTabButton("World", "🌐 World", 4)
+addTabButton("Utilities", "🛠️ Utilities", 5)
+addTabButton("Settings", "⚙️ Settings", 6)
 
--- FUNGSI MAKER GROUP CARD
-local function createGroupCard(parentCol, titleText)
-    local card = Instance.new("Frame", parentCol)
-    card.Size = UDim2.new(1, 0, 0, 0)
-    card.AutomaticSize = Enum.AutomaticSize.Y
-    card.BackgroundColor3 = Theme.CardBg
-    card.BackgroundTransparency = Theme.CardTrans
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-    Instance.new("UIStroke", card).Color = Theme.Stroke
+-- COMPONENTS GENERATOR
+local function createSectionCard(parent, titleText, layoutOrder)
+    local section = Instance.new("Frame", parent)
+    section.Size = UDim2.new(1, -6, 0, 0)
+    section.AutomaticSize = Enum.AutomaticSize.Y 
+    section.BackgroundColor3 = Theme.CardBg
+    section.BackgroundTransparency = Theme.CardTrans
+    section.LayoutOrder = layoutOrder
+    Instance.new("UICorner", section).CornerRadius = UDim.new(0, 8)
+    local sStroke = Instance.new("UIStroke", section)
+    sStroke.Color = Theme.Stroke
     
-    local padding = Instance.new("UIPadding", card)
-    padding.PaddingTop = UDim.new(0, 8)
+    local sTitle = Instance.new("TextLabel", section)
+    sTitle.Size = UDim2.new(1, -12, 0, 24)
+    sTitle.Position = UDim2.new(0, 12, 0, 6)
+    sTitle.Text = titleText:upper()
+    sTitle.Font = Enum.Font.GothamBold
+    sTitle.TextColor3 = Theme.AccentPurple
+    sTitle.TextSize = 10
+    sTitle.BackgroundTransparency = 1
+    sTitle.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local container = Instance.new("Frame", section)
+    container.Size = UDim2.new(1, -24, 0, 0)
+    container.Position = UDim2.new(0, 12, 0, 34)
+    container.BackgroundTransparency = 1
+    container.AutomaticSize = Enum.AutomaticSize.Y
+    
+    local innerLayout = Instance.new("UIListLayout", container)
+    innerLayout.Padding = UDim.new(0, 8)
+    innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    local padding = Instance.new("UIPadding", container)
     padding.PaddingBottom = UDim.new(0, 10)
-    padding.PaddingLeft = UDim.new(0, 10)
-    padding.PaddingRight = UDim.new(0, 10)
-    
-    local layout = Instance.new("UIListLayout", card)
-    layout.Padding = UDim.new(0, 8)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local label = Instance.new("TextLabel", card)
-    label.Text = "🔹 " .. titleText:upper()
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 10
-    label.TextColor3 = Theme.AccentPurple
-    label.Size = UDim2.new(1, 0, 0, 16)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.BackgroundTransparency = 1
-    label.LayoutOrder = 0
-    
-    return card
+    return container
 end
 
--- MINI COMPONENT: TOGGLE SWITCH (CLEAN NO TULISAN)
-local function addCardToggle(parentCard, labelText, default, order, callback)
-    local holder = Instance.new("Frame", parentCard)
-    holder.Size = UDim2.new(1, 0, 0, 26) 
-    holder.BackgroundTransparency = 1
-    holder.LayoutOrder = order
+local function createToggleSwitch(parent, labelText, callback)
+    local holder = Instance.new("Frame", parent)
+    holder.Size = UDim2.new(1, 0, 0, 28) holder.BackgroundTransparency = 1
     
     local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(0.65, 0, 1, 0)
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 11
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
     
     local bgTrack = Instance.new("TextButton", holder)
-    bgTrack.Size = UDim2.new(0, 32, 0, 16) 
-    bgTrack.Position = UDim2.new(1, -32, 0.5, -8)
-    bgTrack.BackgroundColor3 = default and Theme.Accent or Theme.Bg 
-    bgTrack.Text = ""
-    Instance.new("UICorner", bgTrack).CornerRadius = UDim.new(0, 8)
-    local tStroke = Instance.new("UIStroke", bgTrack)
-    tStroke.Color = default and Theme.Accent or Theme.Stroke
+    bgTrack.Size = UDim2.new(0, 34, 0, 18) bgTrack.Position = UDim2.new(1, -34, 0.5, -9)
+    bgTrack.BackgroundColor3 = Theme.Bg bgTrack.Text = ""
+    Instance.new("UICorner", bgTrack).CornerRadius = UDim.new(0, 9)
+    local tStroke = Instance.new("UIStroke", bgTrack) tStroke.Color = Theme.Stroke
     
     local knob = Instance.new("Frame", bgTrack)
-    knob.Size = UDim2.new(0, 12, 0, 12) 
-    knob.Position = UDim2.new(0, default and 17 or 2, 0.5, -6)
-    knob.BackgroundColor3 = Theme.TextMain 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 6)
+    knob.Size = UDim2.new(0, 12, 0, 12) knob.Position = UDim2.new(0, 3, 0.5, -6)
+    knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 6)
     
-    local state = default
+    local state = false
     bgTrack.MouseButton1Click:Connect(function()
         state = not state
-        local targetX = state and 17 or 2
+        local targetX = state and 19 or 3
         local targetTrackColor = state and Theme.Accent or Theme.Bg
-        TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, targetX, 0.5, -6)}):Play()
+        local targetKnobColor = state and Theme.Bg or Theme.TextMuted
+        TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, targetX, 0.5, -6), BackgroundColor3 = targetKnobColor}):Play()
         TweenService:Create(bgTrack, TweenInfo.new(0.08), {BackgroundColor3 = targetTrackColor}):Play()
         tStroke.Color = state and Theme.Accent or Theme.Stroke
         callback(state)
     end)
 end
 
--- MINI COMPONENT: SLIDER (CLEAN NO TULISAN VALUES)
-local function addCardSlider(parentCard, labelText, min, max, default, order, callback)
-    local holder = Instance.new("Frame", parentCard)
-    holder.Size = UDim2.new(1, 0, 0, 32) 
+local function createLevelControl(parent, labelText, defaultLvl, min, max, callback)
+    local holder = Instance.new("Frame", parent)
+    holder.Size = UDim2.new(1, 0, 0, 36) 
     holder.BackgroundTransparency = 1
-    holder.LayoutOrder = order
-
+    
     local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = labelText -- Hanya Judul Slider Saja (Teks level angka & "Status" dihapus total!)
-    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.Text = labelText
+    lbl.Size = UDim2.new(0.7, 0, 0, 14)
+    lbl.Position = UDim2.new(0, 0, 0, 0)
     lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMuted 
-    lbl.TextSize = 10
+    lbl.TextColor3 = Theme.TextMain 
+    lbl.TextSize = 12
     lbl.TextXAlignment = Enum.TextXAlignment.Left 
     lbl.BackgroundTransparency = 1
+
+    local valBox = Instance.new("Frame", holder)
+    valBox.Size = UDim2.new(0, 26, 0, 16)
+    valBox.Position = UDim2.new(1, -26, 0, 0)
+    valBox.BackgroundColor3 = Theme.Bg
+    Instance.new("UICorner", valBox).CornerRadius = UDim.new(0, 4)
+    local boxStroke = Instance.new("UIStroke", valBox)
+    boxStroke.Color = Theme.Stroke
+    boxStroke.Thickness = 1
+
+    local valLabel = Instance.new("TextLabel", valBox)
+    valLabel.Size = UDim2.new(1, 0, 1, 0)
+    valLabel.Text = tostring(defaultLvl)
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.TextColor3 = Theme.Accent
+    valLabel.TextSize = 10
+    valLabel.TextXAlignment = Enum.TextXAlignment.Center
+    valLabel.TextYAlignment = Enum.TextYAlignment.Center
+    valLabel.BackgroundTransparency = 1
 
     local track = Instance.new("Frame", holder)
     track.Size = UDim2.new(1, 0, 0, 4)
@@ -421,28 +303,38 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
 
     local fill = Instance.new("Frame", track)
-    local startPerc = (default - min) / (max - min)
+    local startPerc = (defaultLvl - min) / (max - min)
     fill.Size = UDim2.new(startPerc, 0, 1, 0)
     fill.BackgroundColor3 = Theme.Accent
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
-    local sBtn = Instance.new("TextButton", track)
-    sBtn.Size = UDim2.new(0, 10, 0, 10)
-    sBtn.Position = UDim2.new(startPerc, -5, 0.5, -5)
-    sBtn.BackgroundColor3 = Theme.TextMain
-    Instance.new("UICorner", sBtn).CornerRadius = UDim.new(1, 0)
+    local sliderKnob = Instance.new("Frame", track)
+    sliderKnob.Size = UDim2.new(0, 12, 0, 12)
+    sliderKnob.Position = UDim2.new(startPerc, -6, 0.5, -6)
+    sliderKnob.BackgroundColor3 = Theme.TextMain
+    Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(1, 0)
+    local knobStroke = Instance.new("UIStroke", sliderKnob)
+    knobStroke.Color = Theme.AccentPurple
+    knobStroke.Thickness = 1
+
+    local dragTrigger = Instance.new("ImageButton", sliderKnob)
+    dragTrigger.Size = UDim2.new(2, 0, 2, 0)
+    dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0)
+    dragTrigger.BackgroundTransparency = 1
+    dragTrigger.Image = ""
 
     local function update(input)
         local relX = input.Position.X - track.AbsolutePosition.X
         local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
         fill.Size = UDim2.new(perc, 0, 1, 0)
-        sBtn.Position = UDim2.new(perc, -5, 0.5, -5)
+        sliderKnob.Position = UDim2.new(perc, -6, 0.5, -6)
         local val = math.round(min + (perc * (max - min)))
+        valLabel.Text = tostring(val)
         callback(val)
     end
 
     local sliding = false
-    sBtn.InputBegan:Connect(function(input)
+    dragTrigger.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -453,124 +345,139 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     end)
 end
 
--- ====================================================================
--- CORE PLACEMENT: TAB PLAYER 
--- ====================================================================
+local function createStandardButton(parent, textDisplay, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, 0, 0, 28) btn.BackgroundColor3 = Theme.Bg
+    btn.Font = Enum.Font.GothamBold btn.Text = textDisplay btn.TextColor3 = Theme.TextMain btn.TextSize = 12
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    local bStroke = Instance.new("UIStroke", btn) bStroke.Color = Theme.Stroke
+    btn.MouseButton1Click:Connect(callback)
+end
 
--- --- [ KOLOM KIRI: FLY & NOCLIP ] ---
-local leftFlyGroup = createGroupCard(tabs.Player.LeftCol, "Fly & Noclip") -- Judul Baru
-local isFlying, flySpeed = false, 50
-local bodyGyro, bodyVelocity
-local noclipActive, noclipConnection
+local GlobalTargetName = ""
 
-local function startFlying()
-    local char = Player.Character or Player.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    bodyGyro = Instance.new("BodyGyro", root)
-    bodyGyro.P = 9e4
-    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-    bodyGyro.cframe = root.CFrame
-    bodyVelocity = Instance.new("BodyVelocity", root)
-    bodyVelocity.velocity = Vector3.new(0, 0.1, 0)
-    bodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
-    task.spawn(function()
-        while isFlying and root and root.Parent do
-            local cam = workspace.CurrentCamera
-            local moveDir = Vector3.new(0,0,0)
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-            bodyGyro.cframe = cam.CFrame
-            bodyVelocity.velocity = moveDir * flySpeed
-            task.wait()
-        end
+-- ====================================================================
+-- TAB 1: PLAYER MODIFIERS (UI ONLY)
+-- ====================================================================
+local pExtraNav = createSectionCard(tabs.Player.Container, "Ghost Environment Bypass", 1)
+createToggleSwitch(pExtraNav, "Noclip (Ghost Pass)", function(v) 
+    -- Fungsi eksekusi dihapus
+end)
+createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state) 
+    -- Fungsi eksekusi dihapus
+end)
+
+local pFly = createSectionCard(tabs.Player.Container, "Fly", 2)
+createToggleSwitch(pFly, "Fly Hack Enabled", function(v) 
+    -- Fungsi eksekusi dihapus
+end)
+createLevelControl(pFly, "Velocity Speed", 5, 1, 20, function(lvl) end)
+
+local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 3)
+createToggleSwitch(pWalk, "Bypass Speed", function(v) end)
+createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) end)
+
+local pJump = createSectionCard(tabs.Player.Container, "Jump", 4)
+createToggleSwitch(pJump, "Bypass Jump", function(v) end)
+createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) end)
+
+local pDefense = createSectionCard(tabs.Player.Container, "Defense", 5)
+createToggleSwitch(pDefense, "Anti-AFK Core System", function(state) end)
+createToggleSwitch(pDefense, "Anti-Fling Shield Mode", function(state) end)
+createToggleSwitch(pDefense, "Anti-Stun Ragdoll Lock", function(state) end)
+createToggleSwitch(pDefense, "Invisible Mode Glitch", function(state) end)
+
+-- ====================================================================
+-- TAB 2: ESP SYSTEM (UI ONLY)
+-- ====================================================================
+local espSec = createSectionCard(tabs.ESP.Container, "Visual Monitor Configurations", 1)
+createToggleSwitch(espSec, "Master Activation ESP", function(v) end)
+createToggleSwitch(espSec, "Show Tag Names", function(v) end)
+createToggleSwitch(espSec, "Show Distance Meter", function(v) end)
+createToggleSwitch(espSec, "Show Health Monitor", function(v) end)
+
+local colorSec = createSectionCard(tabs.ESP.Container, "🎨 ESP Color Palette Selection", 2)
+local colorsData = {
+    {Name = "🔵 Cyber Blue Soft", Color = Color3.fromRGB(115, 170, 255)},
+    {Name = "🟣 Orchid Purple Soft", Color = Color3.fromRGB(190, 130, 255)},
+    {Name = "🔴 Crimson Hell", Color = Color3.fromRGB(255, 90, 90)},
+    {Name = "🟡 Golden Honey", Color = Color3.fromRGB(255, 210, 100)},
+    {Name = "⚪ Absolute White", Color = Color3.fromRGB(255, 255, 255)}
+}
+for _, c in ipairs(colorsData) do
+    local cb = Instance.new("TextButton", colorSec) cb.Size = UDim2.new(1, 0, 0, 18) cb.BackgroundTransparency = 1 cb.Font = Enum.Font.GothamMedium cb.Text = c.Name cb.TextColor3 = Theme.TextMain cb.TextSize = 11 cb.TextXAlignment = Enum.TextXAlignment.Left
+    cb.MouseButton1Click:Connect(function() 
+        for _, v in pairs(colorSec:GetChildren()) do if v:IsA("TextButton") then v.TextColor3 = Theme.TextMain end end cb.TextColor3 = Theme.Accent 
     end)
 end
 
-local function stopFlying()
-    isFlying = false
-    if bodyGyro then bodyGyro:Destroy() end
-    if bodyVelocity then bodyVelocity:Destroy() end
-end
+-- ====================================================================
+-- TAB 3: TELEPORT HUB (UI ONLY)
+-- ====================================================================
+local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 1)
+createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state) end)
 
--- 1. Toggle Fly
-addCardToggle(leftFlyGroup, "Fly", false, 1, function(state)
-    isFlying = state
-    if state then startFlying() else stopFlying() end
-end)
+local gotoSec = createSectionCard(tabs.Teleport.Container, "Goto Player Tracker", 2)
+createStandardButton(gotoSec, "🎯 Teleport to Locked Target", function() end)
 
--- 2. Slider Fly Level
-addCardSlider(leftFlyGroup, "Fly Level", 1, 20, 5, 2, function(val)
-    flySpeed = val * 10
-end)
+local listUserSec = createSectionCard(tabs.Teleport.Container, "👥 Target Player Selector List", 3)
+local listContainerFix = Instance.new("Frame", listUserSec) listContainerFix.Size = UDim2.new(1,0,0,110) listContainerFix.BackgroundTransparency = 1
+local pListScroll = Instance.new("ScrollingFrame", listContainerFix) pListScroll.Size = UDim2.new(1, 0, 1, 0) pListScroll.BackgroundTransparency = 1 pListScroll.CanvasSize = UDim2.new(0,0,0,0) pListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y pListScroll.ScrollBarThickness = 2 pListScroll.ScrollBarImageColor3 = Theme.Accent local pListLayout = Instance.new("UIListLayout", pListScroll) pListLayout.Padding = UDim.new(0, 4)
 
--- 3. Toggle Noclip (Tanpa embel-embel Ghost Pass)
-addCardToggle(leftFlyGroup, "Noclip", false, 3, function(v)
-    noclipActive = v
-    if v then
-        if noclipConnection then noclipConnection:Disconnect() end
-        noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and Player.Character then 
-                for _, p in pairs(Player.Character:GetChildren()) do 
-                    if p:IsA("BasePart") then p.CanCollide = false end 
-                end 
-            end
-        end)
-    else 
-        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end 
-    end
-end)
-
-
--- --- [ KOLOM KANAN: JUMP ] ---
-local rightJumpGroup = createGroupCard(tabs.Player.RightCol, "Jump") -- Judul Baru
-local jumpToggleState = false local jumpLevel = 5
-local infJumpEnabled = false local infJumpConnection
-
-local function updateJumpPower()
-    local char = Player.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then
-        local hum = char:FindFirstChildOfClass("Humanoid") 
-        hum.UseJumpPower = true 
-        hum.JumpPower = jumpToggleState and (jumpLevel * 10) or 50 
+local function rebuildPlayerList()
+    for _, child in pairs(pListScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Player then
+            local pBtn = Instance.new("TextButton", pListScroll) pBtn.Size = UDim2.new(1, -6, 0, 20) pBtn.BackgroundColor3 = Theme.Bg pBtn.BackgroundTransparency = 0.4 pBtn.Font = Enum.Font.GothamMedium pBtn.Text = "  " .. p.Name pBtn.TextColor3 = (GlobalTargetName == p.Name) and Theme.Accent or Theme.TextMain pBtn.TextSize = 11 pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", pBtn).Color = Theme.Stroke
+            pBtn.MouseButton1Click:Connect(function() GlobalTargetName = p.Name rebuildPlayerList() end)
+        end
     end
 end
+rebuildPlayerList() Players.PlayerAdded:Connect(rebuildPlayerList) Players.PlayerRemoving:Connect(rebuildPlayerList)
 
--- 1. Toggle Jump Power (Teks Bypass Dihapus)
-addCardToggle(rightJumpGroup, "Jump Power", false, 1, function(v)
-    jumpToggleState = v 
-    updateJumpPower() 
-end)
-
--- 2. Slider Jump Level
-addCardSlider(rightJumpGroup, "Jump Level", 1, 20, 5, 2, function(lvl)
-    jumpLevel = lvl 
-    updateJumpPower() 
-end)
-
--- 3. Toggle Infinite Jump
-infJumpConnection = UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled then
-        pcall(function()
-            local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-        end)
-    end
-end)
-
-addCardToggle(rightJumpGroup, "Infinite Jump", false, 3, function(state)
-    infJumpEnabled = state
-end)
+local wpSec = createSectionCard(tabs.Teleport.Container, "Map Waypoints Vectors (1-5)", 4)
+local function createWpRow(slotKey, labelDisplayName)
+    local row = Instance.new("Frame", wpSec) row.Size = UDim2.new(1, 0, 0, 26) row.BackgroundTransparency = 1
+    local label = Instance.new("TextLabel", row) label.Text = "📌 " .. labelDisplayName label.Font = Enum.Font.GothamMedium label.TextColor3 = Theme.TextMain label.TextSize = 12 label.Size = UDim2.new(0.5, 0, 1, 0) label.TextXAlignment = Enum.TextXAlignment.Left label.BackgroundTransparency = 1
+    local btnSave = Instance.new("TextButton", row) btnSave.Text = "Save" btnSave.Size = UDim2.new(0, 46, 0, 20) btnSave.Position = UDim2.new(0.64, 0, 0.5, -10) btnSave.BackgroundColor3 = Theme.Bg btnSave.TextColor3 = Theme.AccentPurple btnSave.Font = Enum.Font.GothamBold btnSave.TextSize = 10 Instance.new("UICorner", btnSave).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", btnSave).Color = Theme.Stroke
+    local btnTp = Instance.new("TextButton", row) btnTp.Text = "TP" btnTp.Size = UDim2.new(0, 36, 0, 20) btnTp.Position = UDim2.new(0.86, 0, 0.5, -10) btnTp.BackgroundColor3 = Theme.Bg btnTp.TextColor3 = Theme.Accent btnTp.Font = Enum.Font.GothamBold btnTp.TextSize = 10 Instance.new("UICorner", btnTp).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", btnTp).Color = Theme.Stroke
+    
+    btnSave.MouseButton1Click:Connect(function() end)
+    btnTp.MouseButton1Click:Connect(function() end)
+end
+createWpRow("WP1", "WP Slot 1")
+createWpRow("WP2", "WP Slot 2")
+createWpRow("WP3", "WP Slot 3")
+createWpRow("WP4", "WP Slot 4")
+createWpRow("WP5", "WP Slot 5")
 
 -- ====================================================================
--- SINKRONISASI TOMBOL KELUAR MODAL BOX PERMANEN
+-- TAB 4: WORLD MODULE (UI ONLY)
 -- ====================================================================
-ConfirmCloseBtn.MouseButton1Click:Connect(function()
-    if noclipConnection then noclipConnection:Disconnect() end 
-    if infJumpConnection then infJumpConnection:Disconnect() end
-    stopFlying() 
+local worldSec = createSectionCard(tabs.World.Container, "Server Connection Manager", 1)
+createStandardButton(worldSec, "⚡ Instant Rejoin Server", function() end)
+createStandardButton(worldSec, "🚀 Auto Server Hop (Low Player)", function() end)
+
+-- ====================================================================
+-- TAB 5: UTILITIES MODULE (UI ONLY)
+-- ====================================================================
+local actSec = createSectionCard(tabs.Utilities.Container, "Interactivity Exploits", 1)
+createStandardButton(actSec, "🚀 Fling Target (Brutal Spin v3)", function() end)
+createStandardButton(actSec, "🛑 Stop Fling (Unfling Manual)", function() end)
+createToggleSwitch(actSec, "Headsit Target Follower", function(state) end)
+
+local utilSec2 = createSectionCard(tabs.Utilities.Container, "Structural Tools Automation", 2)
+createStandardButton(utilSec2, "🎒 Replicate Target Backpack Tools", function() end)
+createStandardButton(utilSec2, "🎒 Sweep Map Tools to Inventory", function() end)
+
+-- ====================================================================
+-- TAB 6: SETTINGS MODULE (UI ONLY)
+-- ====================================================================
+local setSec = createSectionCard(tabs.Settings.Container, "Dashboard Configuration", 1)
+createStandardButton(setSec, "🔄 Quick Reload Script Hub", function() end)
+createStandardButton(setSec, "🔴 Self-Destroy System UI", function() 
     MainGui:Destroy() 
 end)
 
-print("[AR SCRIPT HUB V5.6]: Clean Two-Column Framework Ready!")
+print("[AR FRAMEWORK]: Template UI Deployed Successfully with No Functions!")
