@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v5.6 (PERFECT SLIDER CONFIGURATION)
+-- AR SCRIPT HUB - v5.6 (PERFECT CLEAN SLIDER UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -398,26 +398,28 @@ local function addCardToggle(parentCard, labelText, default, order, callback)
     end)
 end
 
--- MINI COMPONENT: SLIDER DENGAN KOTAK INDIKATOR LEVEL DI SEBELAH KANAN
+-- MINI COMPONENT: SLIDER ANTI TULISAN "BUTTON" + KOTAK LEVEL SEBELAH KANAN FIXED
 local function addCardSlider(parentCard, labelText, min, max, default, order, callback)
     local holder = Instance.new("Frame", parentCard)
     holder.Size = UDim2.new(1, 0, 0, 34) 
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
 
+    -- JUDUL SLIDER
     local lbl = Instance.new("TextLabel", holder)
     lbl.Text = labelText
     lbl.Size = UDim2.new(0.7, 0, 0, 14)
+    lbl.Position = UDim2.new(0, 0, 0, 0)
     lbl.Font = Enum.Font.GothamMedium 
     lbl.TextColor3 = Theme.TextMuted 
     lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left 
     lbl.BackgroundTransparency = 1
 
-    -- KOTAK INDIKATOR LEVEL (Di Sebelah Kanan Atas)
+    -- KOTAK INDIKATOR LEVEL (Ditempatkan presisi di kanan atas baris slider)
     local valBox = Instance.new("Frame", holder)
-    valBox.Size = UDim2.new(0, 24, 0, 16)
-    valBox.Position = UDim2.new(1, -24, 0, 0)
+    valBox.Size = UDim2.new(0, 28, 0, 15)
+    valBox.Position = UDim2.new(1, -28, 0, 0)
     valBox.BackgroundColor3 = Theme.TopbarBg
     Instance.new("UICorner", valBox).CornerRadius = UDim.new(0, 4)
     local boxStroke = Instance.new("UIStroke", valBox)
@@ -430,10 +432,11 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     valLabel.Font = Enum.Font.GothamBold
     valLabel.TextColor3 = Theme.Accent
     valLabel.TextSize = 10
-    valLabel.TextAlignment = Enum.TextAlignment.Center
+    valLabel.TextXAlignment = Enum.TextXAlignment.Center
+    valLabel.TextYAlignment = Enum.TextYAlignment.Center
     valLabel.BackgroundTransparency = 1
 
-    -- TRACK SLIDER (Bawah)
+    -- TRACK LINE (Garis Slider Bawah)
     local track = Instance.new("Frame", holder)
     track.Size = UDim2.new(1, 0, 0, 4)
     track.Position = UDim2.new(0, 0, 1, -4)
@@ -446,26 +449,34 @@ local function addCardSlider(parentCard, labelText, min, max, default, order, ca
     fill.BackgroundColor3 = Theme.Accent
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
-    -- TOMBOL BULATAN UTAMA (Teks bawaan "Button" dihapus total!)
-    local sBtn = Instance.new("TextButton", track)
-    sBtn.Size = UDim2.new(0, 10, 0, 10)
-    sBtn.Position = UDim2.new(startPerc, -5, 0.5, -5)
-    sBtn.BackgroundColor3 = Theme.TextMain
-    sBtn.Text = "" -- DIHAPUS BIAR BERSIH POLOS
-    Instance.new("UICorner", sBtn).CornerRadius = UDim.new(1, 0)
+    -- MENGGUNAKAN FRAME + IMAGEBUTTON TRANSPARAN AGAR ROBLOX TIDAK BISA MEMUNCULKAN TEKS "BUTTON"
+    local sliderKnob = Instance.new("Frame", track)
+    sliderKnob.Size = UDim2.new(0, 12, 0, 12)
+    sliderKnob.Position = UDim2.new(startPerc, -6, 0.5, -6)
+    sliderKnob.BackgroundColor3 = Theme.TextMain
+    Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(1, 0)
+    local knobStroke = Instance.new("UIStroke", sliderKnob)
+    knobStroke.Color = Theme.AccentPurple
+    knobStroke.Thickness = 1
+
+    local dragTrigger = Instance.new("ImageButton", sliderKnob)
+    dragTrigger.Size = UDim2.new(2, 0, 2, 0) -- Area touch lebih besar agar mudah digeser di HP
+    dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0)
+    dragTrigger.BackgroundTransparency = 1
+    dragTrigger.Image = "" -- Benar-benar kosong polos tanpa text element bawaan
 
     local function update(input)
         local relX = input.Position.X - track.AbsolutePosition.X
         local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
         fill.Size = UDim2.new(perc, 0, 1, 0)
-        sBtn.Position = UDim2.new(perc, -5, 0.5, -5)
+        sliderKnob.Position = UDim2.new(perc, -6, 0.5, -6)
         local val = math.round(min + (perc * (max - min)))
-        valLabel.Text = tostring(val) -- Update angka di dalam kotak real-time
+        valLabel.Text = tostring(val) -- Nilai di kotak kanan terupdate otomatis!
         callback(val)
     end
 
     local sliding = false
-    sBtn.InputBegan:Connect(function(input)
+    dragTrigger.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -523,7 +534,7 @@ addCardToggle(leftFlyGroup, "Fly", false, 1, function(state)
     if state then startFlying() else stopFlying() end
 end)
 
--- 2. Slider Fly Level (Sudah ada Kotak Indikator Level Kanan & Bulatan Polos)
+-- 2. Slider Fly Level
 addCardSlider(leftFlyGroup, "Fly Level", 1, 20, 5, 2, function(val)
     flySpeed = val * 10
 end)
@@ -566,7 +577,7 @@ addCardToggle(rightJumpGroup, "Jump Power", false, 1, function(v)
     updateJumpPower() 
 end)
 
--- 2. Slider Jump Level (Sudah ada Kotak Indikator Level Kanan & Bulatan Polos)
+-- 2. Slider Jump Level
 addCardSlider(rightJumpGroup, "Jump Level", 1, 20, 5, 2, function(lvl)
     jumpLevel = lvl 
     updateJumpPower() 
@@ -596,4 +607,4 @@ ConfirmCloseBtn.MouseButton1Click:Connect(function()
     MainGui:Destroy() 
 end)
 
-print("[AR SCRIPT HUB V5.6]: Slider Button Text Removed & Level Box Integrated!")
+print("[AR SCRIPT HUB V5.6]: Slider Visual Bug Fixed completely!")
