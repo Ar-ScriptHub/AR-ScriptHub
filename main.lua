@@ -129,12 +129,16 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (Lebar fix 560, Tinggi ditinggikan sedikit ke 360 biar muat banyak tanpa scroll)
+-- ====================================================================
+-- REDESIGN STRUCTURAL MAIN GUI ONLY (ANTI-POTONG & SIMETRIS)
+-- ====================================================================
+
+-- MAIN PANEL (Wadah utama panel Anda)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 560, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 MainFrame.Visible = false
@@ -143,13 +147,13 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1.5
 
--- HEADER BLOCK
+-- HEADER BLOCK (Judul & Tombol Close)
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.5</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v7.0</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -192,33 +196,31 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN (SEKARANG FRAME BIASA - TANPA SCROLLBAR)
+-- ====================================================================
+-- AREA KONTEN UTAMA (BAGIAN YANG DIPERBAIKI TOTAL)
+-- ====================================================================
+
+-- Kontainer Utama tanpa scrollbar bawaan yang merusak layout
 local MainContentFrame = Instance.new("Frame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
-MainContentFrame.Size = UDim2.new(1, 0, 1, -105)
-MainContentFrame.Position = UDim2.new(0, 0, 0, 95)
+MainContentFrame.Size = UDim2.new(1, -32, 1, -110) -- Dipotong 32px (16px kiri, 16px kanan) untuk batas aman luar
+MainContentFrame.Position = UDim2.new(0, 16, 0, 95)   -- Mulai tepat di koordinat X=16 untuk simetris murni
 MainContentFrame.BackgroundTransparency = 1
-
--- Padding Simetris Mutlak Kiri & Kanan (Sama-sama 16px)
-local framePadding = Instance.new("UIPadding", MainContentFrame)
-framePadding.PaddingTop = UDim.new(0, 4)
-framePadding.PaddingBottom = UDim.new(0, 16)
-framePadding.PaddingLeft = UDim.new(0, 16)
-framePadding.PaddingRight = UDim.new(0, 16)
 
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 1, 0) -- Mengisi penuh area konten secara simetris
+    page.Size = UDim2.new(1, 0, 1, 0) -- Lebar dan tinggi mengikuti MainContentFrame yang sudah aman
     page.BackgroundTransparency = 1
     page.Visible = isVisible
     
+    -- Mengatur agar semua objek di dalam halaman otomatis tersusun horizontal (Kiri & Kanan)
     local pageLayout = Instance.new("UIListLayout", page)
     pageLayout.FillDirection = Enum.FillDirection.Horizontal
     pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    pageLayout.Padding = UDim.new(0, 12) -- Jarak pemisah tengah absolut (12px)
+    pageLayout.Padding = UDim.new(0, 12) -- Jarak pemisah tengah antara kolom kiri dan kanan
     
     menuContainers[name] = page
     return page
@@ -230,6 +232,24 @@ local tpPage = createMenuPage("Teleportation", false)
 local serverPage = createMenuPage("Server", false)
 local settingPage = createMenuPage("Setting", false)
 
+-- Fungsi pembuat Kolom Kiri dan Kanan yang membagi area secara adil (50% - 6px sekat)
+local function createColumn(parentName, columnName)
+    local col = Instance.new("Frame", menuContainers[parentName])
+    col.Name = columnName
+    col.Size = UDim2.new(0.5, -6, 1, 0) -- KUNCI UTAMA: Membagi dua halaman secara simetris tanpa bocor keluar
+    col.BackgroundTransparency = 1
+    
+    local layout = Instance.new("UIListLayout", col)
+    layout.Padding = UDim.new(0, 12)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    return col
+end
+
+local LeftColumn = createColumn("Player", "LeftColumn")
+local RightColumn = createColumn("Player", "RightColumn")
+
+local espLeftColumn = createColumn("ESP", "EspLeftColumn")
+local espRightColumn = createColumn("ESP", "EspRightColumn")
 local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
