@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - OFFICIAL VERSION v5.6 (PRO FIX & OPTIMIZED)
+-- AR SCRIPT HUB - OFFICIAL VERSION v5.7 (COMBAT & DAMAGE AURA UPDATE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -37,7 +37,9 @@ local Theme = {
 local GlobalTargetName = ""
 local UseTweenTeleport = false
 local noclipActive, floatActive, flying, infJumpActive = false, false, false, false
-local noclipConnection, floatConnection, flyConnection, infJumpConnection, headSitC, flingConnection
+local damageAuraActive = false
+local damageAuraRadius = 15 -- Default radius area aura
+local noclipConnection, floatConnection, flyConnection, infJumpConnection, headSitC, flingConnection, damageAuraConnection
 local floatPart, bg, bv
 
 -- DRAGGABLE ENGINE
@@ -102,7 +104,7 @@ Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR SCRIPT HUB <font color='#c092ff'>v5.6</font>"
+Title.Text = "✨ AR SCRIPT HUB <font color='#c092ff'>v5.7</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 14, 0, 0)
@@ -136,8 +138,8 @@ ContentFrame.Size = UDim2.new(1, -142, 1, -65)
 ContentFrame.Position = UDim2.new(0, 128, 0, 50)
 ContentFrame.BackgroundTransparency = 1
 
-local tabs = {Player = {}, ESP = {}, Teleport = {}, World = {}, Utilities = {}, Settings = {}}
-local activeTab = "Player"
+local tabs = {Combat = {}, Player = {}, ESP = {}, Teleport = {}, World = {}, Utilities = {}, Settings = {}}
+local activeTab = "Combat"
 
 local function createContainer(name)
     local f = Instance.new("ScrollingFrame", ContentFrame)
@@ -155,6 +157,7 @@ local function createContainer(name)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
 end
 
+createContainer("Combat")
 createContainer("Player")
 createContainer("ESP")
 createContainer("Teleport")
@@ -192,12 +195,13 @@ local function addTabButton(name, textDisplay, order)
     btn.MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
-addTabButton("Player", "👤 Player", 1)
-addTabButton("ESP", "👁️ ESP System", 2)
-addTabButton("Teleport", "🌀 Teleport", 3)
-addTabButton("World", "🌐 World", 4)
-addTabButton("Utilities", "🛠️ Utilities", 5)
-addTabButton("Settings", "⚙️ Settings", 6)
+addTabButton("Combat", "⚔️ Combat", 1)
+addTabButton("Player", "👤 Player", 2)
+addTabButton("ESP", "👁️ ESP System", 3)
+addTabButton("Teleport", "🌀 Teleport", 4)
+addTabButton("World", "🌐 World", 5)
+addTabButton("Utilities", "🛠️ Utilities", 6)
+addTabButton("Settings", "⚙️ Settings", 7)
 
 -- COMPONENTS GENERATOR
 local function createSectionCard(parent, titleText, layoutOrder)
@@ -345,7 +349,9 @@ local function cleanAllConnections()
     if infJumpConnection then infJumpConnection:Disconnect() infJumpConnection = nil end
     if headSitC then headSitC:Disconnect() headSitC = nil end
     
-    -- Fling Reset Protection
+    damageAuraActive = false
+    if damageAuraConnection then damageAuraConnection:Disconnect() damageAuraConnection = nil end
+    
     if flingConnection then flingConnection:Disconnect() flingConnection = nil end
     if Player.Character then
         for _, part in pairs(Player.Character:GetChildren()) do
@@ -355,9 +361,69 @@ local function cleanAllConnections()
 end
 
 -- ====================================================================
--- TAB 1: PLAYER MODIFIERS
+-- TAB 1: COMBAT SYSTEM (NEW EXCLUSIVE FEATURE)
 -- ====================================================================
--- 1. GHOST NAVIGATION (NOCLIP & FLOAT MOVED TO LAYOUT ORDER 1)
+local combatSec = createSectionCard(tabs.Combat.Container, "Automated Combat Aura", 1)
+
+-- DAFTAR NAMA REMOTE EVENT SENJATA (Sesuaikan dengan game yang dimainkan)
+local remoteNames = {"Damage", "Hit", "Attack", "Activate", "Swing", "RemoteEvent"}
+
+local function getWeaponRemote(tool)
+    for _, name in pairs(remoteNames) do
+        local remote = tool:FindFirstChild(name) or tool:FindFirstChildOfClass("RemoteEvent")
+        if remote and remote:IsA("RemoteEvent") then
+            return remote
+        end
+    end
+    return nil
+end
+
+createToggleSwitch(combatSec, "Enable Damage Aura", function(state)
+    damageAuraActive = state
+    if state then
+        if damageAuraConnection then damageAuraConnection:Disconnect() end
+        damageAuraConnection = RunService.Heartbeat:Connect(function()
+            local myChar = Player.Character
+            local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local activeTool = myChar and myChar:FindFirstChildOfClass("Tool")
+            
+            if not damageAuraActive or not myHrp or not activeTool then return end
+            
+            -- Cari remote event pemicu damage pada senjata
+            local damageRemote = getWeaponRemote(activeTool)
+            if not damageRemote then return end
+            
+            -- Scan musuh di sekitar area radius luar
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") then
+                    local targetHrp = p.Character.HumanoidRootPart
+                    local targetHum = p.Character:FindFirstChildOfClass("Humanoid")
+                    
+                    if targetHum.Health > 0 then
+                        local distance = (myHrp.Position - targetHrp.Position).Magnitude
+                        if distance <= damageAuraRadius then
+                            -- Eksekusi bypass remote attack secara instan & konstan (Kecepatan Loop Tinggi)
+                            -- Parameter di bawah mengirimkan target karakter/part, sesuaikan dengan skema game-nya jika perlu.
+                            damageRemote:FireServer(targetHrp, targetHrp.Position)
+                            damageRemote:FireServer(targetHum)
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if damageAuraConnection then damageAuraConnection:Disconnect() damageAuraConnection = nil end
+    end
+end)
+
+createLevelControl(combatSec, "Aura Area Radius", 15, 5, 100, function(lvl)
+    damageAuraRadius = lvl
+end)
+
+
+-- ====================================================================
+-- TAB 2: PLAYER MODIFIERS
+-- ====================================================================
 local pExtraNav = createSectionCard(tabs.Player.Container, "Ghost Environment Bypass", 1)
 
 createToggleSwitch(pExtraNav, "Noclip (Safe Ghost Pass)", function(v)
@@ -367,7 +433,6 @@ createToggleSwitch(pExtraNav, "Noclip (Safe Ghost Pass)", function(v)
         noclipConnection = RunService.Stepped:Connect(function()
             if noclipActive and Player.Character then 
                 for _, p in pairs(Player.Character:GetDescendants()) do 
-                    -- HRP disisakan agar tidak jatuh tembus ke Void/Bumi secara instan
                     if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then 
                         p.CanCollide = false 
                     end 
@@ -388,7 +453,6 @@ createToggleSwitch(pExtraNav, "Float Platform Stabilizer", function(state)
     else if floatConnection then floatConnection:Disconnect() floatConnection = nil end if floatPart then floatPart:Destroy() floatPart = nil end end
 end)
 
--- 2. FLY MODULE (Layout Order 2)
 local pFly = createSectionCard(tabs.Player.Container, "Fly", 2)
 local flyLevel = 5
 local function stopFlying()
@@ -419,7 +483,6 @@ createToggleSwitch(pFly, "Fly Hack Enabled", function(v)
 end)
 createLevelControl(pFly, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
--- 3. WALKSPEED MODULE (Layout Order 3)
 local pWalk = createSectionCard(tabs.Player.Container, "WalkSpeed", 3)
 local walkToggleState = false local walkLevel = 1
 local function updateWalkSpeed()
@@ -429,7 +492,6 @@ end
 createToggleSwitch(pWalk, "Bypass Speed", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(pWalk, "Speed Level", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
--- 4. JUMP & AIR NAVIGATION MODULE (Layout Order 4)
 local pJump = createSectionCard(tabs.Player.Container, "Jump & Air Mechanics", 4)
 local jumpToggleState = false local jumpLevel = 5
 local function updateJumpPower()
@@ -441,7 +503,6 @@ end
 createToggleSwitch(pJump, "Bypass Jump", function(v) jumpToggleState = v updateJumpPower() end)
 createLevelControl(pJump, "Power Level", 5, 1, 20, function(lvl) jumpLevel = lvl updateJumpPower() end)
 
--- FIXED BUG: Penambahan fungsionalitas Infinite Jump Core yang tertinggal
 infJumpConnection = UserInputService.JumpRequest:Connect(function()
     if infJumpActive and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
         Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
@@ -449,7 +510,6 @@ infJumpConnection = UserInputService.JumpRequest:Connect(function()
 end)
 createToggleSwitch(pJump, "Infinite Jump Engine", function(state) infJumpActive = state end)
 
--- 5. DEFENSE MODULE (Layout Order 5)
 local pDefense = createSectionCard(tabs.Player.Container, "Defense", 5)
 local AntiAfkConnection, AntiFlingConnection, AntiStunConnection local AntiFlingActive, AntiStunActive, IsInvisible = false, false, false
 createToggleSwitch(pDefense, "Anti-AFK Core System", function(state)
@@ -480,7 +540,7 @@ end)
 createToggleSwitch(pDefense, "Invisible Mode Glitch", function(state) IsInvisible = state local char = Player.Character if char and char:FindFirstChild("LowerTorso") then char.LowerTorso.RootJoint.Part0 = state and nil or char.HumanoidRootPart end end)
 
 -- ====================================================================
--- TAB 2: ESP SYSTEM
+-- TAB 3: ESP SYSTEM
 -- ====================================================================
 local espSec = createSectionCard(tabs.ESP.Container, "Visual Monitor Configurations", 1)
 local EspSettings = { Active = false, Names = true, Distance = true, Health = true, Color = Color3.fromRGB(115, 170, 255) } local EspObjects = {}
@@ -539,7 +599,7 @@ for _, c in ipairs(colorsData) do
 end
 
 -- ====================================================================
--- TAB 3: TELEPORT HUB
+-- TAB 4: TELEPORT HUB
 -- ====================================================================
 local configTpSec = createSectionCard(tabs.Teleport.Container, "Engine Settings", 1)
 createToggleSwitch(configTpSec, "Use Tween Movement (Anti-Cheat)", function(state) UseTweenTeleport = state end)
@@ -604,7 +664,7 @@ createWpRow("WP4", "WP Slot 4")
 createWpRow("WP5", "WP Slot 5")
 
 -- ====================================================================
--- TAB 4: WORLD MODULE
+-- TAB 5: WORLD MODULE
 -- ====================================================================
 local worldSec = createSectionCard(tabs.World.Container, "Server Connection Manager", 1)
 createStandardButton(worldSec, "⚡ Instant Rejoin Server", function()
@@ -624,7 +684,7 @@ createStandardButton(worldSec, "🚀 Auto Server Hop (Low Player)", function()
 end)
 
 -- ====================================================================
--- TAB 5: UTILITIES MODULE
+-- TAB 6: UTILITIES MODULE
 -- ====================================================================
 local actSec = createSectionCard(tabs.Utilities.Container, "Interactivity Exploits", 1)
 local flingActive = false local bV, aV, att
@@ -640,7 +700,6 @@ local function runTimerFling(targetPlayer)
     local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart") local myHrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") if not targetHrp or not myHrp then return end
     cleanFlingParts() flingActive = true
     
-    -- Mengurangi power rotasi ekstrim (99999 -> 5000) untuk meminimalkan deteksi otomatis Anti-Cheat fisika
     bV = Instance.new("BodyVelocity", myHrp) bV.MaxForce = Vector3.new(9e9, 9e9, 9e9) bV.Velocity = Vector3.new(0,0,0)
     aV = Instance.new("AngularVelocity", myHrp) aV.MaxTorque = 9e9 aV.AngularVelocity = Vector3.new(5000, 5000, 5000) aV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
     att = Instance.new("Attachment", myHrp) aV.Attachment0 = att
@@ -685,11 +744,10 @@ createStandardButton(utilSec2, "🎒 Sweep Map Tools to Inventory", function() l
 
 
 -- ====================================================================
--- TAB 6: SETTINGS MODULE
+-- TAB 7: SETTINGS MODULE
 -- ====================================================================
 local setSec = createSectionCard(tabs.Settings.Container, "Dashboard Configuration", 1)
 
--- Tambahan Interface Settings: Pengatur Transparansi Floating Button agar tidak mengganggu pandangan game
 createLevelControl(setSec, "UI Button Transparency (%)", 15, 0, 90, function(lvl)
     ToggleButton.BackgroundTransparency = lvl / 100
 end)
@@ -700,7 +758,6 @@ createStandardButton(setSec, "🔄 Quick Reload Script Hub", function()
     MainGui:Destroy()
     task.wait(0.3)
     pcall(function() 
-        -- Masukkan link pastebin raw script utama kamu di sini jika ditaruh di github/pastebin
         loadstring(game:HttpGet("https://raw.githubusercontent.com/pastebin/raw/your_link_here"))() 
     end)
 end)
@@ -711,4 +768,4 @@ createStandardButton(setSec, "🔴 Self-Destroy System UI", function()
     MainGui:Destroy()
 end)
 
-print("[AR SCRIPT HUB V5.6]: Successfully Deployed and Optimized.")
+print("[AR SCRIPT HUB V5.7]: Successfully Deployed with Damage Aura Feature.")
