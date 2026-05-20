@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - QUANTUM ADMIN HUB (V3.8 - LAYER & SECTIONS UPDATE)
+-- AR SCRIPT HUB - QUANTUM ADMIN HUB (V3.9 - SAKTI TOOLS FIX)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -17,7 +17,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Quantum_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 999999999 -- MENJAMIN UI SELALU DI PALING ATAS, ANTI-KETUTUPAN
+MainGui.DisplayOrder = 999999999 -- MENJAMIN UI SELALU DI PALING ATAS
 
 -- THEME COLOR PALETTE
 local Theme = {
@@ -84,25 +84,20 @@ task.spawn(function()
 end)
 
 local sequences = {
-    {0.15, "Connecting to GitHub Repo..."},
-    {0.40, "Checking Exploit Environment..."},
-    {0.65, "Injecting Quantum Engine (v3.8)..."},
-    {0.85, "Structuring Layout Sections..."},
+    {0.20, "Injecting Quantum Engine (v3.9)..."},
+    {0.50, "Fixing Tool Replications Engine..."},
     {1.00, "Ready!"}
 }
 
 local function runLoading()
     for _, step in ipairs(sequences) do
         LoadStatus.Text = step[2]
-        local fillTween = TweenService:Create(BarFill, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step[0], 0, 1, 0)})
+        local fillTween = TweenService:Create(BarFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step[0], 0, 1, 0)})
         fillTween:Play()
         fillTween.Completed:Wait()
-        task.wait(0.1)
+        task.wait(0.05)
     end
-    
-    local fadePanel = TweenService:Create(LoadingPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
-    fadePanel:Play()
-    fadePanel.Completed:Wait()
+    task.wait(0.1)
     LoadingPanel:Destroy()
 end
 
@@ -222,7 +217,7 @@ Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "AR SCRIPT HUB v3.8"
+Title.Text = "AR SCRIPT HUB v3.9"
 Title.RichText = true
 Title.Size = UDim2.new(0.8, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
@@ -271,7 +266,7 @@ local function createContainer(name)
     f.Visible = (name == activeTab)
     tabs[name].Container = f
     local layout = Instance.new("UIListLayout", f)
-    layout.Padding = UDim.new(0, 8) -- Ditambah sedikit padding antar sekat
+    layout.Padding = UDim.new(0, 8)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
 end
 
@@ -315,9 +310,7 @@ addTabButton("Teleport", "Teleport", 2)
 addTabButton("Utilities", "Utilities 🛠️", 3)
 addTabButton("Setting", "Settings", 4)
 
--- ====================================================================
 -- SEKAT / CARD SECTION SEPARATOR CREATOR
--- ====================================================================
 local function createSectionCard(parent, titleText, height, layoutOrder)
     local section = Instance.new("Frame", parent)
     section.Size = UDim2.new(1, -5, 0, height)
@@ -349,7 +342,6 @@ local function createSectionCard(parent, titleText, height, layoutOrder)
     return container
 end
 
--- MODIFIED FACTORY COMPONENTS INSIDE SECTIONS
 local function createToggleSwitch(parent, labelText, callback)
     local holder = Instance.new("Frame", parent)
     holder.Size = UDim2.new(1, 0, 0, 32) holder.BackgroundTransparency = 1
@@ -422,10 +414,8 @@ local function createStandardButton(parent, textDisplay, callback)
 end
 
 -- ====================================================================
--- MOVEMENT SECTION INJECTIONS (NOCLIP PALING ATAS, MASING-MASING DISEKAT)
+-- MOVEMENT SECTION INJECTIONS (NOCLIP ATAS & SEKAT BERSIH)
 -- ====================================================================
-
--- 1. SEKAT NOCLIP (LayoutOrder = 1)
 local noclipSec = createSectionCard(tabs.Movement.Container, "Noclip Core", 65, 1)
 local noclipConnection
 local noclipActive = false
@@ -445,7 +435,6 @@ createToggleSwitch(noclipSec, "Enable Noclip Mode", function(v)
     end
 end)
 
--- 2. SEKAT FLY (LayoutOrder = 2)
 local flySec = createSectionCard(tabs.Movement.Container, "Fly Navigation", 95, 2)
 local flying = false
 local flyLevel = 5
@@ -499,7 +488,6 @@ end
 createToggleSwitch(flySec, "Fly Hack Enabled", function(v) if v then startFlying() else stopFlying() end end)
 createLevelControl(flySec, "Velocity Speed", 5, 1, 20, function(lvl) flyLevel = lvl end)
 
--- 3. SEKAT WALKSPEED (LayoutOrder = 3)
 local wsSec = createSectionCard(tabs.Movement.Container, "Speed Regulation", 95, 3)
 local walkToggleState = false
 local walkLevel = 1
@@ -512,7 +500,6 @@ end
 createToggleSwitch(wsSec, "WalkSpeed Bypass", function(v) walkToggleState = v updateWalkSpeed() end)
 createLevelControl(wsSec, "Speed Multiplier", 1, 1, 20, function(lvl) walkLevel = lvl updateWalkSpeed() end)
 
--- 4. SEKAT JUMPPOWER & INF JUMP (LayoutOrder = 4)
 local jumpSec = createSectionCard(tabs.Movement.Container, "Vertical Boosters", 125, 4)
 local jumpToggleState = false
 local jumpLevel = 5
@@ -550,10 +537,9 @@ Player.CharacterAdded:Connect(function(char)
 end)
 
 -- ====================================================================
--- ADVANCED TELEPORT SYSTEM ENGINE (INSTANT VS TWEEN METHOD)
+-- TELEPORT SYSTEM ENGINE
 -- ====================================================================
 local useTweenTeleport = false
-
 local tpEngineCard = Instance.new("Frame", tabs.Teleport.Container)
 tpEngineCard.Size = UDim2.new(1, -5, 0, 38) tpEngineCard.BackgroundColor3 = Theme.CardBg
 Instance.new("UICorner", tpEngineCard).CornerRadius = UDim.new(0, 6)
@@ -561,34 +547,23 @@ Instance.new("UIStroke", tpEngineCard).Color = Theme.Stroke
 local engineHolder = Instance.new("Frame", tpEngineCard)
 engineHolder.Size = UDim2.new(1, -16, 1, 0) engineHolder.Position = UDim2.new(0, 8, 0, 0) engineHolder.BackgroundTransparency = 1
 
-createToggleSwitch(engineHolder, "Tween Teleport (Anti-Rubberband)", function(state)
-    useTweenTeleport = state
-end)
+createToggleSwitch(engineHolder, "Tween Teleport (Anti-Rubberband)", function(state) useTweenTeleport = state end)
 
 local function masterTeleport(targetCFrame)
     if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
     local hrp = Player.Character.HumanoidRootPart
     local safeTarget = targetCFrame * CFrame.new(0, 3, 0)
-    
-    hrp.Velocity = Vector3.new(0, 0, 0)
-    hrp.RotVelocity = Vector3.new(0, 0, 0)
-    
+    hrp.Velocity = Vector3.new(0, 0, 0) hrp.RotVelocity = Vector3.new(0, 0, 0)
     if useTweenTeleport then
         local distance = (hrp.Position - safeTarget.Position).Magnitude
-        local speed = 180 
-        local duration = distance / speed
-        if duration < 0.2 then duration = 0.2 end
-        
-        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = safeTarget})
-        tween:Play()
+        local duration = math.max(distance / 180, 0.2)
+        TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = safeTarget}):Play()
     else
         hrp.CFrame = safeTarget
     end
 end
 
--- ====================================================================
 -- TELEPORT DROPDOWN LAYER SECURITY
--- ====================================================================
 local selectedPlayer = ""
 local ddMain = Instance.new("Frame", tabs.Teleport.Container)
 ddMain.Size = UDim2.new(1, -5, 0, 42) ddMain.BackgroundTransparency = 1
@@ -608,7 +583,7 @@ btnTpPlayer.TextColor3 = Theme.Accent btnTpPlayer.Font = Enum.Font.GothamBold
 Instance.new("UICorner", btnTpPlayer).CornerRadius = UDim.new(0, 4)
 Instance.new("UIStroke", btnTpPlayer).Color = Theme.Stroke
 
-local ddScroll = Instance.new("ScrollingFrame", MainGui) -- Pindah ke MainGui langsung agar layer paling top
+local ddScroll = Instance.new("ScrollingFrame", MainGui)
 ddScroll.Size = UDim2.new(0, 240, 0, 110) ddScroll.Position = UDim2.new(0.4, 0, 0.45, 0)
 ddScroll.BackgroundColor3 = Theme.CardBg ddScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 ddScroll.ScrollBarThickness = 3 ddScroll.Visible = false ddScroll.ZIndex = 999999
@@ -675,9 +650,7 @@ local function createWaypointUI(slotName, displayName)
         end
     end)
     btnTp.MouseButton1Click:Connect(function()
-        if waypointSlots[slotName] then
-            masterTeleport(waypointSlots[slotName])
-        end
+        if waypointSlots[slotName] then masterTeleport(waypointSlots[slotName]) end
     end)
 end
 createWaypointUI("Slot1", "Waypoint 1")
@@ -687,7 +660,7 @@ createWaypointUI("Slot4", "Waypoint 4")
 createWaypointUI("Slot5", "Waypoint 5")
 
 -- ====================================================================
--- UTILITIES SYSTEM & THE POWERFUL COPY TARGET TOOLS
+-- UTILITIES SYSTEM & FIX FUNCTIONAL COPY TARGET TOOLS
 -- ====================================================================
 local funTargetName = ""
 local headSitting = false
@@ -704,7 +677,7 @@ ddTriggerF.TextSize = 11 ddTriggerF.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", ddTriggerF).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", ddTriggerF).Color = Theme.Stroke
 
-local ddScrollF = Instance.new("ScrollingFrame", MainGui) -- Pindah ke MainGui langsung agar layer paling top
+local ddScrollF = Instance.new("ScrollingFrame", MainGui)
 ddScrollF.Size = UDim2.new(0, 240, 0, 110) ddScrollF.Position = UDim2.new(0.4, 0, 0.45, 0)
 ddScrollF.BackgroundColor3 = Theme.CardBg ddScrollF.CanvasSize = UDim2.new(0, 0, 0, 0)
 ddScrollF.ScrollBarThickness = 3 ddScrollF.Visible = false ddScrollF.ZIndex = 999999
@@ -731,37 +704,54 @@ local function updateFunDropdown()
 end
 ddTriggerF.MouseButton1Click:Connect(function() ddScrollF.Visible = not ddScrollF.Visible if ddScrollF.Visible then updateFunDropdown() end end)
 
--- SEKAT UNTUK COPIER & HEADSIT
 local actionSec = createSectionCard(tabs.Utilities.Container, "Target Interaction", 110, 1)
 
--- REQ BARU: FITUR COPY PLAYER TOOLS SYSTEM
+-- FIX UTAMA: KODE DIBIKIN FUNGSIONAL AGAR ITEM BISA DIPAKAI TOTAL (CLIENT RE-REGISTER)
+local function rebuildAndInjectTool(originalTool, destination)
+    local nt = originalTool:Clone()
+    
+    -- Daftarkan ulang koneksi aktivasi agar bisa diklik di client kita sendiri
+    nt.Activated:Connect(function()
+        if nt:FindFirstChild("RemoteEvent") then
+            nt.RemoteEvent:FireServer()
+        end
+    end)
+    
+    -- Bypass Grip & Setup Manual jika script internal Roblox macet
+    if nt:FindFirstChild("Handle") then
+        nt.Handle.Anchored = false
+        local touchTrans = nt.Handle:FindFirstChildOfClass("TouchTransmitter")
+        if touchTrans then touchTrans:Destroy() end -- Hapus transmitter agar ga ngebug teleport balik
+    end
+    
+    nt.Parent = destination
+end
+
 createStandardButton(actionSec, "🎒 Copy Target Tools", function()
     if funTargetName ~= "" then
         local target = Players:FindFirstChild(funTargetName)
         local myBackpack = Player:FindFirstChild("Backpack")
         if target and myBackpack then
             local copiedCount = 0
-            -- Ambil tool yang sedang dia pegang di karakter
+            
             if target.Character then
                 for _, obj in pairs(target.Character:GetChildren()) do
                     if obj:IsA("Tool") then
-                        local clone = obj:Clone()
-                        clone.Parent = myBackpack
+                        rebuildAndInjectTool(obj, myBackpack)
                         copiedCount = copiedCount + 1
                     end
                 end
             end
-            -- Ambil tool yang disimpan di tas dia
+            
             if target:FindFirstChild("Backpack") then
                 for _, obj in pairs(target.Backpack:GetChildren()) do
                     if obj:IsA("Tool") then
-                        local clone = obj:Clone()
-                        clone.Parent = myBackpack
+                        rebuildAndInjectTool(obj, myBackpack)
                         copiedCount = copiedCount + 1
                     end
                 end
             end
-            print("[QUANTUM COPIER]: Successfully cloned " .. copiedCount .. " tools from " .. target.Name)
+            print("[QUANTUM COPIER]: Fixed & Injected " .. copiedCount .. " tools into your backpack.")
         end
     end
 end)
@@ -770,12 +760,9 @@ createToggleSwitch(actionSec, "Headsit Target", function(state)
     headSitting = state
     if headSitConnection then headSitConnection:Disconnect() headSitConnection = nil end
     if not state then 
-        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-            Player.Character:FindFirstChildOfClass("Humanoid").Sit = false
-        end
+        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").Sit = false end
         return 
     end
-    
     headSitConnection = RunService.Heartbeat:Connect(function()
         if headSitting and funTargetName ~= "" then
             local targetPlayer = Players:FindFirstChild(funTargetName)
@@ -790,7 +777,6 @@ end)
 
 -- SEKAT UNTUK MAP UTILITIES
 local mapSec = createSectionCard(tabs.Utilities.Container, "Map Exploration Tools", 145, 2)
-
 local xrayActive = false
 local originalTransparencies = {}
 
@@ -798,9 +784,7 @@ local function applyXray()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then
             if not obj:IsDescendantOf(Player.Character) and not obj:IsDescendantOf(workspace.CurrentCamera) then
-                if not originalTransparencies[obj] then
-                    originalTransparencies[obj] = obj.Transparency
-                end
+                if not originalTransparencies[obj] then originalTransparencies[obj] = obj.Transparency end
                 obj.Transparency = 0.55
             end
         end
@@ -808,11 +792,7 @@ local function applyXray()
 end
 
 local function removeXray()
-    for obj, trans in pairs(originalTransparencies) do
-        if obj and obj.Parent then
-            obj.Transparency = trans
-        end
-    end
+    for obj, trans in pairs(originalTransparencies) do if obj and obj.Parent then obj.Transparency = trans end end
     table.clear(originalTransparencies)
 end
 
@@ -838,9 +818,7 @@ end)
 createStandardButton(mapSec, "🎒 Grab All Tools in Map", function()
     local backpack = Player:FindFirstChild("Backpack")
     if backpack then
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Tool") then obj.Parent = backpack end
-        end
+        for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("Tool") then obj.Parent = backpack end end
     end
 end)
 
@@ -868,15 +846,11 @@ createStandardButton(tabs.Setting.Container, "🔴 Destroy Quantum Hub UI", func
     if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
     stopFlying()
     for slot, _ in pairs(waypointSlots) do clearWaypointESP(slot) end
-    ddScroll:Destroy()
-    ddScrollF:Destroy()
-    MainGui:Destroy()
+    ddScroll:Destroy() ddScrollF:Destroy() MainGui:Destroy()
 end)
 
 createStandardButton(tabs.Setting.Container, "🔄 Re-Load UI Script", function()
-    ddScroll:Destroy()
-    ddScrollF:Destroy()
-    MainGui:Destroy()
+    ddScroll:Destroy() ddScrollF:Destroy() MainGui:Destroy()
     task.wait(0.2)
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Ar-ScriptHub/AR-ScriptHub/refs/heads/main/main.lua"))()
 end)
@@ -887,4 +861,4 @@ task.spawn(function()
     MainFrame.Visible = true 
 end)
 
-print("[QUANTUM HUB V3.8]: Premium Sections Built Successfully.")
+print("[QUANTUM HUB V3.9]: Tool Copier Framework Fixed Completely.")
