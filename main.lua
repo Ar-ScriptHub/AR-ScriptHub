@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - PERFECT ABSOLUTE PIXEL GRID SYSTEM (v6.0 - BACKUP)
+-- AR SCRIPT HUB - STRICT ABSOLUTE OFFSET GRID (v6.1 - SHIFTED RIGHT)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -149,7 +149,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.0</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.1</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -212,18 +212,17 @@ framePadding.PaddingRight = UDim.new(0, 8)
 
 local menuContainers = {}
 
+-- FUNGSI KREASI HALAMAN (No-Grid, Absolute Positioning)
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
+    -- KUNCI 1: Halaman ditarik penuh sesuai area canvas (536px area efektif)
     page.Size = UDim2.new(0, 536, 0, 0)
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
     
-    local pageLayout = Instance.new("UIListLayout", page)
-    pageLayout.FillDirection = Enum.FillDirection.Horizontal
-    pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    pageLayout.Padding = UDim.new(0, 12)
+    -- KUNCI 2: UIListLayout tengah dimatikan untuk menggunakan posisi offset absolut
     
     menuContainers[name] = page
     return page
@@ -274,8 +273,6 @@ addTopBarButton("⚙️ Setting", "Setting", 5)
 
 -- PLACEHOLDER MAKER
 local function buildPlaceholder(pageFrame, titleText)
-    pageFrame.UIListLayout:Destroy()
-    
     local card = Instance.new("Frame", pageFrame)
     card.Size = UDim2.new(1, 0, 0, 150)
     card.BackgroundColor3 = Theme.CardBg
@@ -292,17 +289,18 @@ buildPlaceholder(tpPage, "TELEPORTATION")
 buildPlaceholder(serverPage, "SERVER")
 
 -- SETTING PAGE DISSOLVE
-settingPage.UIListLayout:Destroy()
 local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,0,150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- PEMBUATAN WADAH KOLOM ABSOLUT
-local function createColumn(parentName, columnName)
+-- KUNCI POSISI SIMETRIS ABSOLUT (262px Kiri, Sekat 5px, 262px Kanan Shifted)
+local function createLeftColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
+    -- KUNCI kiri diam di koordinat X=0, lebar 262px
     col.Size = UDim2.new(0, 262, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
+    col.Position = UDim2.new(0, 0, 0, 0) 
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
@@ -311,11 +309,26 @@ local function createColumn(parentName, columnName)
     return col
 end
 
-local LeftColumn = createColumn("Player", "LeftColumn")
-local RightColumn = createColumn("Player", "RightColumn")
+local function createShiftedRightColumn(parentName, columnName)
+    local col = Instance.new("Frame", menuContainers[parentName])
+    col.Name = columnName
+    -- KUNCI: Ukuran diam (262px), Posisi digeser ke koordinat X=267 (Kiri + 5px Sekat)
+    col.Size = UDim2.new(0, 262, 0, 0)
+    col.AutomaticSize = Enum.AutomaticSize.Y
+    col.Position = UDim2.new(0, 267, 0, 0) 
+    col.BackgroundTransparency = 1
+    
+    local layout = Instance.new("UIListLayout", col)
+    layout.Padding = UDim.new(0, 12)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    return col
+end
 
-local espLeftColumn = createColumn("ESP", "EspLeftColumn")
-local espRightColumn = createColumn("ESP", "EspRightColumn")
+local LeftColumn = createLeftColumn("Player", "LeftColumn")
+local RightColumn = createShiftedRightColumn("Player", "RightColumn")
+
+local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
+local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
 
 -- FUNGSI KREASI CARD AUTOMATIC SIZE
 local function createCard(parent, titleText, order)
@@ -458,7 +471,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if sliding and (input.UserInputType == MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
             local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
             local finalVal = math.round(min + (perc * (max - min)))
@@ -556,6 +569,6 @@ task.spawn(function()
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
-        print("[AR FRAMEWORK]: Absolute 536px Pixel-Perfect Alignment Implemented!")
+        print("[AR FRAMEWORK]: Right Column Shifted to Left (Sekat 5px, Ruang Kosong Kanan Deployed)!")
     end)
 end)
