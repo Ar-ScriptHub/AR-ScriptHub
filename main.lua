@@ -24,7 +24,7 @@ MainGui.DisplayOrder = 999999999
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
-    BgTrans = 0.15,                           
+    BgTrans = 0.15,                          
     CardBg = Color3.fromRGB(20, 22, 38),     
     CardTrans = 0.4,                         
     Stroke = Color3.fromRGB(56, 52, 92),     
@@ -37,7 +37,9 @@ local Theme = {
     ConfirmGreen = Color3.fromRGB(90, 255, 140)
 }
 
--- CONFIG STATE SYSTEM (SEMUA FUNGSI BERJALAN DISINI)
+-- ====================================================================
+-- STATE MANAGEMENT GLOBAL (UNTUK MENGAKTIFKAN LOGIKA BACKEND FITUR)
+-- ====================================================================
 local Config = {
     FlyMode = false,
     FlySpeed = 16,
@@ -47,6 +49,8 @@ local Config = {
     SuperJump = false,
     SuperJumpVal = 50,
     InfiniteJump = false,
+    Gravity = 196,
+    HipHeight = 2,
     AntiRagdoll = false,
     InfiniteOxygen = false,
     EnableESP = false,
@@ -465,7 +469,9 @@ local function createCard(parent, titleText, order)
     return container
 end
 
--- COMPONENT PRIMITIVES WITH FUNCTIONAL BINDING
+-- ====================================================================
+-- PRIMITIVES DENGAN PENGIKAT CONFIG & CALLBACK YANG SUDAH DIPERBAIKI
+-- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local holder = Instance.new("Frame", parent) 
     holder.Size = UDim2.new(1, 0, 0, 24) 
@@ -479,6 +485,7 @@ local function addToggle(parent, labelText, order, configKey, callback)
     local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
     track.MouseButton1Click:Connect(function()
+        if not configKey then return end
         Config[configKey] = not Config[configKey]
         local active = Config[configKey]
         TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -5)}):Play()
@@ -510,7 +517,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 
     local function refreshVisuals(value)
         local clampedValue = math.clamp(value, min, max)
-        Config[configKey] = clampedValue
+        if configKey then Config[configKey] = clampedValue end
         local perc = (clampedValue - min) / (max - min)
         fill.Size = UDim2.new(perc, 0, 1, 0) knob.Position = UDim2.new(perc, -5, 0.5, -5) inputBox.Text = tostring(clampedValue)
         if callback then callback(clampedValue) end
@@ -530,11 +537,11 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 end
 
 -- ====================================================================
--- ENGINE BACKEND (FUNCTIONS IMPLEMENTATION)
+-- REAL UTILITIES BACKEND ENGINE (SISTEM MANIPULASI INDUK DI LATAR)
 -- ====================================================================
 
--- 1. Fly & Noclip Engine
-local flyPart
+-- 1. Fly & Noclip Physics Engine
+local flyBodyGyro, flyBodyVelocity
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
@@ -545,76 +552,87 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-local function updateFly()
-    if Config.FlyMode and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = Player.Character.HumanoidRootPart
-        if not flyPart or not flyPart:IsDescendantOf(workspace) then
-            flyPart = Instance.new("Part")
-            flyPart.Size = Vector3.new(2, 0.2, 2)
-            flyPart.Transparency = 1
-            flyPart.Anchored = true
-            flyPart.Parent = workspace
-        end
-        
+local function handleFlyEngine()
+    if Config.FlyMode then
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart", 5)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+        if flyBodyVelocity then flyBodyVelocity:Destroy() end
+
+        flyBodyGyro = Instance.new("BodyGyro")
+        flyBodyGyro.P = 9e4
+        flyBodyGyro.maxTorque = Vector3.new(9e5, 9e5, 9e5)
+        flyBodyGyro.cframe = hrp.CFrame
+        flyBodyGyro.Parent = hrp
+
+        flyBodyVelocity = Instance.new("BodyVelocity")
+        flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+        flyBodyVelocity.maxForce = Vector3.new(9e5, 9e5, 9e5)
+        flyBodyVelocity.Parent = hrp
+
+        hum.PlatformStand = true
+
         task.spawn(function()
-            while Config.FlyMode and Player.Character and hrp and flyPart do
-                local cam = workspace.CurrentCamera
-                local moveDir = Vector3.new(0,0,0)
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0,1,0) end
-                
-                if moveDir.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (moveDir.Unit * (Config.FlySpeed / 10))
+            local camera = workspace.CurrentCamera
+            while Config.FlyMode and Player.Character and hrp and flyBodyVelocity and flyBodyGyro do
+                local moveDirection = Vector3.new(0, 0, 0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
+
+                if moveDirection.Magnitude > 0 then
+                    flyBodyVelocity.velocity = moveDirection.Unit * Config.FlySpeed
+                else
+                    flyBodyVelocity.velocity = Vector3.new(0, 0, 0)
                 end
-                hrp.Velocity = Vector3.new(0,0,0)
-                flyPart.CFrame = hrp.CFrame * CFrame.new(0, -2.1, 0)
+                flyBodyGyro.cframe = camera.CFrame
                 task.wait()
             end
-            if flyPart then flyPart:Destroy() flyPart = nil end
+            if hum then hum.PlatformStand = false end
+            if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+            if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
         end)
     else
-        if flyPart then flyPart:Destroy() flyPart = nil end
+        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+            Player.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+        end
+        if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+        if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
     end
 end
 
--- 2. Speed & Jump Engine
-Player.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum then
-        if Config.SuperSpeed then hum.WalkSpeed = Config.SuperSpeedVal end
-        if Config.SuperJump then hum.JumpPower = Config.SuperJumpVal hum.UseJumpPower = true end
-    end
-end)
-
-local function updateSpeed()
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
-    end
-end
-
-local function updateJump()
+-- 2. Humanoid Properties Controller Loop
+local function enforceHumanoidProperties()
     if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        hum.UseJumpPower = true
+        hum.WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
         hum.JumpPower = Config.SuperJump and Config.SuperJumpVal or 50
+        hum.UseJumpPower = true
     end
 end
 
+Player.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid", 5)
+    enforceHumanoidProperties()
+end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
-        if Config.InfiniteJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Space and Config.InfiniteJump then
+        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
             Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 end)
 
--- 3. Utilities Engine (Anti-Ragdoll & Infinite Oxygen)
+-- Loop Utilitas Fisika Kontinu
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.3) do
         if Config.AntiRagdoll and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
             local hum = Player.Character:FindFirstChildOfClass("Humanoid")
             hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
@@ -627,81 +645,85 @@ task.spawn(function()
     end
 end)
 
--- 4. ESP Framework
-local espObjects = {}
-local function createESP(targetPlayer)
-    if targetPlayer == Player then return end
-    local boxes, names, tracers = {}, {}, {}
+-- 3. ESP Core Drawing Engine Framework
+local espCache = {}
+local function buildESP(target)
+    if target == Player then return end
     
     local function cleanESP()
-        if boxes.Box then boxes.Box:Destroy() end
-        if names.Label then names.Label:Destroy() end
-        if tracers.Line then tracers.Line:Destroy() end
+        if espCache[target] then
+            if espCache[target].Box then espCache[target].Box:Destroy() end
+            if espCache[target].Label then espCache[target].Label:Destroy() end
+            espCache[target] = nil
+        end
     end
-    
-    local updater = RunService.RenderStepped:Connect(function()
-        if not Config.EnableESP or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+
+    local renderingConnection
+    renderingConnection = RunService.RenderStepped:Connect(function()
+        if not Config.EnableESP or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
             cleanESP() return
         end
-        
-        local char = targetPlayer.Character
-        local hrp = char.HumanoidRootPart
-        local cam = workspace.CurrentCamera
-        local pos, onScreen = cam:WorldToViewportPoint(hrp.Position)
-        local distance = (Player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-        
-        if Config.TeamCheck and targetPlayer.Team == Player.Team then cleanESP() return end
+
+        local tChar = target.Character
+        local tHrp = tChar.HumanoidRootPart
+        local pHrp = Player.Character.HumanoidRootPart
+        local camera = workspace.CurrentCamera
+        local screenPos, onScreen = camera:WorldToViewportPoint(tHrp.Position)
+        local distance = (pHrp.Position - tHrp.Position).Magnitude
+
+        if Config.TeamCheck and target.Team == Player.Team then cleanESP() return end
         if distance > Config.MaxDistance or not onScreen then cleanESP() return end
-        
-        -- Box ESP
+
+        if not espCache[target] then espCache[target] = {} end
+
+        -- Rendering Box Adornment
         if Config.ShowBoxes then
-            if not boxes.Box then
+            if not espCache[target].Box then
                 local b = Instance.new("BoxHandleAdornment")
                 b.Size = Vector3.new(4, 5.5, 4)
                 b.Color3 = Theme.Accent
                 b.AlwaysOnTop = true
                 b.ZIndex = 5
                 b.Transparency = 0.6
-                boxes.Box = b
+                espCache[target].Box = b
             end
-            boxes.Box.Adornee = char
-            boxes.Box.Parent = SafeGuiTarget
+            espCache[target].Box.Adornee = tChar
+            espCache[target].Box.Parent = SafeGuiTarget
         else
-            if boxes.Box then boxes.Box:Destroy() boxes.Box = nil end
+            if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
         end
-        
-        -- Name ESP
+
+        -- Rendering Name Label BillboardGui
         if Config.ShowNames then
-            if not names.Label then
-                local bgu = Instance.new("BillboardGui")
-                bgu.Size = UDim2.new(0, 200, 0, 50)
-                bgu.AlwaysOnTop = true
-                bgu.StudsOffset = Vector3.new(0, 3, 0)
-                local lbl = Instance.new("TextLabel", bgu)
-                lbl.Size = UDim2.new(1, 0, 1, 0)
-                lbl.BackgroundTransparency = 1
-                lbl.TextColor3 = Theme.TextMain
-                lbl.Font = Enum.Font.GothamBold
-                lbl.TextSize = 10
-                names.Label = bgu
-                names.Txt = lbl
+            if not espCache[target].Label then
+                local bgui = Instance.new("BillboardGui")
+                bgui.Size = UDim2.new(0, 150, 0, 40)
+                bgui.AlwaysOnTop = true
+                bgui.StudsOffset = Vector3.new(0, 3, 0)
+                local txt = Instance.new("TextLabel", bgui)
+                txt.Size = UDim2.new(1, 0, 1, 0)
+                txt.BackgroundTransparency = 1
+                txt.TextColor3 = Theme.TextMain
+                txt.Font = Enum.Font.GothamBold
+                txt.TextSize = 10
+                espCache[target].Label = bgui
+                espCache[target].TxtObject = txt
             end
-            names.Txt.Text = string.format("%s\n[%d m]", targetPlayer.DisplayName, math.round(distance))
-            names.Label.Adornee = hrp
-            names.Label.Parent = SafeGuiTarget
+            espCache[target].TxtObject.Text = string.format("%s\n[%d m]", target.DisplayName, math.round(distance))
+            espCache[target].Label.Adornee = tHrp
+            espCache[target].Label.Parent = SafeGuiTarget
         else
-            if names.Label then names.Label:Destroy() names.Label = nil end
+            if espCache[target].Label then espCache[target].Label:Destroy() espCache[target].Label = nil end
         end
     end)
-    espObjects[targetPlayer] = {Connection = updater, Clean = cleanESP}
 end
 
-Players.PlayerAdded:Connect(createESP)
-Players.PlayerRemoving:Connect(function(p) if espObjects[p] then espObjects[p].Connection:Disconnect() espObjects[p].Clean() espObjects[p] = nil end end)
-for _, p in pairs(Players:GetPlayers()) do createESP(p) end
+Players.PlayerAdded:Connect(buildESP)
+Players.PlayerRemoving:Connect(function(t) if espCache[t] then espCache[t].Box:Destroy() espCache[t].Label:Destroy() espCache[t] = nil end end)
+for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
--- 5. Environment Graphics Modifier (Anti-Lag & Shadows)
-local function updateGraphics()
+-- 4. Server Settings Modifier
+local function applyGraphicsBoost()
     game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
     if Config.AntiLag then
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
@@ -709,20 +731,20 @@ local function updateGraphics()
 end
 
 -- ====================================================================
--- PERAKITAN TAB PLAYER (DISPLAY RAKITAN ASLI 100%)
+-- PERAKITAN TAB PLAYER (KONEKSI BINDING AMAN)
 -- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly", 1)
-addToggle(flyCard, "Fly Mode", 1, "FlyMode", updateFly) 
+addToggle(flyCard, "Fly Mode", 1, "FlyMode", handleFlyEngine) 
 addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2, "FlySpeed") 
 addToggle(flyCard, "Noclip", 3, "Noclip")
 
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
-addToggle(walkCard, "Super Speed", 1, "SuperSpeed", updateSpeed) 
-addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2, "SuperSpeedVal", updateSpeed)
+addToggle(walkCard, "Super Speed", 1, "SuperSpeed", enforceHumanoidProperties) 
+addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2, "SuperSpeedVal", enforceHumanoidProperties)
 
 local jumpCard = createCard(RightColumn, "Jump", 1)
-addToggle(jumpCard, "Super Jump", 1, "SuperJump", updateJump) 
-addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2, "SuperJumpVal", updateJump) 
+addToggle(jumpCard, "Super Jump", 1, "SuperJump", enforceHumanoidProperties) 
+addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2, "SuperJumpVal", enforceHumanoidProperties) 
 addToggle(jumpCard, "Infinite Jump", 3, "InfiniteJump")
 
 local physicsCard = createCard(LeftColumn, "Physics", 3)
@@ -747,28 +769,6 @@ addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 
 -- ====================================================================
 -- PERAKITAN TAB TELEPORTATION
 -- ====================================================================
-local FILE_NAME = "AR_Hub_Waypoints.json"
-local CurrentPlaceId = tostring(game.PlaceId)
-local AllWaypoints = {}
-
-local function loadWaypointsFromStorage()
-    AllWaypoints = {}
-    local success, content = pcall(function() return readfile(FILE_NAME) end)
-    if success and content then
-        local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
-    else
-        pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
-    end
-    if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-end
-
-local function saveWaypointsToStorage()
-    pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints)) end)
-end
-
-loadWaypointsFromStorage()
-
 local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
 local inputPlayerFrame = Instance.new("Frame", playerTpCard)
 inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28)
@@ -982,17 +982,13 @@ local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 task.spawn(function()
     while task.wait(0.5) do
         if not MainGui or not MainGui.Parent then break end
-        if menuContainers["Server"] and menuContainers["Server"].Visible == true then
+        if menuContainers["Server"].Visible then
             local fps = math.round(1 / RunService.RenderStepped:Wait())
             lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
             lblFps.RichText = true
             
-            local pingValue = 0
-            pcall(function() pingValue = math.round(Player:GetNetworkPing() * 1000) end)
-            if pingValue <= 0 then
-                pcall(function() pingValue = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
-            end
-            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingValue) .. " ms</font>"
+            local ping = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
+            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>"
             lblPing.RichText = true
             
             local sTime = math.round(workspace.DistributedGameTime)
@@ -1006,21 +1002,6 @@ task.spawn(function()
 end)
 
 local navCard = createCard(serverLeftColumn, "Server Navigation", 2)
-
-local function createServerButton(parent, text, color, onClick, order)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 26)
-    btn.BackgroundColor3 = color
-    btn.Font = Enum.Font.GothamBold
-    btn.Text = text
-    btn.TextColor3 = Theme.TextMain
-    btn.TextSize = 11
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    local bStr = Instance.new("UIStroke", btn) bStr.Color = Theme.Stroke
-    btn.MouseButton1Click:Connect(onClick)
-    return btn
-end
 
 createServerButton(navCard, "🔄 Rejoin Current Server", Color3.fromRGB(30, 35, 60), function()
     showConfirmation("Apakah kamu yakin ingin rejoin\nke server saat ini?", function()
@@ -1057,8 +1038,8 @@ createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(2
     showConfirmation("Pembersihan selesai!\nBerhasil menghapus " .. tostring(count) .. " objek visual.", function() end)
 end, 1)
 
-addToggle(optiCard, "Shadows Disabler", 2, "ShadowsDisabled", updateGraphics)
-addToggle(optiCard, "Anti-Lag (Low Graphics)", 3, "AntiLag", updateGraphics)
+addToggle(optiCard, "Shadows Disabler", 2, "ShadowsDisabled", applyGraphicsBoost)
+addToggle(optiCard, "Anti-Lag (Low Graphics)", 3, "AntiLag", applyGraphicsBoost)
 
 -- ====================================================================
 -- ANIMATION SYSTEM INTRO & DEPLOY
