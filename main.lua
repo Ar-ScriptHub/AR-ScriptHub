@@ -496,6 +496,41 @@ local utilCard = createCard(RightColumn, "Utilities", 2)
 addToggle(utilCard, "Anti Ragdoll", 1)
 addToggle(utilCard, "Infinite Oxygen", 2)
 -- ====================================================================
+-- LOGIKA FUNGSIONAL: INFINITE OXYGEN
+-- ====================================================================
+local InfiniteOxygenEnabled = false
+local OxygenConnection = nil
+
+local function toggleInfiniteOxygen(state)
+    InfiniteOxygenEnabled = state
+    
+    -- Jika diaktifkan, buat loop untuk bypass state tenggelam
+    if InfiniteOxygenEnabled then
+        OxygenConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not InfiniteOxygenEnabled then return end
+            local char = Player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            
+            if hum then
+                -- BYPASS METHOD 1: Paksa balik status jika terdeteksi mati/tenggelam
+                if hum:GetState() == Enum.HumanoidStateType.Died then return end
+                
+                -- BYPASS METHOD 2: Cari objek instansiasi "Air" atau "Oxygen" bawaan game standar dan kunci nilainya
+                local airObj = char:FindFirstChild("Air") or char:FindFirstChild("Oxygen") or (Player:FindFirstChild("leaderstats") and Player.leaderstats:FindFirstChild("Air"))
+                if airObj and airObj:IsA("ValueBase") then
+                    airObj.Value = 100 -- Kunci di angka maksimal 100%
+                end
+            end
+        end)
+    else
+        -- Jika dimatikan, putuskan koneksi loop agar hemat memori (anti lag)
+        if OxygenConnection then
+            OxygenConnection:Disconnect()
+            OxygenConnection = nil
+        end
+    end
+end
+-- ====================================================================
 -- LOGIKA ANIMASI INTRO LOADING SCREEN
 -- ====================================================================
 task.spawn(function()
