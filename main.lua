@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - FULLY AUTOMATIC SIZING & LOAD SCREEN INTEGRATED (v5.6)
+-- AR SCRIPT HUB - STRICT AUTO-SIZING & ANTI-BOX LEAKING FRAMEWORK (v5.6)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -16,7 +16,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 999999999 
+MainGui.DisplayOrder = 999999999
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
@@ -93,7 +93,6 @@ local function makeDraggable(frame, dragHandle)
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
@@ -124,7 +123,7 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "AR"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 16
-ToggleButton.Visible = false 
+ToggleButton.Visible = false
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
 local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
@@ -134,12 +133,11 @@ makeDraggable(ToggleButton, ToggleButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
--- PERUBAHAN: Tinggi diturunkan dari 420 ke 340 agar lebih compact
-MainFrame.Size = UDim2.new(0, 560, 0, 340) 
+MainFrame.Size = UDim2.new(0, 560, 0, 340) -- Kunci tinggi di 340 agar nyaman di-scroll
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
-MainFrame.Visible = false 
+MainFrame.Visible = false
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
@@ -174,9 +172,7 @@ makeDraggable(MainFrame, Header)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- ====================================================================
 -- TOP BAR NAVIGATION MENU
--- ====================================================================
 local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
 TopBarNav.Size = UDim2.new(1, -32, 0, 36)
@@ -196,7 +192,7 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- SCROLLING FRAME UTAMA (Otomatis memunculkan scroll jika tidak cukup)
+-- CANVAS UTAMA KONTEN DENGAN SCROLL
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
@@ -207,7 +203,7 @@ MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
--- BARU: Kasih ruang napas atas-bawah-kiri-kanan agar border ga kepotong tepi main GUI!
+-- PERBAIKAN UTAMA: UIPadding ditambahkan agar sisi ATAS & KIRI konten tidak terpotong garis tepi panel!
 local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 4)
@@ -219,7 +215,7 @@ local menuContainers = {}
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 0, 0) 
+    page.Size = UDim2.new(1, 0, 0, 0)
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
@@ -246,7 +242,7 @@ local function addTopBarButton(textDisplay, tabTarget, order)
     btn.BackgroundColor3 = Color3.fromRGB(30, 32, 54)
     btn.Font = Enum.Font.GothamBold
     btn.Text = textDisplay
-    btn.TextSize = 12 
+    btn.TextSize = 11
     btn.TextColor3 = Theme.TextMain
     btn.LayoutOrder = order
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
@@ -264,7 +260,7 @@ local function addTopBarButton(textDisplay, tabTarget, order)
 end
 
 local btnPlayer = addTopBarButton("👤 Player", "Player", 1)
-btnPlayer.TextColor3 = Theme.Accent 
+btnPlayer.TextColor3 = Theme.Accent
 addTopBarButton("👁️ ESP", "ESP", 2)
 addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
@@ -273,7 +269,7 @@ addTopBarButton("⚙️ Setting", "Setting", 5)
 -- PLACEHOLDER MAKER
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(1, 0, 0, 180)
+    card.Size = UDim2.new(1, -6, 0, 150)
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -284,45 +280,39 @@ local function buildPlaceholder(pageFrame, titleText)
     txt.Text = "<b>" .. titleText .. " MENU FRAMEWORK</b>\n\nArea kosong siap diisi komponen kustom."
     txt.RichText = true txt.Font = Enum.Font.GothamMedium txt.TextColor3 = Theme.TextMuted txt.TextSize = 12 txt.BackgroundTransparency = 1 txt.TextYAlignment = Enum.TextYAlignment.Center
 end
-buildPlaceholder(espPage, "ESP")
 buildPlaceholder(tpPage, "TELEPORTATION")
 buildPlaceholder(serverPage, "SERVER")
 
--- SETTING PAGE
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,0,180) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+-- SETTING PAGE WITH DESTROY ACTION ONLY
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,-6,0,150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- ====================================================================
 -- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN)
--- ====================================================================
-local pageLayout = Instance.new("UIListLayout", playerPage)
-pageLayout.FillDirection = Enum.FillDirection.Horizontal
-pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-pageLayout.Padding = UDim.new(0, 12)
-
+-- PERBAIKAN UTAMA: Posisi dan ukuran kolom disetel presisi agar sisi kiri punya jarak aman (offset X = 2)
 local LeftColumn = Instance.new("Frame", playerPage)
 LeftColumn.Name = "LeftColumn"
-LeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
+LeftColumn.Size = UDim2.new(0.5, -8, 0, 0)
 LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+LeftColumn.Position = UDim2.new(0, 2, 0, 0)
 LeftColumn.BackgroundTransparency = 1
-LeftColumn.LayoutOrder = 1
 
 local RightColumn = Instance.new("Frame", playerPage)
 RightColumn.Name = "RightColumn"
-RightColumn.Size = UDim2.new(0.5, -6, 0, 0)
+RightColumn.Size = UDim2.new(0.5, -8, 0, 0)
 RightColumn.AutomaticSize = Enum.AutomaticSize.Y
+RightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 RightColumn.BackgroundTransparency = 1
-RightColumn.LayoutOrder = 2
 
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Padding = UDim.new(0, 12) rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
+-- FUNGSI KREASI CARD ANTI BOCOR (FIXED AUTOMATICSIZE)
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    -- KUNCI: Lebar dikurangi sedikit (-6) agar pas di dalam layout ber-padding
-    card.Size = UDim2.new(1, -6, 0, 0) 
-    card.AutomaticSize = Enum.AutomaticSize.Y
+    -- PERBAIKAN UTAMA: Lebar diberi margin offset (-4) agar garis tepi/border tidak berhimpitan dan teriris
+    card.Size = UDim2.new(1, -4, 0, 0)
+    card.AutomaticSize = Enum.AutomaticSize.Y 
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
@@ -331,10 +321,7 @@ local function createCard(parent, titleText, order)
     local stroke = Instance.new("UIStroke", card)
     stroke.Color = Theme.Stroke
     stroke.Thickness = 1
-    -- Rekomendasi tambahan: Set border agar merender ke arah dalam frame
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border 
-    
-    -- [Sisa kode penulisan judul dan container ke bawahnya tetap sama]
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border -- Mengharuskan border merender ke arah dalam
     
     local ttl = Instance.new("TextLabel", card)
     ttl.Size = UDim2.new(1, -12, 0, 26)
@@ -353,39 +340,35 @@ local function createCard(parent, titleText, order)
     container.BackgroundTransparency = 1
     
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 10)
+    innerLayout.Padding = UDim.new(0, 12)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
-    local padding = Instance.new("UIPadding", container)
-    padding.PaddingBottom = UDim.new(0, 12)
+    local pdd = Instance.new("UIPadding", container)
+    pdd.PaddingBottom = UDim.new(0, 12)
     
     return container
 end
 
--- ====================================================================
 -- COMPONENT PRIMITIVES
--- ====================================================================
 local function addToggle(parent, labelText, order)
     local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 0) 
-    holder.AutomaticSize = Enum.AutomaticSize.Y
+    holder.Size = UDim2.new(1, 0, 0, 24) 
     holder.BackgroundTransparency = 1 
     holder.LayoutOrder = order
     
     local lbl = Instance.new("TextLabel", holder) 
     lbl.Text = labelText 
-    lbl.Size = UDim2.new(1, -40, 0, 0) 
-    lbl.AutomaticSize = Enum.AutomaticSize.Y
+    lbl.Size = UDim2.new(1, -40, 1, 0) 
     lbl.Font = Enum.Font.GothamMedium 
     lbl.TextColor3 = Theme.TextMain 
     lbl.TextSize = 12 
     lbl.TextXAlignment = Enum.TextXAlignment.Left 
     lbl.BackgroundTransparency = 1
-    lbl.TextWrapped = true
+    lbl.TextWrapped = true 
 
     local track = Instance.new("TextButton", holder) 
     track.Size = UDim2.new(0, 32, 0, 16) 
-    track.Position = UDim2.new(1, -32, 0, 2) 
+    track.Position = UDim2.new(1, -32, 0.5, -8) 
     track.BackgroundColor3 = Theme.Bg 
     track.Text = "" 
     Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) 
@@ -481,51 +464,45 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 end
 
 -- ====================================================================
--- PERAKITAN CARD AUTOMATIC
+-- PERAKITAN CARD AUTOMATIC: TAB PLAYER
 -- ====================================================================
-
--- 1. CARD FLY (Kolom Kiri - Atas)
 local flyCard = createCard(LeftColumn, "Fly", 1)
 addToggle(flyCard, "Fly Mode", 1)
-addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2) -- Diubah menjadi "Fly Speed Controller"
+addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
 addToggle(flyCard, "Noclip", 3)
 
--- 2. CARD WALKSPEED (Kolom Kiri - Bawah)
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
 addToggle(walkCard, "Super Speed", 1)
 addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2)
 
--- 3. CARD JUMP (Kolom Kanan - Atas)
 local jumpCard = createCard(RightColumn, "Jump", 1)
 addToggle(jumpCard, "Super Jump", 1)
 addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump", 3)
 
--- 4. CARD PHYSICS (Kolom Kiri - Di bawah Superspeed)
 local physicsCard = createCard(LeftColumn, "Physics", 3)
 addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1)
 addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
 
--- 5. CARD UTILITIES (Kolom Kanan - Di bawah Jump)
 local utilCard = createCard(RightColumn, "Utilities", 2)
 addToggle(utilCard, "Anti Ragdoll", 1)
 addToggle(utilCard, "Infinite Oxygen", 2)
 
 -- ====================================================================
--- PERAKITAN CARD PADA LAYOUT TAB ESP 
+-- PERAKITAN CARD AUTOMATIC: TAB ESP
 -- ====================================================================
-
--- Kita buat pembagi kolom kiri dan kanan khusus untuk halaman ESP agar rapi
 local espLeftColumn = Instance.new("Frame", espPage)
 espLeftColumn.Name = "EspLeftColumn"
-espLeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
+espLeftColumn.Size = UDim2.new(0.5, -8, 0, 0)
 espLeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+espLeftColumn.Position = UDim2.new(0, 2, 0, 0)
 espLeftColumn.BackgroundTransparency = 1
 
 local espRightColumn = Instance.new("Frame", espPage)
 espRightColumn.Name = "EspRightColumn"
-espRightColumn.Size = UDim2.new(0.5, -6, 0, 0)
+espRightColumn.Size = UDim2.new(0.5, -8, 0, 0)
 espRightColumn.AutomaticSize = Enum.AutomaticSize.Y
+espRightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 espRightColumn.BackgroundTransparency = 1
 
 local espPageLayout = Instance.new("UIListLayout", espPage)
@@ -536,25 +513,21 @@ espPageLayout.Padding = UDim.new(0, 12)
 Instance.new("UIListLayout", espLeftColumn).Padding = UDim.new(0, 12)
 Instance.new("UIListLayout", espRightColumn).Padding = UDim.new(0, 12)
 
--- Hapus placeholder lama agar tidak tumpang tindih
+-- Hapus placeholder bawaan
 if espPage:FindFirstChild("Frame") then espPage.Frame:Destroy() end
 
-
--- 1. CARD PLAYER ESP (Kolom Kiri)
 local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
 addToggle(playerEspCard, "Enable ESP", 1)
 addToggle(playerEspCard, "Show Boxes", 2)
 addToggle(playerEspCard, "Show Names", 3)
 addToggle(playerEspCard, "Show Tracers", 4)
 
-
--- 2. CARD ESP SETTINGS (Kolom Kanan)
 local espSettingsCard = createCard(espRightColumn, "ESP Settings", 1)
-addToggle(espSettingsCard, "Team Check", 1) -- Menyembunyikan ESP teman satu tim
-addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2) -- Jarak maksimal deteksi ESP
+addToggle(espSettingsCard, "Team Check", 1)
+addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- LOGIKA ANIMASI INTRO LOADING SCREEN
+-- LOGIKA ANIMASI INTRO LOADING SCREEN & DEPLOY PANEL
 -- ====================================================================
 task.spawn(function()
     local statusMessages = {
@@ -596,7 +569,7 @@ task.spawn(function()
         MainFrame.Visible = true
         ToggleButton.Visible = true
         
-        -- Efek Pop-In Panel dengan tinggi baru yang disesuaikan (340px)
+        -- Efek Pop-In Panel dengan ukuran aman yang pas
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
