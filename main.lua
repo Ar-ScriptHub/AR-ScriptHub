@@ -734,6 +734,146 @@ end)
 refreshLandmarksUI()
 
 -- ====================================================================
+-- PERAKITAN KONTEN TAB SERVER (v6.7 - SERVER ENGINE & UTILITIES)
+-- ====================================================================
+local Stats = game:GetService("Stats")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+
+-- Registrasi Kolom Kiri & Kanan Khusus Tab Server (Lebar 255px, Sekat 8px)
+local serverLeftColumn = Instance.new("Frame", menuContainers["Server"])
+serverLeftColumn.Name = "ServerLeftColumn"
+serverLeftColumn.Size = UDim2.new(0, 255, 0, 0)
+serverLeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+serverLeftColumn.BackgroundTransparency = 1
+local sLayoutL = Instance.new("UIListLayout", serverLeftColumn)
+sLayoutL.Padding = UDim.new(0, 12)
+sLayoutL.SortOrder = Enum.SortOrder.LayoutOrder
+
+local serverRightColumn = Instance.new("Frame", menuContainers["Server"])
+serverRightColumn.Name = "ServerRightColumn"
+serverRightColumn.Size = UDim2.new(0, 255, 0, 0)
+serverRightColumn.AutomaticSize = Enum.AutomaticSize.Y
+serverRightColumn.Position = UDim2.new(0, 263, 0, 0) -- 255 + 8px sekat tengah murni
+serverRightColumn.BackgroundTransparency = 1
+local sLayoutR = Instance.new("UIListLayout", serverRightColumn)
+sLayoutR.Padding = UDim.new(0, 12)
+sLayoutR.SortOrder = Enum.SortOrder.LayoutOrder
+
+
+-- CARD 1 (KIRI): SERVER STATS (REAL-TIME UPDATE)
+local statsCard = createCard(serverLeftColumn, "Server Stats", 1)
+
+local function createStatLabel(parent, labelText, order)
+    local lbl = Instance.new("TextLabel", parent)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.Text = labelText
+    lbl.TextColor3 = Theme.TextMain
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = order
+    return lbl
+end
+
+local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
+local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
+local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
+
+-- Loop Nilai Stats Secara Real-time
+task.spawn(function()
+    while task.wait(1) do
+        if not MainGui or not MainGui.Parent then break end
+        if menuContainers["Server"].Visible then
+            -- Hitung FPS
+            local fps = math.round(1 / RunService.RenderStepped:Wait())
+            lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
+            lblFps.RichText = true
+            
+            -- Hitung Ping murni dari Network Stats
+            local ping = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
+            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>"
+            lblPing.RichText = true
+            
+            -- Hitung Umur Server (Time)
+            local sTime = math.round(workspace.DistributedGameTime)
+            local hours = string.format("%02d", math.floor(sTime / 3600))
+            local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
+            local seconds = string.format("%02d", sTime % 60)
+            lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>"
+            lblTime.RichText = true
+        end
+    end
+end)
+
+
+-- CARD 2 (KIRI): SERVER NAVIGATION
+local navCard = createCard(serverLeftColumn, "Server Navigation", 2)
+
+local function createServerButton(parent, text, color, onClick, order)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, 0, 0, 26)
+    btn.BackgroundColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = Theme.TextMain
+    btn.TextSize = 11
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    local bStr = Instance.new("UIStroke", btn)
+    bStr.Color = Theme.Stroke
+    
+    btn.MouseButton1Click:Connect(onClick)
+    return btn
+end
+
+-- Fungsi Rejoin Server yang Sama
+createServerButton(navCard, "🔄 Rejoin Current Server", Color3.fromRGB(30, 35, 60), function()
+    showConfirmation("Apakah kamu yakin ingin rejoin\nke server saat ini?", function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+    end)
+end, 1)
+
+-- Fungsi Server Hop (Mencari Server Lain yang Publik)
+createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 60), function()
+    showConfirmation("Cari dan pindah ke server lain?", function()
+        local success, servers = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        end)
+        
+        if success and servers and servers.data then
+            for _, server in pairs(servers.data) do
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
+                    break
+                end
+            end
+        end
+    end)
+end, 2)
+
+
+-- CARD 3 (KANAN): OPTIMIZATION / PERFORMANCE BOOST
+local optiCard = createCard(serverRightColumn, "Optimization", 1)
+
+-- Fitur Booster Pengurang Lag Game (Menghapus Objek Visual Sampah / Efek)
+createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(25, 45, 35), function()
+    local count = 0
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("VisualEffect") or obj:IsA("Decal") or obj:IsA("Texture") then
+            obj:Destroy()
+            count = count + 1
+        end
+    end
+    -- Ubah teks sementara untuk memberi info sukses
+    showConfirmation("Pembersihan selesai!\nBerhasil menghapus " .. tostring(count) .. " objek visual.", function() end)
+end, 1)
+
+addToggle(optiCard, "Shadows Disabler", 2)
+addToggle(optiCard, "Anti-Lag (Low Graphics)", 3)
+
+-- ====================================================================
 -- ANIMATION SYSTEM INTRO & DEPLOY
 -- ====================================================================
 task.spawn(function()
