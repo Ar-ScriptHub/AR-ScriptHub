@@ -11,7 +11,7 @@ local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
--- Bersihkan GUI Lama
+-- Bersihkan GUI Lama jika ada [cite: 1]
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
     SafeGuiTarget.AR_Script_Hub:Destroy()
 end
@@ -30,7 +30,7 @@ local Theme = {
     Stroke = Color3.fromRGB(56, 52, 92),     
     Accent = Color3.fromRGB(115, 170, 255),  
     AccentPurple = Color3.fromRGB(190, 130, 255), 
-    TextMain = Color3.fromRGB(245, 245, 255),
+    TextMain = Color3.fromRGB(245, 245, 255), [cite: 3]
     TextMuted = Color3.fromRGB(140, 145, 175),
     DeleteRed = Color3.fromRGB(255, 90, 90),
     DeleteBg = Color3.fromRGB(50, 25, 35),
@@ -38,7 +38,7 @@ local Theme = {
 }
 
 -- ====================================================================
--- STATE MANAGEMENT GLOBAL (UNTUK MENGAKTIFKAN LOGIKA BACKEND FITUR)
+-- STATE MANAGEMENT GLOBAL (UNTUK DATA BACKEND)
 -- ====================================================================
 local Config = {
     FlyMode = false,
@@ -63,8 +63,12 @@ local Config = {
     AntiLag = false
 }
 
+local FILE_NAME = "AR_Hub_Waypoints.json" [cite: 28]
+local CurrentPlaceId = tostring(game.PlaceId) [cite: 28]
+local AllWaypoints = {} [cite: 28]
+
 -- ====================================================================
--- GLOBAL SYSTEM POP-UP CONFIRMATION (ANTI-KETUTUPAN)
+-- GLOBAL SYSTEM POP-UP CONFIRMATION
 -- ====================================================================
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame"
@@ -84,7 +88,7 @@ local PopupText = Instance.new("TextLabel", PopupFrame)
 PopupText.Size = UDim2.new(1, -24, 0, 50)
 PopupText.Position = UDim2.new(0, 12, 0, 20)
 PopupText.Text = "Apakah anda yakin?"
-PopupText.Font = Enum.Font.GothamBold
+PopupText.Font = Enum.Font.GothamBold [cite: 4]
 PopupText.TextColor3 = Theme.TextMain
 PopupText.TextSize = 13
 PopupText.TextWrapped = true
@@ -119,7 +123,7 @@ local currentCallback = nil
 
 local function showConfirmation(message, onYes)
     PopupText.Text = message
-    currentCallback = onYes
+    currentCallback = onYes [cite: 5]
     PopupFrame.Visible = true
     PopupFrame.Size = UDim2.new(0, 250, 0, 120)
     TweenService:Create(PopupFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
@@ -151,7 +155,7 @@ loadStroke.Thickness = 1.5
 
 local LoadTitle = Instance.new("TextLabel", LoadingFrame)
 LoadTitle.Size = UDim2.new(1, 0, 0, 40)
-LoadTitle.Position = UDim2.new(0, 0, 0, 25)
+LoadTitle.Position = UDim2.new(0, 0, 0, 25) [cite: 6]
 LoadTitle.Text = "✨ AR SCRIPT HUB"
 LoadTitle.Font = Enum.Font.GothamBold
 LoadTitle.TextColor3 = Theme.TextMain
@@ -186,7 +190,7 @@ ltStroke.Color = Theme.Stroke
 
 local LoadFill = Instance.new("Frame", LoadTrack)
 LoadFill.Size = UDim2.new(0, 0, 1, 0)
-LoadFill.BackgroundColor3 = Theme.Accent
+LoadFill.BackgroundColor3 = Theme.Accent [cite: 7]
 Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
 
 -- DRAGGABLE ENGINE
@@ -198,7 +202,7 @@ local function makeDraggable(frame, dragHandle)
             dragStart = input.Position
             startPos = frame.Position
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end [cite: 8]
             end)
         end
     end)
@@ -208,7 +212,7 @@ local function makeDraggable(frame, dragHandle)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
+        if input == dragInput and dragging then [cite: 9]
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
@@ -233,7 +237,7 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL
+-- MAIN PANEL [cite: 10]
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
@@ -268,7 +272,7 @@ CloseBtn.Text = "×"
 CloseBtn.Size = UDim2.new(0, 35, 1, 0)
 CloseBtn.Position = UDim2.new(1, -35, 0, 0)
 CloseBtn.Font = Enum.Font.GothamMedium
-CloseBtn.TextColor3 = Theme.DeleteRed
+CloseBtn.TextColor3 = Theme.DeleteRed [cite: 11]
 CloseBtn.TextSize = 24
 CloseBtn.BackgroundTransparency = 1
 
@@ -304,7 +308,7 @@ local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
 TopBarNav.Size = UDim2.new(1, -32, 0, 36)
 TopBarNav.Position = UDim2.new(0, 16, 0, 45)
-TopBarNav.BackgroundColor3 = Theme.CardBg
+TopBarNav.BackgroundColor3 = Theme.CardBg [cite: 12]
 TopBarNav.BackgroundTransparency = 0.6
 Instance.new("UICorner", TopBarNav).CornerRadius = UDim.new(0, 6)
 local navStroke = Instance.new("UIStroke", TopBarNav)
@@ -341,7 +345,7 @@ framePadding.PaddingRight = UDim.new(0, 0)
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
-    local page = Instance.new("Frame", MainContentFrame)
+    local page = Instance.new("Frame", MainContentFrame) [cite: 13]
     page.Name = name .. "Page"
     page.Size = UDim2.new(0, 536, 0, 0)
     page.AutomaticSize = Enum.AutomaticSize.Y
@@ -361,7 +365,7 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
-    MainContentFrame.CanvasPosition = Vector2.new(0, 0)
+    MainContentFrame.CanvasPosition = Vector2.new(0, 0) [cite: 14]
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
@@ -378,7 +382,7 @@ local function addTopBarButton(textDisplay, tabTarget, order)
     bStroke.Color = Theme.Stroke
     
     btn.MouseButton1Click:Connect(function()
-        for _, child in pairs(TopBarNav:GetChildren()) do
+        for _, child in pairs(TopBarNav:GetChildren()) do [cite: 15]
             if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain end
         end
         btn.TextColor3 = Theme.Accent
@@ -395,7 +399,7 @@ addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
 -- SETTING PAGE DISSOLVE
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 518, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 518, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke [cite: 16]
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
@@ -405,7 +409,7 @@ local function createLeftColumn(parentName, columnName)
     col.Name = columnName
     col.Size = UDim2.new(0, 255, 0, 0)
     col.AutomaticSize = Enum.AutomaticSize.Y
-    col.Position = UDim2.new(0, 0, 0, 0) 
+    col.Position = UDim2.new(0, 0, 0, 0) [cite: 17]
     col.BackgroundTransparency = 1
     local layout = Instance.new("UIListLayout", col)
     layout.Padding = UDim.new(0, 12)
@@ -422,7 +426,7 @@ local function createShiftedRightColumn(parentName, columnName)
     col.BackgroundTransparency = 1
     local layout = Instance.new("UIListLayout", col)
     layout.Padding = UDim.new(0, 12)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.SortOrder = Enum.SortOrder.LayoutOrder [cite: 18]
     return col
 end
 
@@ -442,7 +446,7 @@ local function createCard(parent, titleText, order)
     card.LayoutOrder = order
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
     local stroke = Instance.new("UIStroke", card)
-    stroke.Color = Theme.Stroke
+    stroke.Color = Theme.Stroke [cite: 19]
     stroke.Thickness = 1
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border 
     
@@ -457,7 +461,7 @@ local function createCard(parent, titleText, order)
     ttl.TextXAlignment = Enum.TextXAlignment.Left
     
     local container = Instance.new("Frame", card)
-    container.Size = UDim2.new(1, -24, 0, 0)
+    container.Size = UDim2.new(1, -24, 0, 0) [cite: 20]
     container.AutomaticSize = Enum.AutomaticSize.Y
     container.Position = UDim2.new(0, 12, 0, 32)
     container.BackgroundTransparency = 1
@@ -470,19 +474,19 @@ local function createCard(parent, titleText, order)
 end
 
 -- ====================================================================
--- PRIMITIVES DENGAN PENGIKAT CONFIG & CALLBACK YANG SUDAH DIPERBAIKI
+-- FUNGSI PRIMITIF DEFINITION (DENGAN BINDING CONFIG & CALLBACK AKTIF)
 -- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local holder = Instance.new("Frame", parent) 
     holder.Size = UDim2.new(1, 0, 0, 24) 
     holder.BackgroundTransparency = 1 
-    holder.LayoutOrder = order
+    holder.LayoutOrder = order [cite: 21]
     local lbl = Instance.new("TextLabel", holder) 
     lbl.Text = labelText lbl.Size = UDim2.new(1, -40, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1 lbl.TextWrapped = true 
 
     local track = Instance.new("TextButton", holder) 
     track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
-    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) [cite: 22] knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
     track.MouseButton1Click:Connect(function()
         if not configKey then return end
@@ -496,7 +500,7 @@ local function addToggle(parent, labelText, order, configKey, callback)
 end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
-    local holder = Instance.new("Frame", parent)
+    local holder = Instance.new("Frame", parent) [cite: 23]
     holder.Size = UDim2.new(1, 0, 0, 38)
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
@@ -505,14 +509,14 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 
     local inputBox = Instance.new("TextBox", holder)
     inputBox.Size = UDim2.new(0, 36, 0, 16) inputBox.Position = UDim2.new(1, -36, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 
-    inputBox.ClearTextOnFocus = false Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+    inputBox.ClearTextOnFocus = false Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke [cite: 24]
 
     local track = Instance.new("Frame", holder)
     track.Size = UDim2.new(1, 0, 0, 4) track.Position = UDim2.new(0, 0, 1, -4) track.BackgroundColor3 = Theme.Stroke Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
     local fill = Instance.new("Frame", track) local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1) fill.Size = UDim2.new(startPerc, 0, 1, 0) fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
     local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(startPerc, -5, 0.5, -5) knob.BackgroundColor3 = Theme.TextMain Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", knob).Color = Theme.AccentPurple
+    knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(startPerc, -5, 0.5, -5) [cite: 25] knob.BackgroundColor3 = Theme.TextMain Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", knob).Color = Theme.AccentPurple
     local dragTrigger = Instance.new("ImageButton", knob) dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1 dragTrigger.Image = ""
 
     local function refreshVisuals(value)
@@ -521,7 +525,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         local perc = (clampedValue - min) / (max - min)
         fill.Size = UDim2.new(perc, 0, 1, 0) knob.Position = UDim2.new(perc, -5, 0.5, -5) inputBox.Text = tostring(clampedValue)
         if callback then callback(clampedValue) end
-    end
+    end [cite: 26]
 
     local sliding = false
     dragTrigger.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end end)
@@ -529,15 +533,30 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
     UserInputService.InputChanged:Connect(function(input)
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
-            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1) [cite: 27]
             refreshVisuals(math.round(min + (perc * (max - min))))
         end
     end)
     inputBox.FocusLost:Connect(function(enterPressed) local num = tonumber(inputBox.Text) if num then refreshVisuals(num) else refreshVisuals(min) end end)
 end
 
+local function createServerButton(parent, text, color, onClick, order)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, 0, 0, 26)
+    btn.BackgroundColor3 = color [cite: 47]
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = Theme.TextMain
+    btn.TextSize = 11
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    local bStr = Instance.new("UIStroke", btn) bStr.Color = Theme.Stroke
+    btn.MouseButton1Click:Connect(onClick)
+    return btn
+end
+
 -- ====================================================================
--- REAL UTILITIES BACKEND ENGINE (SISTEM MANIPULASI INDUK DI LATAR)
+-- REAL BACKGROUND UTILITIES ENGINE
 -- ====================================================================
 
 -- 1. Fly & Noclip Physics Engine
@@ -607,7 +626,7 @@ local function handleFlyEngine()
     end
 end
 
--- 2. Humanoid Properties Controller Loop
+-- 2. Humanoid Core Loop
 local function enforceHumanoidProperties()
     if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
@@ -630,7 +649,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Loop Utilitas Fisika Kontinu
 task.spawn(function()
     while task.wait(0.3) do
         if Config.AntiRagdoll and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
@@ -676,7 +694,6 @@ local function buildESP(target)
 
         if not espCache[target] then espCache[target] = {} end
 
-        -- Rendering Box Adornment
         if Config.ShowBoxes then
             if not espCache[target].Box then
                 local b = Instance.new("BoxHandleAdornment")
@@ -693,7 +710,6 @@ local function buildESP(target)
             if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
         end
 
-        -- Rendering Name Label BillboardGui
         if Config.ShowNames then
             if not espCache[target].Label then
                 local bgui = Instance.new("BillboardGui")
@@ -722,7 +738,6 @@ Players.PlayerAdded:Connect(buildESP)
 Players.PlayerRemoving:Connect(function(t) if espCache[t] then espCache[t].Box:Destroy() espCache[t].Label:Destroy() espCache[t] = nil end end)
 for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
--- 4. Server Settings Modifier
 local function applyGraphicsBoost()
     game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
     if Config.AntiLag then
@@ -731,7 +746,28 @@ local function applyGraphicsBoost()
 end
 
 -- ====================================================================
--- PERAKITAN TAB PLAYER (KONEKSI BINDING AMAN)
+-- STORAGE FUNCTION LOAD WAYPOINTS
+-- ====================================================================
+local function loadWaypointsFromStorage()
+    AllWaypoints = {} [cite: 29]
+    local success, content = pcall(function() return readfile(FILE_NAME) end)
+    if success and content then
+        local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
+        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
+    else
+        pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
+    end
+    if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
+end
+
+local function saveWaypointsToStorage()
+    pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints)) end)
+end
+
+loadWaypointsFromStorage()
+
+-- ====================================================================
+-- PERAKITAN TAB PLAYER
 -- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly", 1)
 addToggle(flyCard, "Fly Mode", 1, "FlyMode", handleFlyEngine) 
@@ -744,7 +780,7 @@ addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2, "SuperSpe
 
 local jumpCard = createCard(RightColumn, "Jump", 1)
 addToggle(jumpCard, "Super Jump", 1, "SuperJump", enforceHumanoidProperties) 
-addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2, "SuperJumpVal", enforceHumanoidProperties) 
+addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2, "SuperJumpVal", enforceHumanoidProperties) [cite: 28]
 addToggle(jumpCard, "Infinite Jump", 3, "InfiniteJump")
 
 local physicsCard = createCard(LeftColumn, "Physics", 3)
@@ -770,7 +806,7 @@ addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 
 -- PERAKITAN TAB TELEPORTATION
 -- ====================================================================
 local playerTpCard = createCard(tpLeftColumn, "Player Teleport", 1)
-local inputPlayerFrame = Instance.new("Frame", playerTpCard)
+local inputPlayerFrame = Instance.new("Frame", playerTpCard) [cite: 30]
 inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28)
 inputPlayerFrame.BackgroundTransparency = 1
 inputPlayerFrame.LayoutOrder = 1
@@ -801,11 +837,11 @@ btnPlayerTp.MouseButton1Click:Connect(function()
     local targetName = tpPlayerInput.Text:lower()
     if targetName ~= "" then
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
+            if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then [cite: 31]
                 if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                     Player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
                     break
-                end
+                end [cite: 32]
             end
         end
     end
@@ -832,7 +868,7 @@ Instance.new("UIStroke", wpNameInput).Color = Theme.Stroke
 local btnSavePos = Instance.new("TextButton", waypointCard)
 btnSavePos.Size = UDim2.new(1, 0, 0, 26)
 btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
-btnSavePos.Font = Enum.Font.GothamBold
+btnSavePos.Font = Enum.Font.GothamBold [cite: 33]
 btnSavePos.Text = "💾 Simpan Posisi Saat Ini"
 btnSavePos.TextColor3 = Theme.Accent
 btnSavePos.TextSize = 11
@@ -857,7 +893,7 @@ function refreshLandmarksUI()
         if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end
     end
     
-    local currentMapData = AllWaypoints[CurrentPlaceId] or {}
+    local currentMapData = AllWaypoints[CurrentPlaceId] or {} [cite: 34]
     local indexOrder = 1
     
     for wpName, coord in pairs(currentMapData) do
@@ -867,7 +903,7 @@ function refreshLandmarksUI()
         rowFrame.LayoutOrder = indexOrder
         
         local btn = Instance.new("TextButton", rowFrame)
-        btn.Size = UDim2.new(1, -32, 1, 0)
+        btn.Size = UDim2.new(1, -32, 1, 0) [cite: 35]
         btn.BackgroundColor3 = Theme.CardBg
         btn.Font = Enum.Font.GothamMedium
         btn.Text = "📍 " .. wpName
@@ -876,7 +912,7 @@ function refreshLandmarksUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
         local bStr = Instance.new("UIStroke", btn) bStr.Color = Theme.Stroke
         
-        btn.MouseButton1Click:Connect(function()
+        btn.MouseButton1Click:Connect(function() [cite: 36]
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                 Player.Character.HumanoidRootPart.CFrame = CFrame.new(coord[1], coord[2], coord[3])
             end
@@ -884,7 +920,7 @@ function refreshLandmarksUI()
         btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
         btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
         
-        local delBtn = Instance.new("TextButton", rowFrame)
+        local delBtn = Instance.new("TextButton", rowFrame) [cite: 37]
         delBtn.Size = UDim2.new(0, 26, 1, 0)
         delBtn.Position = UDim2.new(1, -26, 0, 0)
         delBtn.BackgroundColor3 = Theme.DeleteBg
@@ -893,7 +929,7 @@ function refreshLandmarksUI()
         delBtn.TextColor3 = Theme.DeleteRed
         delBtn.TextSize = 16
         Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-        local dStr = Instance.new("UIStroke", delBtn) dStr.Color = Theme.Stroke
+        local dStr = Instance.new("UIStroke", delBtn) dStr.Color = Theme.Stroke [cite: 38]
         
         delBtn.MouseButton1Click:Connect(function()
             showConfirmation("Apakah kamu yakin ingin menghapus\nwaypoint \"" .. wpName .. "\"?", function()
@@ -902,7 +938,7 @@ function refreshLandmarksUI()
         end)
         
         delBtn.MouseEnter:Connect(function() dStr.Color = Theme.DeleteRed end)
-        delBtn.MouseLeave:Connect(function() dStr.Color = Theme.Stroke end)
+        delBtn.MouseLeave:Connect(function() dStr.Color = Theme.Stroke end) [cite: 39]
         
         indexOrder = indexOrder + 1
     end
@@ -912,7 +948,7 @@ function refreshLandmarksUI()
         emptyTxt.Size = UDim2.new(1, 0, 0, 24)
         emptyTxt.BackgroundTransparency = 1
         emptyTxt.Font = Enum.Font.GothamMedium
-        emptyTxt.Text = "Belum ada landmark tersimpan."
+        emptyTxt.Text = "Belum ada landmark tersimpan." [cite: 40]
         emptyTxt.TextColor3 = Theme.TextMuted
         emptyTxt.TextSize = 10
         emptyTxt.LayoutOrder = 1
@@ -923,15 +959,16 @@ btnSavePos.MouseButton1Click:Connect(function()
     local name = wpNameInput.Text
     if name ~= "" and name ~= "Nama waypoint baru..." then
         if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
             local currentPos = Player.Character.HumanoidRootPart.Position
-            AllWaypoints[CurrentPlaceId][name] = {
+            AllWaypoints[CurrentPlaceId][name] = { [cite: 41]
                 math.round(currentPos.X * 100) / 100,
                 math.round(currentPos.Y * 100) / 100,
                 math.round(currentPos.Z * 100) / 100
             }
             saveWaypointsToStorage()
             wpNameInput.Text = ""
-            refreshLandmarksUI()
+            refreshLandmarksUI() [cite: 42]
         end
     end
 end)
@@ -962,39 +999,26 @@ sLayoutR.SortOrder = Enum.SortOrder.LayoutOrder
 
 local statsCard = createCard(serverLeftColumn, "Server Stats", 1)
 
-local function createStatLabel(parent, labelText, order)
-    local lbl = Instance.new("TextLabel", parent)
-    lbl.Size = UDim2.new(1, 0, 0, 18)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.Text = labelText
-    lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 11
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.LayoutOrder = order
-    return lbl
-end
-
 local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
 local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 
 task.spawn(function()
     while task.wait(0.5) do
-        if not MainGui or not MainGui.Parent then break end
+        if not MainGui or not MainGui.Parent then break end [cite: 44]
         if menuContainers["Server"].Visible then
             local fps = math.round(1 / RunService.RenderStepped:Wait())
             lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(fps) .. "</font>"
             lblFps.RichText = true
             
             local ping = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
-            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>"
+            lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(ping) .. " ms</font>" [cite: 45]
             lblPing.RichText = true
             
             local sTime = math.round(workspace.DistributedGameTime)
             local hours = string.format("%02d", math.floor(sTime / 3600))
             local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
-            local seconds = string.format("%02d", sTime % 60)
+            local seconds = string.format("%02d", sTime % 60) [cite: 46]
             lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>"
             lblTime.RichText = true
         end
@@ -1009,14 +1033,14 @@ createServerButton(navCard, "🔄 Rejoin Current Server", Color3.fromRGB(30, 35,
     end)
 end, 1)
 
-createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 60), function()
+createServerButton(navCard, "🚀 Server Hop (Random)", Color3.fromRGB(45, 30, 60), function() [cite: 48]
     showConfirmation("Cari dan pindah ke server lain?", function()
         local success, servers = pcall(function()
             return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
         end)
         if success and servers and servers.data then
             for _, server in pairs(servers.data) do
-                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then [cite: 49]
                     TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Player)
                     break
                 end
@@ -1027,7 +1051,7 @@ end, 2)
 
 local optiCard = createCard(serverRightColumn, "Optimization", 1)
 
-createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(25, 45, 35), function()
+createServerButton(optiCard, "🗑️ Clean Map Lag (Booster)", Color3.fromRGB(25, 45, 35), function() [cite: 50]
     local count = 0
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("VisualEffect") or obj:IsA("Decal") or obj:IsA("Texture") then
@@ -1042,14 +1066,14 @@ addToggle(optiCard, "Shadows Disabler", 2, "ShadowsDisabled", applyGraphicsBoost
 addToggle(optiCard, "Anti-Lag (Low Graphics)", 3, "AntiLag", applyGraphicsBoost)
 
 -- ====================================================================
--- ANIMATION SYSTEM INTRO & DEPLOY
+-- ANIMATION SYSTEM INTRO & DEPLOY [cite: 51]
 -- ====================================================================
 task.spawn(function()
     local statusMessages = {
         {time = 0.5, msg = "Memeriksa lisensi skrip..."},
         {time = 1.2, msg = "Memuat modul UI List & Grid..."},
         {time = 2.0, msg = "Menyelaraskan konfigurasi framework..."},
-        {time = 2.7, msg = "Sukses terhubung!\nMembuka panel..."}
+        {time = 2.7, msg = "Sukses terhubung!\nMembuka panel..."} [cite: 52]
     }
 
     for i = 1, 100 do
@@ -1059,7 +1083,7 @@ task.spawn(function()
         for _, stage in ipairs(statusMessages) do
             if i == math.round(stage.time * 30) then LoadStatus.Text = stage.msg end
         end
-        task.wait(0.03) 
+        task.wait(0.03)  [cite: 53]
     end
     
     LoadStatus.Text = "Selesai!"
