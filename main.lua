@@ -105,6 +105,12 @@ local function handleFlyEngine()
         return 
     end
     
+local function handleFlyEngine()
+    if not Config.FlyMode then 
+        stopFlying()
+        return 
+    end
+    
     stopFlying()
     local char = Player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -127,36 +133,47 @@ local function handleFlyEngine()
         while Config.FlyMode and Player.Character and torso and flyBv and flyBg do
             hum:ChangeState(Enum.HumanoidStateType.Physics)
             local speed = Config.FlySpeed * 10
-            local moveDir = hum.MoveDirection
             
+            -- Ambil CFrame kamera untuk menentukan arah rotasi dan hadapan
+            local camCF = camera.CFrame
             local velocityVector = Vector3.new(0, 0, 0)
             
-            -- Kalkulasi pergerakan horizontal berdasarkan arah kamera
+            -- Mendeteksi input pergerakan default Humanoid (W, A, S, D / Analog)
+            local moveDir = hum.MoveDirection
+            
             if moveDir.Magnitude > 0 then
-                local camCF = camera.CFrame
-                local direction = (camCF.LookVector * moveDir:Dot(Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit)) + (camCF.RightVector * moveDir:Dot(Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z).Unit))
+                -- Mengubah MoveDirection lokal relatif terhadap orientasi Kamera secara penuh (3D)
+                -- Ini membuat W/S/A/D bergerak maju-mundur-kiri-kanan sesuai arah kamera memandang
+                local lookVector = camCF.LookVector
+                local rightVector = camCF.RightVector
+                
+                -- Cari kontribusi pergerakan berdasarkan input pemain
+                -- Menghitung seberapa besar pemain menekan maju/mundur dan kiri/kanan
+                local forwardInput = moveDir:Dot(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
+                local sideInput = moveDir:Dot(Vector3.new(rightVector.X, 0, rightVector.Z).Unit)
+                
+                -- Kalkulasi arah vektor 3D yang sebenarnya berdasarkan pandangan kamera
+                local direction = (lookVector * forwardInput) + (rightVector * sideInput)
+                
                 if direction.Magnitude > 0 then
                     velocityVector = direction.Unit * speed
                 end
             end
             
-            -- Kontrol naik-turun menggunakan Space dan LeftShift agar tidak nyangkut
+            -- Tetap mempertahankan Space / LeftShift untuk kontrol naik-turun manual secara vertikal murni
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                velocityVector = Vector3.new(velocityVector.X, speed, velocityVector.Z)
+                velocityVector = velocityVector + Vector3.new(0, speed, 0)
             elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                velocityVector = Vector3.new(velocityVector.X, -speed, velocityVector.Z)
-            else
-                velocityVector = Vector3.new(velocityVector.X, 0, velocityVector.Z)
+                velocityVector = velocityVector + Vector3.new(0, -speed, 0)
             end
             
             flyBv.velocity = velocityVector
-            flyBg.cframe = camera.CFrame
+            flyBg.cframe = camCF -- Badan karakter otomatis ikut berputar mulus mengikuti kamera
             task.wait()
         end
         stopFlying()
     end)
 end
-
 -- Infinite Jump Engine menggunakan JumpRequest (100% bypass)
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
