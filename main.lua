@@ -31,7 +31,7 @@ local Theme = {
 }
 
 -- ====================================================================
--- ADDISI BARU: LOADING SCREEN SYSTEM
+-- LOADING SCREEN SYSTEM
 -- ====================================================================
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Name = "LoadingFrame"
@@ -124,7 +124,7 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "AR"
 ToggleButton.TextColor3 = Theme.Accent
 ToggleButton.TextSize = 16
-ToggleButton.Visible = false -- Disembunyikan dulu saat loading
+ToggleButton.Visible = false 
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
 local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
@@ -134,11 +134,12 @@ makeDraggable(ToggleButton, ToggleButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 420) 
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -210)
+-- PERUBAHAN: Tinggi diturunkan dari 420 ke 340 agar lebih compact
+MainFrame.Size = UDim2.new(0, 560, 0, 340) 
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
-MainFrame.Visible = false -- Disembunyikan dulu saat loading
+MainFrame.Visible = false 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
@@ -195,6 +196,7 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
+-- SCROLLING FRAME UTAMA (Otomatis memunculkan scroll jika tidak cukup)
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
@@ -481,7 +483,7 @@ addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump Engine", 3)
 
 -- ====================================================================
--- ADDISI BARU: LOGIKA ANIMASI INTRO LOADING SCREEN
+-- LOGIKA ANIMASI INTRO LOADING SCREEN
 -- ====================================================================
 task.spawn(function()
     local statusMessages = {
@@ -493,23 +495,20 @@ task.spawn(function()
 
     for i = 1, 100 do
         local progress = i / 100
-        -- Animasi bar pengisi menggunakan Tween agar mulus
         TweenService:Create(LoadFill, TweenInfo.new(0.03, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
         LoadProgressText.Text = tostring(i) .. "%"
         
-        -- Perbarui teks status berdasarkan progress waktu
         for _, stage in ipairs(statusMessages) do
-            if i == math.round(stage.time * 30) then -- Estimasi kecocokan index langkah
+            if i == math.round(stage.time * 30) then 
                 LoadStatus.Text = stage.msg
             end
         end
-        task.wait(0.03) -- Durasi total loading sekitar ~3 detik
+        task.wait(0.03) 
     end
     
     LoadStatus.Text = "Selesai!"
     task.wait(0.4)
     
-    -- Efek Fade-Out untuk Loading Screen
     local fadeTween = TweenService:Create(LoadingFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
     TweenService:Create(LoadTitle, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
     TweenService:Create(LoadStatus, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
@@ -521,15 +520,14 @@ task.spawn(function()
     
     fadeTween:Play()
     fadeTween.Completed:Connect(function()
-        LoadingFrame:Destroy() -- Hapus dari memori setelah selesai
+        LoadingFrame:Destroy() 
         
-        -- Memunculkan Menu Utama & Tombol Pemicu Layar
         MainFrame.Visible = true
         ToggleButton.Visible = true
         
-        -- Efek transparansi muncul perlahan (Pop-In Effect)
-        MainFrame.Size = UDim2.new(0, 520, 0, 380)
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 420)}):Play()
+        -- Efek Pop-In Panel dengan tinggi baru yang disesuaikan (340px)
+        MainFrame.Size = UDim2.new(0, 520, 0, 300)
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         
         print("[AR FRAMEWORK]: Main Panel Deployed Successfully After Clean Load!")
     end)
