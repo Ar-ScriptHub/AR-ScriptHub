@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - STRICT AUTO-SIZING & ANTI-BOX LEAKING FRAMEWORK
+-- AR SCRIPT HUB - CUSTOM TOP BAR FRAMEWORK (CLEAN & SECURE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -16,7 +16,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 999999999
+MainGui.DisplayOrder = 999999999 -- Menempatkan UI di atas semua GUI game bawaan
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
@@ -77,8 +77,8 @@ makeDraggable(ToggleButton, ToggleButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 560, 0, 420) -- Dimensi disesuaikan untuk layout grid baru
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -210)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
@@ -115,7 +115,9 @@ makeDraggable(MainFrame, Header)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
+-- ====================================================================
 -- TOP BAR NAVIGATION MENU
+-- ====================================================================
 local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
 TopBarNav.Size = UDim2.new(1, -32, 0, 36)
@@ -135,24 +137,19 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN DENGAN SCROLL
-local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
+-- CANVAS UTAMA KONTEN
+local MainContentFrame = Instance.new("Frame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
 MainContentFrame.Position = UDim2.new(0, 16, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
-MainContentFrame.ScrollBarThickness = 4
-MainContentFrame.ScrollBarImageColor3 = Theme.Accent
-MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 0, 0)
-    page.AutomaticSize = Enum.AutomaticSize.Y
+    page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = isVisible
     menuContainers[name] = page
@@ -169,7 +166,6 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
-    MainContentFrame.CanvasPosition = Vector2.new(0, 0)
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
@@ -187,7 +183,7 @@ local function addTopBarButton(textDisplay, tabTarget, order)
     
     btn.MouseButton1Click:Connect(function()
         for _, child in pairs(TopBarNav:GetChildren()) do
-            if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain end
+            if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain bStroke.Color = Theme.Stroke end
         end
         btn.TextColor3 = Theme.Accent
         switchTab(tabTarget)
@@ -196,16 +192,18 @@ local function addTopBarButton(textDisplay, tabTarget, order)
 end
 
 local btnPlayer = addTopBarButton("👤 Player", "Player", 1)
-btnPlayer.TextColor3 = Theme.Accent
+btnPlayer.TextColor3 = Theme.Accent -- Set active secara default
 addTopBarButton("👁️ ESP", "ESP", 2)
 addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- PLACEHOLDER MAKER
+-- ====================================================================
+-- PLACEHOLDER MAKER FOR OTHER PAGES
+-- ====================================================================
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(1, 0, 0, 150)
+    card.Size = UDim2.new(1, 0, 1, 0)
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -221,33 +219,32 @@ buildPlaceholder(tpPage, "TELEPORTATION")
 buildPlaceholder(serverPage, "SERVER")
 
 -- SETTING PAGE WITH DESTROY ACTION ONLY
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,0,150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,1,0) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
+-- ====================================================================
 -- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN)
+-- ====================================================================
 local LeftColumn = Instance.new("Frame", playerPage)
 LeftColumn.Name = "LeftColumn"
-LeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
-LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+LeftColumn.Size = UDim2.new(0.5, -6, 1, 0)
 LeftColumn.Position = UDim2.new(0, 0, 0, 0)
 LeftColumn.BackgroundTransparency = 1
 
 local RightColumn = Instance.new("Frame", playerPage)
 RightColumn.Name = "RightColumn"
-RightColumn.Size = UDim2.new(0.5, -6, 0, 0)
-RightColumn.AutomaticSize = Enum.AutomaticSize.Y
+RightColumn.Size = UDim2.new(0.5, -6, 1, 0)
 RightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 RightColumn.BackgroundTransparency = 1
 
+-- UI Layouts internal untuk mengatur tumpukan card vertikal di dalam kolom
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Padding = UDim.new(0, 12) rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- FUNGSI KREASI CARD ANTI BOCOR (FIXED AUTOMATICSIZE)
-local function createCard(parent, titleText, order)
+local function createCard(parent, titleText, sizeY, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 0)
-    card.AutomaticSize = Enum.AutomaticSize.Y 
+    card.Size = UDim2.new(1, 0, 0, sizeY)
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
@@ -265,52 +262,25 @@ local function createCard(parent, titleText, order)
     ttl.TextXAlignment = Enum.TextXAlignment.Left
     
     local container = Instance.new("Frame", card)
-    container.Size = UDim2.new(1, -24, 0, 0)
-    container.AutomaticSize = Enum.AutomaticSize.Y
-    container.Position = UDim2.new(0, 12, 0, 32)
+    container.Size = UDim2.new(1, -24, 1, -34)
+    container.Position = UDim2.new(0, 12, 0, 30)
     container.BackgroundTransparency = 1
     
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 12)
+    innerLayout.Padding = UDim.new(0, 8)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    
-    local pdd = Instance.new("UIPadding", container)
-    pdd.PaddingBottom = UDim.new(0, 12)
     
     return container
 end
 
--- COMPONENT PRIMITIVES (FIXED TEXTWRAPPED ANTI OUT OF BOX)
-local function addToggle(parent, labelText, callback, order)
-    local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 24) 
-    holder.BackgroundTransparency = 1 
-    holder.LayoutOrder = order
-    
-    local lbl = Instance.new("TextLabel", holder) 
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(1, -40, 1, 0)
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 12 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
-    lbl.TextWrapped = true
-
-    local track = Instance.new("TextButton", holder) 
-    track.Size = UDim2.new(0, 32, 0, 16) 
-    track.Position = UDim2.new(1, -32, 0.5, -8) 
-    track.BackgroundColor3 = Theme.Bg 
-    track.Text = "" 
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) 
-    local tStr = Instance.new("UIStroke", track) 
-    tStr.Color = Theme.Stroke
-    
-    local knob = Instance.new("Frame", track) 
-    knob.Size = UDim2.new(0, 10, 0, 10) 
-    knob.Position = UDim2.new(0, 3, 0.5, -5) 
-    knob.BackgroundColor3 = Theme.TextMuted 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+-- ====================================================================
+-- COMPONENT PRIMITIVES (TOGGLE & SLIDER DENGAN INPUT MANUAL)
+-- ====================================================================
+local function addToggle(parent, labelText, order)
+    local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+    local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.7, 0, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+    local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
     local active = false
     track.MouseButton1Click:Connect(function()
@@ -318,110 +288,109 @@ local function addToggle(parent, labelText, callback, order)
         TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -5), BackgroundColor3 = active and Theme.Bg or Theme.TextMuted}):Play()
         TweenService:Create(track, TweenInfo.new(0.08), {BackgroundColor3 = active and Theme.Accent or Theme.Bg}):Play()
         tStr.Color = active and Theme.Accent or Theme.Stroke
-        if callback then callback(active) end
     end)
 end
 
-local function addSliderWithInput(parent, labelText, min, max, defaultVal, callback, order)
+local function addSliderWithInput(parent, labelText, min, max, defaultVal, order)
     local holder = Instance.new("Frame", parent)
-    holder.Size = UDim2.new(1, 0, 0, 40)
+    holder.Size = UDim2.new(1, 0, 0, 34)
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
-
+    
     local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = labelText
-    lbl.Size = UDim2.new(0.6, 0, 0, 18)
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 12
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText lbl.Size = UDim2.new(0.6, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
 
-    local box = Instance.new("TextBox", holder)
-    box.Size = UDim2.new(0, 45, 0, 18)
-    box.Position = UDim2.new(1, -45, 0, 0)
-    box.BackgroundColor3 = Theme.Bg
-    box.Font = Enum.Font.GothamBold
-    box.Text = tostring(defaultVal)
-    box.TextColor3 = Theme.Accent
-    box.TextSize = 11
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-    Instance.new("UIStroke", box).Color = Theme.Stroke
+    -- INPUT MANUAL BOX (TextBox di Sebelah Kanan Slider)
+    local inputBox = Instance.new("TextBox", holder)
+    inputBox.Size = UDim2.new(0, 34, 0, 16)
+    inputBox.Position = UDim2.new(1, -34, 0, 0)
+    inputBox.BackgroundColor3 = Theme.Bg
+    inputBox.Font = Enum.Font.GothamBold
+    inputBox.Text = tostring(defaultVal)
+    inputBox.TextColor3 = Theme.Accent
+    inputBox.TextSize = 10
+    inputBox.ClearTextOnFocus = false
+    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4)
+    local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
 
-    local slideBar = Instance.new("TextButton", holder)
-    slideBar.Size = UDim2.new(1, 0, 0, 6)
-    slideBar.Position = UDim2.new(0, 0, 0, 26)
-    slideBar.BackgroundColor3 = Theme.Bg
-    slideBar.Text = ""
-    Instance.new("UICorner", slideBar).CornerRadius = UDim.new(0, 3)
+    local track = Instance.new("Frame", holder)
+    track.Size = UDim2.new(1, 0, 0, 4)
+    track.Position = UDim2.new(0, 0, 1, -4)
+    track.BackgroundColor3 = Theme.Stroke
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
 
-    local slideFill = Instance.new("Frame", slideBar)
-    slideFill.Size = UDim2.new((defaultVal - min) / (max - min), 0, 1, 0)
-    slideFill.BackgroundColor3 = Theme.Accent
-    Instance.new("UICorner", slideFill).CornerRadius = UDim.new(0, 3)
+    local fill = Instance.new("Frame", track)
+    local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1)
+    fill.Size = UDim2.new(startPerc, 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
-    local function updateValue(percentage)
-        percentage = math.clamp(percentage, 0, 1)
-        local val = math.round(min + (max - min) * percentage)
-        box.Text = tostring(val)
-        slideFill.Size = UDim2.new(percentage, 0, 1, 0)
-        if callback then callback(val) end
+    local knob = Instance.new("Frame", track)
+    knob.Size = UDim2.new(0, 10, 0, 10)
+    knob.Position = UDim2.new(startPerc, -5, 0.5, -5)
+    knob.BackgroundColor3 = Theme.TextMain
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", knob).Color = Theme.AccentPurple
+
+    local dragTrigger = Instance.new("ImageButton", knob)
+    dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1 dragTrigger.Image = ""
+
+    local function refreshVisuals(value)
+        local clampedValue = math.clamp(value, min, max)
+        local perc = (clampedValue - min) / (max - min)
+        fill.Size = UDim2.new(perc, 0, 1, 0)
+        knob.Position = UDim2.new(perc, -5, 0.5, -5)
+        inputBox.Text = tostring(clampedValue)
     end
 
-    slideBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local moveConn, upConn
-            local function checkPos()
-                local mousePos = UserInputService:GetMouseLocation().X
-                local barPos = slideBar.AbsolutePosition.X
-                local barWidth = slideBar.AbsoluteSize.X
-                updateValue((mousePos - barPos) / barWidth)
-            end
-            checkPos()
-            moveConn = UserInputService.InputChanged:Connect(function(moveInput)
-                if moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch then
-                    checkPos()
-                end
-            end)
-            upConn = UserInputService.InputEnded:Connect(function(upInput)
-                if upInput.UserInputType == Enum.UserInputType.MouseButton1 or upInput.UserInputType == Enum.UserInputType.Touch then
-                    moveConn:Disconnect()
-                    upConn:Disconnect()
-                end
-            end)
+    -- Event 1: Menggeser Slider Manual
+    local sliding = false
+    dragTrigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local relX = input.Position.X - track.AbsolutePosition.X
+            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+            local finalVal = math.round(min + (perc * (max - min)))
+            refreshVisuals(finalVal)
         end
     end)
 
-    box.FocusLost:Connect(function()
-        local num = tonumber(box.Text) or defaultVal
-        num = math.clamp(num, min, max)
-        updateValue((num - min) / (max - min))
+    -- Event 2: Mengetik Angka Manual Lewat TextBox
+    inputBox.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(inputBox.Text)
+        if num then
+            refreshVisuals(num)
+        else
+            inputBox.Text = tostring(min)
+            refreshVisuals(min)
+        end
     end)
 end
 
 -- ====================================================================
--- MENYUSUN ISI HALAMAN PLAYER (CONTOH IMPLEMENTASI)
+-- PERAKITAN CARD PADA LAYOUT GRID PLAYER
 -- ====================================================================
-local MovementCard = createCard(LeftColumn, "Movement", 1)
-local CombatCard = createCard(RightColumn, "Combat Features", 1)
 
--- Menambahkan slider kecepatan pada Kartu Pergerakan (Movement)
-addSliderWithInput(MovementCard, "WalkSpeed", 16, 250, 16, function(value)
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = value
-    end
-end, 1)
+-- 1. CARD FLY (Kolom Kiri - Atas)
+local flyCard = createCard(LeftColumn, "Fly", 115, 1)
+addToggle(flyCard, "Toggle Fly Mode", 1)
+addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
+addToggle(flyCard, "Noclip Activator", 3)
 
--- Menambahkan slider lompatan pada Kartu Pergerakan (Movement)
-addSliderWithInput(MovementCard, "JumpPower", 50, 500, 50, function(value)
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        hum.UseJumpPower = true
-        hum.JumpPower = value
-    end
-end, 2)
+-- 2. CARD WALKSPEED (Kolom Kiri - Bawah)
+local walkCard = createCard(LeftColumn, "Walkspeed", 82, 2)
+addToggle(walkCard, "Toggle Speed Bypass", 1)
+addSliderWithInput(walkCard, "Velocity Speed Magnitude", 16, 250, 16, 2)
 
--- Menambahkan Toggle pada Kartu Pertempuran (Combat)
-addToggle(CombatCard, "Infinite Ammo (Sample)", function(state)
-    print("Infinite Ammo Status:", state)
-end, 1)
+-- 3. CARD JUMP (Kolom Kanan - Atas)
+local jumpCard = createCard(RightColumn, "Jump", 115, 1)
+addToggle(jumpCard, "Toggle Jump Bypass", 1)
+addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
+addToggle(jumpCard, "Infinite Jump Engine", 3)
+
+print("[AR FRAMEWORK]: Grid Layout & Manual Inputs Implemented Successfully!")
