@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.4 FULL PRODUCTION DEPLOY (WAYPOINT MGMT UPDATE)
+-- AR SCRIPT HUB - v6.6 FULL DEPLOY (ADVANCED PRO POP-UP & MINIMIZE)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -29,8 +29,82 @@ local Theme = {
     TextMain = Color3.fromRGB(245, 245, 255),
     TextMuted = Color3.fromRGB(140, 145, 175),
     DeleteRed = Color3.fromRGB(255, 90, 90),
-    DeleteBg = Color3.fromRGB(50, 25, 35)
+    DeleteBg = Color3.fromRGB(50, 25, 35),
+    ConfirmGreen = Color3.fromRGB(90, 255, 140)
 }
+
+-- ====================================================================
+-- GLOBAL SYSTEM POP-UP CONFIRMATION (ANTI-KETUTUPAN)
+-- ====================================================================
+local PopupFrame = Instance.new("Frame")
+PopupFrame.Name = "PopupFrame"
+PopupFrame.Parent = MainGui
+PopupFrame.Size = UDim2.new(0, 280, 0, 140)
+PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70)
+PopupFrame.BackgroundColor3 = Theme.Bg
+PopupFrame.BackgroundTransparency = 0.05
+PopupFrame.Visible = false
+PopupFrame.ZIndex = 1000 -- Memastikan paling atas
+Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
+local popStroke = Instance.new("UIStroke", PopupFrame)
+popStroke.Color = Theme.AccentPurple
+popStroke.Thickness = 1.5
+
+local PopupText = Instance.new("TextLabel", PopupFrame)
+PopupText.Size = UDim2.new(1, -24, 0, 50)
+PopupText.Position = UDim2.new(0, 12, 0, 20)
+PopupText.Text = "Apakah anda yakin?"
+PopupText.Font = Enum.Font.GothamBold
+PopupText.TextColor3 = Theme.TextMain
+PopupText.TextSize = 13
+PopupText.TextWrapped = true
+PopupText.BackgroundTransparency = 1
+PopupText.ZIndex = 1001
+
+local PopupYes = Instance.new("TextButton", PopupFrame)
+PopupYes.Size = UDim2.new(0, 110, 0, 30)
+PopupYes.Position = UDim2.new(0, 20, 1, -45)
+PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45)
+PopupYes.Font = Enum.Font.GothamBold
+PopupYes.Text = "YA"
+PopupYes.TextColor3 = Theme.ConfirmGreen
+PopupYes.TextSize = 12
+PopupYes.ZIndex = 1001
+Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", PopupYes).Color = Theme.Stroke
+
+local PopupNo = Instance.new("TextButton", PopupFrame)
+PopupNo.Size = UDim2.new(0, 110, 0, 30)
+PopupNo.Position = UDim2.new(1, -130, 1, -45)
+PopupNo.BackgroundColor3 = Color3.fromRGB(60, 30, 35)
+PopupNo.Font = Enum.Font.GothamBold
+PopupNo.Text = "TIDAK"
+PopupNo.TextColor3 = Theme.DeleteRed
+PopupNo.TextSize = 12
+PopupNo.ZIndex = 1001
+Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", PopupNo).Color = Theme.Stroke
+
+local currentCallback = nil
+
+local function showConfirmation(message, onYes)
+    PopupText.Text = message
+    currentCallback = onYes
+    PopupFrame.Visible = true
+    -- Animasi Pop-up Muncul
+    PopupFrame.Size = UDim2.new(0, 250, 0, 120)
+    TweenService:Create(PopupFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
+end
+
+PopupYes.MouseButton1Click:Connect(function()
+    PopupFrame.Visible = false
+    if currentCallback then currentCallback() end
+end)
+
+PopupNo.MouseButton1Click:Connect(function()
+    PopupFrame.Visible = false
+end)
+
 
 -- ====================================================================
 -- LOADING SCREEN SYSTEM
@@ -113,7 +187,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- FLOATING TOGGLE BUTTON
+-- FLOATING TOGGLE BUTTON (MUNCUL PAS MINIMIZE)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
@@ -151,7 +225,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.4</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.6</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -161,18 +235,45 @@ Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
+-- REVISI: TOMBOL CLOSE (X) DENGAN POP-UP PERINGATAN KELUAR PERMANEN
 local CloseBtn = Instance.new("TextButton", Header)
 CloseBtn.Text = "×"
-CloseBtn.Size = UDim2.new(0, 40, 1, 0)
-CloseBtn.Position = UDim2.new(1, -40, 0, 0)
+CloseBtn.Size = UDim2.new(0, 35, 1, 0)
+CloseBtn.Position = UDim2.new(1, -35, 0, 0)
 CloseBtn.Font = Enum.Font.GothamMedium
-CloseBtn.TextColor3 = Theme.TextMuted
+CloseBtn.TextColor3 = Theme.DeleteRed
 CloseBtn.TextSize = 24
 CloseBtn.BackgroundTransparency = 1
 
+-- REVISI: TOMBOL MINIMIZE (-) UTK SEMBUNYIIN PANEL KE TOMBOL AR
+local MinimizeBtn = Instance.new("TextButton", Header)
+MinimizeBtn.Text = "−"
+MinimizeBtn.Size = UDim2.new(0, 35, 1, 0)
+MinimizeBtn.Position = UDim2.new(1, -70, 0, 0)
+MinimizeBtn.Font = Enum.Font.GothamMedium
+MinimizeBtn.TextColor3 = Theme.TextMuted
+MinimizeBtn.TextSize = 20
+MinimizeBtn.BackgroundTransparency = 1
+
 makeDraggable(MainFrame, Header)
-ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
-CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+
+-- Logika Tombol Navigasi Header
+ToggleButton.MouseButton1Click:Connect(function() 
+    MainFrame.Visible = true 
+    ToggleButton.Visible = false
+end)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ToggleButton.Visible = true
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function()
+        MainGui:Destroy()
+    end)
+end)
+
 
 -- TOP BAR NAVIGATION MENU
 local TopBarNav = Instance.new("Frame", MainFrame)
@@ -194,7 +295,7 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN DENGAN SCROLL (PEMBATAS DIHAPUS, SCROLLBAR DI DALAM SPACE)
+-- CANVAS UTAMA KONTEN DENGAN SCROLL
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -16, 1, -105)
@@ -202,7 +303,6 @@ MainContentFrame.Position = UDim2.new(0, 0, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
 MainContentFrame.VerticalScrollBarInset = Enum.ScrollBarInset.None 
 MainContentFrame.ScrollBarThickness = 3 
 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
@@ -223,7 +323,6 @@ local function createMenuPage(name, isVisible)
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
-    
     menuContainers[name] = page
     return page
 end
@@ -271,7 +370,6 @@ addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- PLACEHOLDER MAKER (Hanya untuk Server)
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
     card.Size = UDim2.new(0, 518, 0, 150) 
@@ -279,7 +377,6 @@ local function buildPlaceholder(pageFrame, titleText)
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
     Instance.new("UIStroke", card).Color = Theme.Stroke
-    
     local txt = Instance.new("TextLabel", card)
     txt.Size = UDim2.new(1, 0, 1, 0)
     txt.Text = "<b>" .. titleText .. " MENU FRAMEWORK</b>\n\nArea kosong siap diisi komponen kustom."
@@ -287,12 +384,11 @@ local function buildPlaceholder(pageFrame, titleText)
 end
 buildPlaceholder(serverPage, "SERVER")
 
--- SETTING PAGE DISSOLVE
 local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(0, 518, 0, 150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- KUNCI BARU v6.4: LEBAR CARD 255PX & SEKAT TENGAH LONGGAR PAS 8PX
+-- SEKAT ANTAR KOLOM DISET PAS 8PX & LEBAR 255PX
 local function createLeftColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
@@ -300,7 +396,6 @@ local function createLeftColumn(parentName, columnName)
     col.AutomaticSize = Enum.AutomaticSize.Y
     col.Position = UDim2.new(0, 0, 0, 0) 
     col.BackgroundTransparency = 1
-    
     local layout = Instance.new("UIListLayout", col)
     layout.Padding = UDim.new(0, 12)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -314,14 +409,12 @@ local function createShiftedRightColumn(parentName, columnName)
     col.AutomaticSize = Enum.AutomaticSize.Y
     col.Position = UDim2.new(0, 263, 0, 0) -- 255 + 8px sekat tengah murni
     col.BackgroundTransparency = 1
-    
     local layout = Instance.new("UIListLayout", col)
     layout.Padding = UDim.new(0, 12)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     return col
 end
 
--- Registrasi Kolom Utama
 local LeftColumn = createLeftColumn("Player", "LeftColumn")
 local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
@@ -329,7 +422,6 @@ local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
 local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn")
 local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
 
--- FUNGSI KREASI CARD AUTOMATIC SIZE
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
     card.Size = UDim2.new(1, 0, 0, 0)
@@ -338,7 +430,6 @@ local function createCard(parent, titleText, order)
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-    
     local stroke = Instance.new("UIStroke", card)
     stroke.Color = Theme.Stroke
     stroke.Thickness = 1
@@ -359,14 +450,11 @@ local function createCard(parent, titleText, order)
     container.AutomaticSize = Enum.AutomaticSize.Y
     container.Position = UDim2.new(0, 12, 0, 32)
     container.BackgroundTransparency = 1
-    
     local innerLayout = Instance.new("UIListLayout", container)
     innerLayout.Padding = UDim.new(0, 12)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    
     local pdd = Instance.new("UIPadding", container)
     pdd.PaddingBottom = UDim.new(0, 12)
-    
     return container
 end
 
@@ -376,32 +464,12 @@ local function addToggle(parent, labelText, order)
     holder.Size = UDim2.new(1, 0, 0, 24) 
     holder.BackgroundTransparency = 1 
     holder.LayoutOrder = order
-    
     local lbl = Instance.new("TextLabel", holder) 
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(1, -40, 1, 0) 
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 12 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
-    lbl.TextWrapped = true 
+    lbl.Text = labelText lbl.Size = UDim2.new(1, -40, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1 lbl.TextWrapped = true 
 
     local track = Instance.new("TextButton", holder) 
-    track.Size = UDim2.new(0, 32, 0, 16) 
-    track.Position = UDim2.new(1, -32, 0.5, -8) 
-    track.BackgroundColor3 = Theme.Bg 
-    track.Text = "" 
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) 
-    local tStr = Instance.new("UIStroke", track) 
-    tStr.Color = Theme.Stroke
-    
-    local knob = Instance.new("Frame", track) 
-    knob.Size = UDim2.new(0, 10, 0, 10) 
-    knob.Position = UDim2.new(0, 3, 0.5, -5) 
-    knob.BackgroundColor3 = Theme.TextMuted 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
-    
+    track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     local active = false
     track.MouseButton1Click:Connect(function()
         active = not active
@@ -416,114 +484,59 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
     holder.Size = UDim2.new(1, 0, 0, 38)
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
-    
     local lbl = Instance.new("TextLabel", holder)
     lbl.Text = labelText lbl.Size = UDim2.new(0.65, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1 lbl.TextWrapped = true
 
     local inputBox = Instance.new("TextBox", holder)
-    inputBox.Size = UDim2.new(0, 36, 0, 16)
-    inputBox.Position = UDim2.new(1, -36, 0, 0)
-    inputBox.BackgroundColor3 = Theme.Bg
-    inputBox.Font = Enum.Font.GothamBold
-    inputBox.Text = tostring(defaultVal)
-    inputBox.TextColor3 = Theme.Accent
-    inputBox.TextSize = 10
-    inputBox.ClearTextOnFocus = false
-    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4)
-    local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+    inputBox.Size = UDim2.new(0, 36, 0, 16) inputBox.Position = UDim2.new(1, -36, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 inputBox.ClearTextOnFocus = false Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
 
     local track = Instance.new("Frame", holder)
-    track.Size = UDim2.new(1, 0, 0, 4)
-    track.Position = UDim2.new(0, 0, 1, -4)
-    track.BackgroundColor3 = Theme.Stroke
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
-
-    local fill = Instance.new("Frame", track)
-    local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1)
-    fill.Size = UDim2.new(startPerc, 0, 1, 0)
-    fill.BackgroundColor3 = Theme.Accent
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+    track.Size = UDim2.new(1, 0, 0, 4) track.Position = UDim2.new(0, 0, 1, -4) track.BackgroundColor3 = Theme.Stroke Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+    local fill = Instance.new("Frame", track) local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1) fill.Size = UDim2.new(startPerc, 0, 1, 0) fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
     local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.new(0, 10, 0, 10)
-    knob.Position = UDim2.new(startPerc, -5, 0.5, -5)
-    knob.BackgroundColor3 = Theme.TextMain
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-    Instance.new("UIStroke", knob).Color = Theme.AccentPurple
-
-    local dragTrigger = Instance.new("ImageButton", knob)
-    dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1 dragTrigger.Image = ""
+    knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(startPerc, -5, 0.5, -5) knob.BackgroundColor3 = Theme.TextMain Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", knob).Color = Theme.AccentPurple
+    local dragTrigger = Instance.new("ImageButton", knob) dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1 dragTrigger.Image = ""
 
     local function refreshVisuals(value)
         local clampedValue = math.clamp(value, min, max)
         local perc = (clampedValue - min) / (max - min)
-        fill.Size = UDim2.new(perc, 0, 1, 0)
-        knob.Position = UDim2.new(perc, -5, 0.5, -5)
-        inputBox.Text = tostring(clampedValue)
+        fill.Size = UDim2.new(perc, 0, 1, 0) knob.Position = UDim2.new(perc, -5, 0.5, -5) inputBox.Text = tostring(clampedValue)
     end
 
     local sliding = false
-    dragTrigger.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
-    end)
+    dragTrigger.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end end)
     UserInputService.InputChanged:Connect(function(input)
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local relX = input.Position.X - track.AbsolutePosition.X
             local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
-            local finalVal = math.round(min + (perc * (max - min)))
-            refreshVisuals(finalVal)
+            refreshVisuals(math.round(min + (perc * (max - min))))
         end
     end)
-
-    inputBox.FocusLost:Connect(function(enterPressed)
-        local num = tonumber(inputBox.Text)
-        if num then refreshVisuals(num) else inputBox.Text = tostring(min) refreshVisuals(min) end
-    end)
+    inputBox.FocusLost:Connect(function(enterPressed) local num = tonumber(inputBox.Text) if num then refreshVisuals(num) else refreshVisuals(min) end end)
 end
 
--- ====================================================================
--- PERAKITAN CARD TAB PLAYER
--- ====================================================================
+-- PERAKITAN TAB PLAYER
 local flyCard = createCard(LeftColumn, "Fly", 1)
-addToggle(flyCard, "Fly Mode", 1)
-addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
-addToggle(flyCard, "Noclip", 3)
-
+addToggle(flyCard, "Fly Mode", 1) addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2) addToggle(flyCard, "Noclip", 3)
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
-addToggle(walkCard, "Super Speed", 1)
-addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2)
-
+addToggle(walkCard, "Super Speed", 1) addSliderWithInput(walkCard, "Super Speed Controller", 16, 250, 16, 2)
 local jumpCard = createCard(RightColumn, "Jump", 1)
-addToggle(jumpCard, "Super Jump", 1)
-addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2)
-addToggle(jumpCard, "Infinite Jump", 3)
-
+addToggle(jumpCard, "Super Jump", 1) addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2) addToggle(jumpCard, "Infinite Jump", 3)
 local physicsCard = createCard(LeftColumn, "Physics", 3)
-addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1)
-addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
-
+addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1) addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
 local utilCard = createCard(RightColumn, "Utilities", 2)
-addToggle(utilCard, "Anti Ragdoll", 1)
-addToggle(utilCard, "Infinite Oxygen", 2)
+addToggle(utilCard, "Anti Ragdoll", 1) addToggle(utilCard, "Infinite Oxygen", 2)
 
--- ====================================================================
--- PERAKITAN CARD TAB ESP
--- ====================================================================
+-- PERAKITAN TAB ESP
 local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
-addToggle(playerEspCard, "Enable ESP", 1)
-addToggle(playerEspCard, "Show Boxes", 2)
-addToggle(playerEspCard, "Show Names", 3)
-addToggle(playerEspCard, "Show Tracers", 4)
-
+addToggle(playerEspCard, "Enable ESP", 1) addToggle(playerEspCard, "Show Boxes", 2) addToggle(playerEspCard, "Show Names", 3) addToggle(playerEspCard, "Show Tracers", 4)
 local espSettingsCard = createCard(espRightColumn, "ESP Settings", 1)
-addToggle(espSettingsCard, "Team Check", 1)
-addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
+addToggle(espSettingsCard, "Team Check", 1) addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- PERAKITAN CARD TAB TELEPORTATION (v6.4 - MANAGEMENT WITH DELETE ACTIVE)
+-- PERAKITAN TAB TELEPORTATION (v6.6 - DYNAMIC MODAL CONFIRMATION ACTIVE)
 -- ====================================================================
 local HttpService = game:GetService("HttpService")
 local FILE_NAME = "AR_Hub_Waypoints.json"
@@ -560,14 +573,12 @@ tpPlayerInput.Size = UDim2.new(1, 0, 1, 0)
 tpPlayerInput.BackgroundColor3 = Theme.Bg
 tpPlayerInput.Font = Enum.Font.GothamMedium
 tpPlayerInput.PlaceholderText = "Masukkan nama player..."
-tpPlayerInput.Text = ""
 tpPlayerInput.TextColor3 = Theme.TextMain
 tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
 tpPlayerInput.TextSize = 11
 tpPlayerInput.ClearTextOnFocus = true
 Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5)
-local inputStroke = Instance.new("UIStroke", tpPlayerInput)
-inputStroke.Color = Theme.Stroke
+Instance.new("UIStroke", tpPlayerInput).Color = Theme.Stroke
 
 local btnPlayerTp = Instance.new("TextButton", playerTpCard)
 btnPlayerTp.Size = UDim2.new(1, 0, 0, 26)
@@ -593,7 +604,6 @@ btnPlayerTp.MouseButton1Click:Connect(function()
     end
 end)
 
--- CARD KIRI: SAVE WAYPOINT
 local waypointCard = createCard(tpLeftColumn, "Custom Waypoints", 2)
 local inputWpFrame = Instance.new("Frame", waypointCard)
 inputWpFrame.Size = UDim2.new(1, 0, 0, 28)
@@ -605,7 +615,6 @@ wpNameInput.Size = UDim2.new(1, 0, 1, 0)
 wpNameInput.BackgroundColor3 = Theme.Bg
 wpNameInput.Font = Enum.Font.GothamMedium
 wpNameInput.PlaceholderText = "Nama waypoint baru..."
-wpNameInput.Text = ""
 wpNameInput.TextColor3 = Theme.TextMain
 wpNameInput.PlaceholderColor3 = Theme.TextMuted
 wpNameInput.TextSize = 11
@@ -624,10 +633,9 @@ btnSavePos.LayoutOrder = 2
 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
 
--- CARD KANAN: DYNAMIC LANDMARKS
 local areaTpCard = createCard(tpRightColumn, "Saved Landmarks", 1)
 
-local refreshLandmarksUI -- Deklarasi forward reference
+local refreshLandmarksUI
 
 local function deleteWaypoint(wpName)
     if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
@@ -646,13 +654,11 @@ function refreshLandmarksUI()
     local indexOrder = 1
     
     for wpName, coord in pairs(currentMapData) do
-        -- ROW CONTAINER (Bungkus tombol biar horizontal lurus sempurna)
         local rowFrame = Instance.new("Frame", areaTpCard)
         rowFrame.Size = UDim2.new(1, 0, 0, 26)
         rowFrame.BackgroundTransparency = 1
         rowFrame.LayoutOrder = indexOrder
         
-        -- Tombol Teleport (Sisi Kiri, Lebar dikurangi 32px)
         local btn = Instance.new("TextButton", rowFrame)
         btn.Size = UDim2.new(1, -32, 1, 0)
         btn.BackgroundColor3 = Theme.CardBg
@@ -671,9 +677,7 @@ function refreshLandmarksUI()
         btn.MouseEnter:Connect(function() bStr.Color = Theme.AccentPurple end)
         btn.MouseLeave:Connect(function() bStr.Color = Theme.Stroke end)
         
-       -- ====================================================================
-        -- TOMBOL DELETE DENGAN SISTEM KONFIRMASI INTERAKTIF (v6.5)
-        -- ====================================================================
+        -- REVISI: TOMBOL DELETE DI-LINK KE POP-UP DI TENGAH PANEL SCREEN
         local delBtn = Instance.new("TextButton", rowFrame)
         delBtn.Size = UDim2.new(0, 26, 1, 0)
         delBtn.Position = UDim2.new(1, -26, 0, 0)
@@ -685,43 +689,15 @@ function refreshLandmarksUI()
         Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
         local dStr = Instance.new("UIStroke", delBtn) dStr.Color = Theme.Stroke
         
-        -- State untuk mengecek apakah user sudah klik pertama kali
-        local isConfirming = false
-        local confirmThread = nil
-        
         delBtn.MouseButton1Click:Connect(function()
-            if not isConfirming then
-                -- KLIK PERTAMA: Minta konfirmasi
-                isConfirming = true
-                delBtn.Text = "?"
-                delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                delBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 50) -- Merah terang tanda peringatan
-                dStr.Color = Color3.fromRGB(255, 100, 100)
-                
-                -- Bikin timer otomatis cancel (3 detik) kalau gak diklik lagi
-                confirmThread = task.delay(3, function()
-                    if isConfirming then
-                        isConfirming = false
-                        delBtn.Text = "×"
-                        delBtn.TextColor3 = Theme.DeleteRed
-                        delBtn.BackgroundColor3 = Theme.DeleteBg
-                        dStr.Color = Theme.Stroke
-                    end
-                end)
-            else
-                -- KLIK KEDUA (YAKIN): Eksekusi hapus data murni
-                if confirmThread then task.cancel(confirmThread) end -- Matikan timer cancel
+            -- Munculkan pop-up modal di tengah screen
+            showConfirmation("Apakah kamu yakin ingin menghapus\nwaypoint \"" .. wpName .. "\"?", function()
                 deleteWaypoint(wpName)
-            end
+            end)
         end)
         
-        -- Efek Hover Estetik (Hanya aktif kalau lagi gak mode konfirmasi)
-        delBtn.MouseEnter:Connect(function() 
-            if not isConfirming then dStr.Color = Theme.DeleteRed end 
-        end)
-        delBtn.MouseLeave:Connect(function() 
-            if not isConfirming then dStr.Color = Theme.Stroke end 
-        end)
+        delBtn.MouseEnter:Connect(function() dStr.Color = Theme.DeleteRed end)
+        delBtn.MouseLeave:Connect(function() dStr.Color = Theme.Stroke end)
         
         indexOrder = indexOrder + 1
     end
@@ -794,9 +770,9 @@ task.spawn(function()
     fadeTween.Completed:Connect(function()
         LoadingFrame:Destroy() 
         MainFrame.Visible = true
-        ToggleButton.Visible = true
+        ToggleButton.Visible = false -- Sesuai logika awal, panel utama langsung buka, tombol minimize sembunyi
         MainFrame.Size = UDim2.new(0, 520, 0, 300)
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
-        print("[AR FRAMEWORK v6.4]: Full Deploy complete. 8px Grid Shifted + Delete Active.")
+        print("[AR FRAMEWORK v6.6]: Full Advanced Pop-Up Confirmation UI deployed successfully.")
     end)
 end)
