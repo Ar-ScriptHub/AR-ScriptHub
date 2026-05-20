@@ -198,17 +198,21 @@ MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -16, 1, -105)
 MainContentFrame.Position = UDim2.new(0, 0, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
+
+-- KUNCI: CanvasSize X dikunci ke 0 agar tidak ada scroll horizontal, 
+-- tapi lebar halaman total (536px) tetap menjaga space 7px di kanan.
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 MainContentFrame.ScrollBarThickness = 4
 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
 
+-- Pastikan Padding Right disesuaikan biar space 7px lu murni kelihatan di kanan
 local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
 framePadding.PaddingBottom = UDim.new(0, 20)
 framePadding.PaddingLeft = UDim.new(0, 16)
-framePadding.PaddingRight = UDim.new(0, 8)
+framePadding.PaddingRight = UDim.new(0, 0) -- Diubah jadi 0 agar space 7px murni dari layouting lu
 
 local menuContainers = {}
 
