@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - PERFECT ABSOLUTE PIXEL GRID SYSTEM (v6.0 - FINAL)
+-- AR SCRIPT HUB - NO-SCROLLBAR SYMMETRICAL GRID FRAMEWORK (v6.5)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -129,12 +129,12 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL (Lebar fix 560)
+-- MAIN PANEL (Lebar fix 560, Tinggi ditinggikan sedikit ke 360 biar muat banyak tanpa scroll)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
+MainFrame.Size = UDim2.new(0, 560, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -180)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 MainFrame.Visible = false
@@ -149,7 +149,7 @@ Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.0</font>"
+Title.Text = "✨ AR UI PANEL <font color='#c092ff'>v6.5</font>"
 Title.RichText = true
 Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
@@ -192,40 +192,33 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN DENGAN SCROLL
-local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
+-- CANVAS UTAMA KONTEN (SEKARANG FRAME BIASA - TANPA SCROLLBAR)
+local MainContentFrame = Instance.new("Frame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
-MainContentFrame.Size = UDim2.new(1, -16, 1, -105) -- Lebar disisakan ruang 16px total untuk pinggiran luar
+MainContentFrame.Size = UDim2.new(1, 0, 1, -105)
 MainContentFrame.Position = UDim2.new(0, 0, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
-MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-MainContentFrame.ScrollBarThickness = 4
-MainContentFrame.ScrollBarImageColor3 = Theme.Accent
-MainContentFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
 
--- Padding super presisi di dalam Canvas
+-- Padding Simetris Mutlak Kiri & Kanan (Sama-sama 16px)
 local framePadding = Instance.new("UIPadding", MainContentFrame)
 framePadding.PaddingTop = UDim.new(0, 4)
-framePadding.PaddingBottom = UDim.new(0, 20) -- Kasih ruang napas di bawah biar gak terlalu mepet pas pol scroll
-framePadding.PaddingLeft = UDim.new(0, 16)   -- Sisi kiri masuk 16px
-framePadding.PaddingRight = UDim.new(0, 8)   -- Sisi kanan disisakan ruang tipis 8px sebelum menyentuh scrollbar absolut
+framePadding.PaddingBottom = UDim.new(0, 16)
+framePadding.PaddingLeft = UDim.new(0, 16)
+framePadding.PaddingRight = UDim.new(0, 16)
 
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(0, 536, 0, 0) -- KUNCI 1: Semua halaman dipatok lebar absolut 536 piksel!
-    page.AutomaticSize = Enum.AutomaticSize.Y
+    page.Size = UDim2.new(1, 0, 1, 0) -- Mengisi penuh area konten secara simetris
     page.BackgroundTransparency = 1
     page.Visible = isVisible
     
-    -- KUNCI 2: Gunakan UIListLayout Horizontal untuk membagi dua kolom secara otomatis dan presisi
     local pageLayout = Instance.new("UIListLayout", page)
     pageLayout.FillDirection = Enum.FillDirection.Horizontal
     pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    pageLayout.Padding = UDim.new(0, 12) -- Jarak absolut antar kolom kiri dan kanan (12px)
+    pageLayout.Padding = UDim.new(0, 12) -- Jarak pemisah tengah absolut (12px)
     
     menuContainers[name] = page
     return page
@@ -241,7 +234,6 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
-    MainContentFrame.CanvasPosition = Vector2.new(0, 0)
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
@@ -274,9 +266,9 @@ addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- PLACEHOLDER MAKER (Disesuaikan khusus lebar satu baris penuh)
+-- PLACEHOLDER MAKER (Full-width simetris)
 local function buildPlaceholder(pageFrame, titleText)
-    pageFrame.UIListLayout:Destroy() -- Matikan grid dual kolom khusus halaman full width ini
+    pageFrame.UIListLayout:Destroy()
     
     local card = Instance.new("Frame", pageFrame)
     card.Size = UDim2.new(1, 0, 0, 150)
@@ -299,16 +291,15 @@ local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- KUNCI 3: Pembuatan Wadah Kolom Kiri & Kanan Menggunakan Angka Absolut (262px)
+-- KUNCI SIMETRIS MUTLAK: Lebar Kolom Di-patok Sama Rata (258px) Kiri & Kanan!
 local function createColumn(parentName, columnName)
     local col = Instance.new("Frame", menuContainers[parentName])
     col.Name = columnName
-    col.Size = UDim2.new(0, 262, 0, 0) -- Lebar mati 262 piksel, anti goyang, anti bocor!
-    col.AutomaticSize = Enum.AutomaticSize.Y
+    col.Size = UDim2.new(0, 258, 1, 0) -- Lebar adil rata tengah 258px tanpa gangguan scrollbar
     col.BackgroundTransparency = 1
     
     local layout = Instance.new("UIListLayout", col)
-    layout.Padding = UDim.new(0, 12)
+    layout.Padding = UDim.new(0, 10) -- Jarak vertikal antar card diperkecil sedikit biar muat banyak
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     return col
 end
@@ -322,7 +313,7 @@ local espRightColumn = createColumn("ESP", "EspRightColumn")
 -- FUNGSI KREASI CARD AUTOMATIC SIZE
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 0) -- Otomatis mengikuti lebar mutlak kolom (262px)
+    card.Size = UDim2.new(1, 0, 0, 0)
     card.AutomaticSize = Enum.AutomaticSize.Y 
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
@@ -335,7 +326,7 @@ local function createCard(parent, titleText, order)
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border 
     
     local ttl = Instance.new("TextLabel", card)
-    ttl.Size = UDim2.new(1, -12, 0, 26)
+    ttl.Size = UDim2.new(1, -12, 0, 24)
     ttl.Position = UDim2.new(0, 12, 0, 4)
     ttl.Text = titleText:upper()
     ttl.Font = Enum.Font.GothamBold
@@ -347,15 +338,15 @@ local function createCard(parent, titleText, order)
     local container = Instance.new("Frame", card)
     container.Size = UDim2.new(1, -24, 0, 0)
     container.AutomaticSize = Enum.AutomaticSize.Y
-    container.Position = UDim2.new(0, 12, 0, 32)
+    container.Position = UDim2.new(0, 12, 0, 28)
     container.BackgroundTransparency = 1
     
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 12)
+    innerLayout.Padding = UDim.new(0, 10)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
     local pdd = Instance.new("UIPadding", container)
-    pdd.PaddingBottom = UDim.new(0, 12)
+    pdd.PaddingBottom = UDim.new(0, 10)
     
     return container
 end
@@ -363,7 +354,7 @@ end
 -- COMPONENT PRIMITIVES
 local function addToggle(parent, labelText, order)
     local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 24) 
+    holder.Size = UDim2.new(1, 0, 0, 22) 
     holder.BackgroundTransparency = 1 
     holder.LayoutOrder = order
     
@@ -372,7 +363,7 @@ local function addToggle(parent, labelText, order)
     lbl.Size = UDim2.new(1, -40, 1, 0) 
     lbl.Font = Enum.Font.GothamMedium 
     lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 12 
+    lbl.TextSize = 11 
     lbl.TextXAlignment = Enum.TextXAlignment.Left 
     lbl.BackgroundTransparency = 1
     lbl.TextWrapped = true 
@@ -403,7 +394,7 @@ end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order)
     local holder = Instance.new("Frame", parent)
-    holder.Size = UDim2.new(1, 0, 0, 38)
+    holder.Size = UDim2.new(1, 0, 0, 34)
     holder.BackgroundTransparency = 1
     holder.LayoutOrder = order
     
@@ -475,7 +466,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
 end
 
 -- ====================================================================
--- PERAKITAN CARD TAB PLAYER
+-- PERAKITAN KONTEN SIMETRIS: PLAYER
 -- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly", 1)
 addToggle(flyCard, "Fly Mode", 1)
@@ -491,16 +482,16 @@ addToggle(jumpCard, "Super Jump", 1)
 addSliderWithInput(jumpCard, "Super Jump Controller", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump", 3)
 
-local physicsCard = createCard(LeftColumn, "Physics", 3)
+local physicsCard = createCard(RightColumn, "Physics", 2)
 addSliderWithInput(physicsCard, "Gravity Controller", 0, 196, 196, 1)
 addSliderWithInput(physicsCard, "HipHeight Modifier", 0, 20, 2, 2)
 
-local utilCard = createCard(RightColumn, "Utilities", 2)
+local utilCard = createCard(RightColumn, "Utilities", 3)
 addToggle(utilCard, "Anti Ragdoll", 1)
 addToggle(utilCard, "Infinite Oxygen", 2)
 
 -- ====================================================================
--- PERAKITAN CARD TAB ESP
+-- PERAKITAN KONTEN SIMETRIS: ESP
 -- ====================================================================
 local playerEspCard = createCard(espLeftColumn, "Player ESP", 1)
 addToggle(playerEspCard, "Enable ESP", 1)
@@ -513,7 +504,7 @@ addToggle(espSettingsCard, "Team Check", 1)
 addSliderWithInput(espSettingsCard, "Max Distance Controller", 100, 5000, 1000, 2)
 
 -- ====================================================================
--- ANIMATION SYSTEM INTRO & DEPLOY
+-- INTRO ANIMATION SYSTEM
 -- ====================================================================
 task.spawn(function()
     local statusMessages = {
@@ -555,9 +546,9 @@ task.spawn(function()
         MainFrame.Visible = true
         ToggleButton.Visible = true
         
-        MainFrame.Size = UDim2.new(0, 520, 0, 300)
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
+        MainFrame.Size = UDim2.new(0, 520, 0, 320)
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 360)}):Play()
         
-        print("[AR FRAMEWORK]: Absolute 536px Pixel-Perfect Alignment Implemented!")
+        print("[AR FRAMEWORK]: Symmetrical No-Scroll Framework (v6.5) Deployed!")
     end)
 end)
