@@ -147,7 +147,7 @@ local function handleFlyEngine()
             -- Kalkulasi kecepatan dasar dari arah kamera
             local finalVelocity = (direction.Magnitude > 0) and (direction.Unit * speed) or Vector3.new(0, 0, 0)
             
-            -- Integrasi tombol Space & LeftShift untuk kontrol vertikal murni tanpa merusak kalkulasi utama
+            -- Integrasi tombol Space & LeftShift untuk kontrol vertikal murni
             local verticalSpeed = 0
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                 verticalSpeed = speed
@@ -169,6 +169,7 @@ local function handleFlyEngine()
         stopFlying()
     end)
 end
+
 -- Infinite Jump Engine menggunakan JumpRequest (100% bypass)
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
@@ -185,7 +186,7 @@ RunService.Stepped:Connect(function()
         for _, part in pairs(Player.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
                 part.CanCollide = false
-            end
+           end
         end
     end
 end)
@@ -230,7 +231,7 @@ local function cleanESP(target)
         if espCache[target].Label then espCache[target].Label:Destroy() end
         if espCache[target].Highlight then espCache[target].Highlight:Destroy() end
         espCache[target] = nil
-    end
+   end
 end
 
 local function buildESP(target)
@@ -259,7 +260,7 @@ local function buildESP(target)
                 local b = Instance.new("BoxHandleAdornment")
                 b.Size = Vector3.new(4, 5.5, 4) b.Color3 = Theme.Accent b.AlwaysOnTop = true b.Transparency = 0.6
                 espCache[target].Box = b
-            end
+           end
             espCache[target].Box.Adornee = tChar espCache[target].Box.Parent = SafeGuiTarget
         else
             if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
@@ -268,10 +269,10 @@ local function buildESP(target)
         -- 2. NAME & DISTANCE ESP
         if Config.ShowNames and onScreen then
             if not espCache[target].Label then
-                local bgui = Instance.new("BillboardGui") bgui.Size = UDim2.new(0, 150, 0, 40) bgui.AlwaysOnTop = true bgui.StudsOffset = Vector3.new(0, 3, 0)
+               local bgui = Instance.new("BillboardGui") bgui.Size = UDim2.new(0, 150, 0, 40) bgui.AlwaysOnTop = true bgui.StudsOffset = Vector3.new(0, 3, 0)
                 local txt = Instance.new("TextLabel", bgui) txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextColor3 = Theme.TextMain txt.Font = Enum.Font.GothamBold txt.TextSize = 10
                 espCache[target].Label = bgui espCache[target].TxtObject = txt
-            end
+           end
             espCache[target].TxtObject.Text = string.format("%s\n[%d m]", target.DisplayName, math.round(distance))
             espCache[target].Label.Adornee = tHrp espCache[target].Label.Parent = SafeGuiTarget
         else
@@ -280,12 +281,12 @@ local function buildESP(target)
 
         -- 3. BODY GLOW ESP (HIGHLIGHTS - ALWAYS ON TOP)
         if Config.ShowGlow then
-            if not espCache[target].Highlight then
+           if not espCache[target].Highlight then
                 local hl = Instance.new("Highlight")
                 hl.FillColor = Theme.AccentPurple
                 hl.FillTransparency = 0.4
                 hl.OutlineColor = Theme.TextMain
-                hl.OutlineTransparency = 0.1
+               hl.OutlineTransparency = 0.1
                 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                 espCache[target].Highlight = hl
             end
@@ -803,7 +804,7 @@ function refreshLandmarksUI()
     for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
     local currentMapData = AllWaypoints[CurrentPlaceId] or {}
     local indexOrder = 1
-    for wpName, coord in pairs(currentMapData) do
+     for wpName, coord in pairs(currentMapData) do
         local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
         local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📍 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
         
@@ -814,7 +815,7 @@ function refreshLandmarksUI()
         end)
         
         local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-        delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
+         delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
         indexOrder = indexOrder + 1
     end
     if indexOrder == 1 then
@@ -829,7 +830,7 @@ btnSavePos.MouseButton1Click:Connect(function()
             local currentPos = Player.Character.HumanoidRootPart.Position
             AllWaypoints[CurrentPlaceId][name] = {math.round(currentPos.X * 100) / 100, math.round(currentPos.Y * 100) / 100, math.round(currentPos.Z * 100) / 100}
             saveWaypointsToStorage() wpNameInput.Text = "" refreshLandmarksUI()
-        end
+         end
     end
 end)
 refreshLandmarksUI()
@@ -858,7 +859,7 @@ task.spawn(function()
         end
         
         -- Mengambil Data Ping Langsung Dari Roblox Stats Service secara Aman
-        local pingVal = 0
+         local pingVal = 0
         pcall(function()
             pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
         end)
@@ -866,14 +867,14 @@ task.spawn(function()
         if pingVal <= 0 then pingVal = 15 end -- Safety Cap Minimum
         
         local sTime = math.round(workspace.DistributedGameTime)
-        local hours = string.format("%02d", math.floor(sTime / 3600))
+         local hours = string.format("%02d", math.floor(sTime / 3600))
         local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
         local seconds = string.format("%02d", sTime % 60)
         
         lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(currentFps) .. " FPS</font>"
         lblFps.RichText = true
         lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingVal) .. " ms</font>"
-        lblPing.RichText = true
+         lblPing.RichText = true
         lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>"
         lblTime.RichText = true
     end
