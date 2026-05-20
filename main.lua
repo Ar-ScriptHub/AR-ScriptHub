@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - STRICT AUTO-SIZING & ANTI-BOX LEAKING FRAMEWORK
+-- AR SCRIPT HUB - OPTIMIZED SCROLLING & AUTO-SIZE CARD FRAMEWORK
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -16,7 +16,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 999999999
+MainGui.DisplayOrder = 999999999 -- Di atas semua elemen GUI game
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
@@ -73,11 +73,11 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL
+-- MAIN PANEL (Dibuat Lebih Pendek/Compact)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 320)
+MainFrame.Size = UDim2.new(0, 560, 0, 320) -- Tinggi diturunkan dari 420 ke 320 agar compact
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -160)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
@@ -135,7 +135,7 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN DENGAN SCROLL
+-- CANVAS UTAMA KONTEN (Diubah Menjadi ScrollingFrame Agar Bisa Di-scroll Kebawah)
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
@@ -144,14 +144,14 @@ MainContentFrame.BackgroundTransparency = 1
 MainContentFrame.ScrollBarThickness = 4
 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Memanjang otomatis ke bawah secara dinamis
 
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 0, 0)
+    page.Size = UDim2.new(1, 0, 0, 0) -- Otomatis mengikuti isi layouting grid
     page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
@@ -169,6 +169,7 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
+    -- Reset posisi scroll kembali ke paling atas setiap ganti tab menu
     MainContentFrame.CanvasPosition = Vector2.new(0, 0)
 end
 
@@ -243,11 +244,11 @@ RightColumn.BackgroundTransparency = 1
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Padding = UDim.new(0, 12) rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- FUNGSI KREASI CARD ANTI BOCOR (FIXED AUTOMATICSIZE)
+-- FIX KEBOCORAN LAYOUT: Mengaktifkan AutomaticSize.Y pada Card
 local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
     card.Size = UDim2.new(1, 0, 0, 0)
-    card.AutomaticSize = Enum.AutomaticSize.Y 
+    card.AutomaticSize = Enum.AutomaticSize.Y -- Card membesar sendiri otomatis mengikuti jumlah objek di dalamnya
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
@@ -271,46 +272,22 @@ local function createCard(parent, titleText, order)
     container.BackgroundTransparency = 1
     
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 12) -- Jarak antar komponen di dalam card diperlebar sedikit
+    innerLayout.Padding = UDim.new(0, 10)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
+    -- Memberikan ruang udara/padding di bagian paling bawah dalam card agar tidak mepet garis border
     local pdd = Instance.new("UIPadding", container)
     pdd.PaddingBottom = UDim.new(0, 12)
     
     return container
 end
 
--- COMPONENT PRIMITIVES (FIXED TEXTWRAPPED ANTI OUT OF BOX)
+-- COMPONENT PRIMITIVES
 local function addToggle(parent, labelText, order)
-    local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 24) 
-    holder.BackgroundTransparency = 1 
-    holder.LayoutOrder = order
-    
-    local lbl = Instance.new("TextLabel", holder) 
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(1, -40, 1, 0) -- Berikan ruang agar tidak tumpang tindih dengan saklar
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 12 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
-    lbl.TextWrapped = true -- ANTI OUT OF BOX: Teks otomatis ganti baris jika terlalu panjang
-
-    local track = Instance.new("TextButton", holder) 
-    track.Size = UDim2.new(0, 32, 0, 16) 
-    track.Position = UDim2.new(1, -32, 0.5, -8) 
-    track.BackgroundColor3 = Theme.Bg 
-    track.Text = "" 
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) 
-    local tStr = Instance.new("UIStroke", track) 
-    tStr.Color = Theme.Stroke
-    
-    local knob = Instance.new("Frame", track) 
-    knob.Size = UDim2.new(0, 10, 0, 10) 
-    knob.Position = UDim2.new(0, 3, 0.5, -5) 
-    knob.BackgroundColor3 = Theme.TextMuted 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+    local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+    local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.7, 0, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+    local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
     local active = false
     track.MouseButton1Click:Connect(function()
@@ -323,5 +300,96 @@ end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order)
     local holder = Instance.new("Frame", parent)
-    holder.Size = UDim2.new(1, 0, 0, 36) -- Dinaikkan tinggi penampungnya agar aman dari kebocoran visual
-    holder.BackgroundTransparency
+    holder.Size = UDim2.new(1, 0, 0, 34)
+    holder.BackgroundTransparency = 1
+    holder.LayoutOrder = order
+    
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = labelText lbl.Size = UDim2.new(0.6, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+
+    local inputBox = Instance.new("TextBox", holder)
+    inputBox.Size = UDim2.new(0, 38, 0, 16) -- Diperlebar sedikit agar angka ratusan muat aman
+    inputBox.Position = UDim2.new(1, -38, 0, 0)
+    inputBox.BackgroundColor3 = Theme.Bg
+    inputBox.Font = Enum.Font.GothamBold
+    inputBox.Text = tostring(defaultVal)
+    inputBox.TextColor3 = Theme.Accent
+    inputBox.TextSize = 10
+    inputBox.ClearTextOnFocus = false
+    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4)
+    local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+
+    local track = Instance.new("Frame", holder)
+    track.Size = UDim2.new(1, 0, 0, 4)
+    track.Position = UDim2.new(0, 0, 1, -4)
+    track.BackgroundColor3 = Theme.Stroke
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+
+    local fill = Instance.new("Frame", track)
+    local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1)
+    fill.Size = UDim2.new(startPerc, 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+
+    local knob = Instance.new("Frame", track)
+    knob.Size = UDim2.new(0, 10, 0, 10)
+    knob.Position = UDim2.new(startPerc, -5, 0.5, -5)
+    knob.BackgroundColor3 = Theme.TextMain
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", knob).Color = Theme.AccentPurple
+
+    local dragTrigger = Instance.new("ImageButton", knob)
+    dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1 dragTrigger.Image = ""
+
+    local function refreshVisuals(value)
+        local clampedValue = math.clamp(value, min, max)
+        local perc = (clampedValue - min) / (max - min)
+        fill.Size = UDim2.new(perc, 0, 1, 0)
+        knob.Position = UDim2.new(perc, -5, 0.5, -5)
+        inputBox.Text = tostring(clampedValue)
+    end
+
+    local sliding = false
+    dragTrigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local relX = input.Position.X - track.AbsolutePosition.X
+            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+            local finalVal = math.round(min + (perc * (max - min)))
+            refreshVisuals(finalVal)
+        end
+    end)
+
+    inputBox.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(inputBox.Text)
+        if num then refreshVisuals(num) else inputBox.Text = tostring(min) refreshVisuals(min) end
+    end)
+end
+
+-- ====================================================================
+-- PERAKITAN CARD (DENGAN PERBAIKAN UKURAN OTOMATIS)
+-- ====================================================================
+
+-- 1. CARD FLY (Kolom Kiri - Atas) -> Sekarang otomatis menyesuaikan tinggi
+local flyCard = createCard(LeftColumn, "Fly", 1)
+addToggle(flyCard, "Toggle Fly Mode", 1)
+addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
+addToggle(flyCard, "Noclip Activator", 3)
+
+-- 2. CARD WALKSPEED (Kolom Kiri - Bawah) -> Sekarang otomatis menyesuaikan tinggi
+local walkCard = createCard(LeftColumn, "Walkspeed", 2)
+addToggle(walkCard, "Toggle Speed Bypass", 1)
+addSliderWithInput(walkCard, "Velocity Speed Magnitude", 16, 250, 16, 2)
+
+-- 3. CARD JUMP (Kolom Kanan - Atas) -> Sekarang otomatis menyesuaikan tinggi
+local jumpCard = createCard(RightColumn, "Jump", 1)
+addToggle(jumpCard, "Toggle Jump Bypass", 1)
+addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
+addToggle(jumpCard, "Infinite Jump Engine", 3)
+
+print("[AR FRAMEWORK]: Layout Fixed! Auto-Sizing & Scrolling Active.")
