@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - CUSTOM TOP BAR FRAMEWORK (CLEAN & SECURE)
+-- AR SCRIPT HUB - OPTIMIZED SCROLLING & AUTO-SIZE CARD FRAMEWORK
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -16,7 +16,7 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 999999999 -- Menempatkan UI di atas semua GUI game bawaan
+MainGui.DisplayOrder = 999999999 -- Di atas semua elemen GUI game
 
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
@@ -73,12 +73,12 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL
+-- MAIN PANEL (Dibuat Lebih Pendek/Compact)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
-MainFrame.Size = UDim2.new(0, 560, 0, 420) -- Dimensi disesuaikan untuk layout grid baru
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -210)
+MainFrame.Size = UDim2.new(0, 560, 0, 320) -- Tinggi diturunkan dari 420 ke 320 agar compact
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -160)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
@@ -115,9 +115,7 @@ makeDraggable(MainFrame, Header)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- ====================================================================
 -- TOP BAR NAVIGATION MENU
--- ====================================================================
 local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
 TopBarNav.Size = UDim2.new(1, -32, 0, 36)
@@ -137,19 +135,24 @@ NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav)
 paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS UTAMA KONTEN
-local MainContentFrame = Instance.new("Frame", MainFrame)
+-- CANVAS UTAMA KONTEN (Diubah Menjadi ScrollingFrame Agar Bisa Di-scroll Kebawah)
+local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -32, 1, -105)
 MainContentFrame.Position = UDim2.new(0, 16, 0, 95)
 MainContentFrame.BackgroundTransparency = 1
+MainContentFrame.ScrollBarThickness = 4
+MainContentFrame.ScrollBarImageColor3 = Theme.Accent
+MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Memanjang otomatis ke bawah secara dinamis
 
 local menuContainers = {}
 
 local function createMenuPage(name, isVisible)
     local page = Instance.new("Frame", MainContentFrame)
     page.Name = name .. "Page"
-    page.Size = UDim2.new(1, 0, 1, 0)
+    page.Size = UDim2.new(1, 0, 0, 0) -- Otomatis mengikuti isi layouting grid
+    page.AutomaticSize = Enum.AutomaticSize.Y
     page.BackgroundTransparency = 1
     page.Visible = isVisible
     menuContainers[name] = page
@@ -166,6 +169,8 @@ local function switchTab(tabName)
     for name, page in pairs(menuContainers) do
         page.Visible = (name == tabName)
     end
+    -- Reset posisi scroll kembali ke paling atas setiap ganti tab menu
+    MainContentFrame.CanvasPosition = Vector2.new(0, 0)
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
@@ -183,7 +188,7 @@ local function addTopBarButton(textDisplay, tabTarget, order)
     
     btn.MouseButton1Click:Connect(function()
         for _, child in pairs(TopBarNav:GetChildren()) do
-            if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain bStroke.Color = Theme.Stroke end
+            if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain end
         end
         btn.TextColor3 = Theme.Accent
         switchTab(tabTarget)
@@ -192,18 +197,16 @@ local function addTopBarButton(textDisplay, tabTarget, order)
 end
 
 local btnPlayer = addTopBarButton("👤 Player", "Player", 1)
-btnPlayer.TextColor3 = Theme.Accent -- Set active secara default
+btnPlayer.TextColor3 = Theme.Accent
 addTopBarButton("👁️ ESP", "ESP", 2)
 addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- ====================================================================
--- PLACEHOLDER MAKER FOR OTHER PAGES
--- ====================================================================
+-- PLACEHOLDER MAKER
 local function buildPlaceholder(pageFrame, titleText)
     local card = Instance.new("Frame", pageFrame)
-    card.Size = UDim2.new(1, 0, 1, 0)
+    card.Size = UDim2.new(1, 0, 0, 150)
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -219,32 +222,33 @@ buildPlaceholder(tpPage, "TELEPORTATION")
 buildPlaceholder(serverPage, "SERVER")
 
 -- SETTING PAGE WITH DESTROY ACTION ONLY
-local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,1,0) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
+local setCard = Instance.new("Frame", settingPage) setCard.Size = UDim2.new(1,0,0,150) setCard.BackgroundColor3 = Theme.CardBg setCard.BackgroundTransparency = Theme.CardTrans Instance.new("UICorner", setCard).CornerRadius = UDim.new(0,8) Instance.new("UIStroke", setCard).Color = Theme.Stroke
 local destBtn = Instance.new("TextButton", setCard) destBtn.Size = UDim2.new(0, 160, 0, 32) destBtn.Position = UDim2.new(0.5, -80, 0.5, -16) destBtn.BackgroundColor3 = Theme.Bg destBtn.Font = Enum.Font.GothamBold destBtn.Text = "🔴 Destroy System UI" destBtn.TextColor3 = Theme.AccentPurple destBtn.TextSize = 12 Instance.new("UICorner", destBtn).CornerRadius = UDim.new(0,5) Instance.new("UIStroke", destBtn).Color = Theme.Stroke
 destBtn.MouseButton1Click:Connect(function() MainGui:Destroy() end)
 
--- ====================================================================
 -- GRID GENERATOR FOR PLAYER PAGE (KOLOM KIRI & KANAN)
--- ====================================================================
 local LeftColumn = Instance.new("Frame", playerPage)
 LeftColumn.Name = "LeftColumn"
-LeftColumn.Size = UDim2.new(0.5, -6, 1, 0)
+LeftColumn.Size = UDim2.new(0.5, -6, 0, 0)
+LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
 LeftColumn.Position = UDim2.new(0, 0, 0, 0)
 LeftColumn.BackgroundTransparency = 1
 
 local RightColumn = Instance.new("Frame", playerPage)
 RightColumn.Name = "RightColumn"
-RightColumn.Size = UDim2.new(0.5, -6, 1, 0)
+RightColumn.Size = UDim2.new(0.5, -6, 0, 0)
+RightColumn.AutomaticSize = Enum.AutomaticSize.Y
 RightColumn.Position = UDim2.new(0.5, 6, 0, 0)
 RightColumn.BackgroundTransparency = 1
 
--- UI Layouts internal untuk mengatur tumpukan card vertikal di dalam kolom
 local leftLayout = Instance.new("UIListLayout", LeftColumn) leftLayout.Padding = UDim.new(0, 12) leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local rightLayout = Instance.new("UIListLayout", RightColumn) rightLayout.Padding = UDim.new(0, 12) rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-local function createCard(parent, titleText, sizeY, order)
+-- FIX KEBOCORAN LAYOUT: Mengaktifkan AutomaticSize.Y pada Card
+local function createCard(parent, titleText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, sizeY)
+    card.Size = UDim2.new(1, 0, 0, 0)
+    card.AutomaticSize = Enum.AutomaticSize.Y -- Card membesar sendiri otomatis mengikuti jumlah objek di dalamnya
     card.BackgroundColor3 = Theme.CardBg
     card.BackgroundTransparency = Theme.CardTrans
     card.LayoutOrder = order
@@ -262,20 +266,23 @@ local function createCard(parent, titleText, sizeY, order)
     ttl.TextXAlignment = Enum.TextXAlignment.Left
     
     local container = Instance.new("Frame", card)
-    container.Size = UDim2.new(1, -24, 1, -34)
-    container.Position = UDim2.new(0, 12, 0, 30)
+    container.Size = UDim2.new(1, -24, 0, 0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
+    container.Position = UDim2.new(0, 12, 0, 32)
     container.BackgroundTransparency = 1
     
     local innerLayout = Instance.new("UIListLayout", container)
-    innerLayout.Padding = UDim.new(0, 8)
+    innerLayout.Padding = UDim.new(0, 10)
     innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    -- Memberikan ruang udara/padding di bagian paling bawah dalam card agar tidak mepet garis border
+    local pdd = Instance.new("UIPadding", container)
+    pdd.PaddingBottom = UDim.new(0, 12)
     
     return container
 end
 
--- ====================================================================
--- COMPONENT PRIMITIVES (TOGGLE & SLIDER DENGAN INPUT MANUAL)
--- ====================================================================
+-- COMPONENT PRIMITIVES
 local function addToggle(parent, labelText, order)
     local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
     local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.7, 0, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
@@ -300,10 +307,9 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
     local lbl = Instance.new("TextLabel", holder)
     lbl.Text = labelText lbl.Size = UDim2.new(0.6, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
 
-    -- INPUT MANUAL BOX (TextBox di Sebelah Kanan Slider)
     local inputBox = Instance.new("TextBox", holder)
-    inputBox.Size = UDim2.new(0, 34, 0, 16)
-    inputBox.Position = UDim2.new(1, -34, 0, 0)
+    inputBox.Size = UDim2.new(0, 38, 0, 16) -- Diperlebar sedikit agar angka ratusan muat aman
+    inputBox.Position = UDim2.new(1, -38, 0, 0)
     inputBox.BackgroundColor3 = Theme.Bg
     inputBox.Font = Enum.Font.GothamBold
     inputBox.Text = tostring(defaultVal)
@@ -343,7 +349,6 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         inputBox.Text = tostring(clampedValue)
     end
 
-    -- Event 1: Menggeser Slider Manual
     local sliding = false
     dragTrigger.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
@@ -360,37 +365,31 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         end
     end)
 
-    -- Event 2: Mengetik Angka Manual Lewat TextBox
     inputBox.FocusLost:Connect(function(enterPressed)
         local num = tonumber(inputBox.Text)
-        if num then
-            refreshVisuals(num)
-        else
-            inputBox.Text = tostring(min)
-            refreshVisuals(min)
-        end
+        if num then refreshVisuals(num) else inputBox.Text = tostring(min) refreshVisuals(min) end
     end)
 end
 
 -- ====================================================================
--- PERAKITAN CARD PADA LAYOUT GRID PLAYER
+-- PERAKITAN CARD (DENGAN PERBAIKAN UKURAN OTOMATIS)
 -- ====================================================================
 
--- 1. CARD FLY (Kolom Kiri - Atas)
-local flyCard = createCard(LeftColumn, "Fly", 115, 1)
+-- 1. CARD FLY (Kolom Kiri - Atas) -> Sekarang otomatis menyesuaikan tinggi
+local flyCard = createCard(LeftColumn, "Fly", 1)
 addToggle(flyCard, "Toggle Fly Mode", 1)
 addSliderWithInput(flyCard, "Fly Speed Controller", 1, 100, 16, 2)
 addToggle(flyCard, "Noclip Activator", 3)
 
--- 2. CARD WALKSPEED (Kolom Kiri - Bawah)
-local walkCard = createCard(LeftColumn, "Walkspeed", 82, 2)
+-- 2. CARD WALKSPEED (Kolom Kiri - Bawah) -> Sekarang otomatis menyesuaikan tinggi
+local walkCard = createCard(LeftColumn, "Walkspeed", 2)
 addToggle(walkCard, "Toggle Speed Bypass", 1)
 addSliderWithInput(walkCard, "Velocity Speed Magnitude", 16, 250, 16, 2)
 
--- 3. CARD JUMP (Kolom Kanan - Atas)
-local jumpCard = createCard(RightColumn, "Jump", 115, 1)
+-- 3. CARD JUMP (Kolom Kanan - Atas) -> Sekarang otomatis menyesuaikan tinggi
+local jumpCard = createCard(RightColumn, "Jump", 1)
 addToggle(jumpCard, "Toggle Jump Bypass", 1)
 addSliderWithInput(jumpCard, "Jump Power Magnitude", 50, 500, 50, 2)
 addToggle(jumpCard, "Infinite Jump Engine", 3)
 
-print("[AR FRAMEWORK]: Grid Layout & Manual Inputs Implemented Successfully!")
+print("[AR FRAMEWORK]: Layout Fixed! Auto-Sizing & Scrolling Active.")
