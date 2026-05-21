@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.8 CORE ENGINE REWORK (INTEGRATED KEY SYSTEM)
+-- AR SCRIPT HUB - v6.8 CORE ENGINE REWORK (WITH DISCORD KEY SYSTEM)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -39,7 +39,7 @@ local Theme = {
 -- ====================================================================
 local KEY_CONFIG = {
     ApiUrl = "http://192.168.1.17:3000/validate?key=", 
-    GetKeyLink = "https://discord.gg/invite-server-kamu", -- Taruh link invite Discord-mu di sini
+    GetKeyLink = "https://discord.gg/invite-server-kamu", -- Masukkan link invite Discord-mu
     Verified = false
 }
 
@@ -142,7 +142,6 @@ local State = {
     JumpHack = false, JumpValue = 50, TeleportSelected = ""
 }
 
--- UI IN-MEMORY CACHE DEFINITION
 local NavigationTabs = {}
 local ContentPanels = {}
 local activeTab = nil
@@ -155,7 +154,7 @@ MainFrame.Size = UDim2.new(0, 560, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = Theme.BgTrans
-MainFrame.Visible = false -- Sembunyikan dulu sampai key diverifikasi
+MainFrame.Visible = false -- Disembunyikan dulu untuk Key System
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mfStroke = Instance.new("UIStroke", MainFrame)
 mfStroke.Color = Theme.Stroke
@@ -169,7 +168,7 @@ LoadingFrame.Size = UDim2.new(0, 380, 0, 140)
 LoadingFrame.Position = UDim2.new(0.5, -190, 0.5, -70)
 LoadingFrame.BackgroundColor3 = Theme.Bg
 LoadingFrame.BackgroundTransparency = Theme.BgTrans
-LoadingFrame.Visible = false -- Sembunyikan dulu sampai key diverifikasi
+LoadingFrame.Visible = false -- Disembunyikan dulu untuk Key System
 Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
 local loadStroke = Instance.new("UIStroke", LoadingFrame)
 loadStroke.Color = Theme.Stroke
@@ -528,30 +527,54 @@ local function CreateDropdown(parent, text, list, stateKey, callback)
 end
 
 -- ====================================================================
--- MODUL LAYOUT INTERFACE GENERATION
+-- MODUL LAYOUT INTERFACE GENERATION (BALIK KE MENU ASLI KAMU)
 -- ====================================================================
 local CombatPanel = CreateTab("Combat Engine")
 local MovementPanel = CreateTab("Movement Core")
 local VisualsPanel = CreateTab("Visuals Engine")
+local AutomationPanel = CreateTab("Automation Panel")
+local MiscPanel = CreateTab("Miscellaneous")
 
 local AimbotSec = CreateSection(CombatPanel, "Aimbot Mechanism")
 CreateToggle(AimbotSec, "Aktifkan Aimbot Core", "Aimbot", function(v) end)
 CreateSlider(AimbotSec, "Aimbot Smoothing Matrix", 1, 10, 1, "AimSmooth", function(v) end)
 CreateDropdown(AimbotSec, "Target Lock Allocation", {"Head", "Torso", "HumanoidRootPart"}, "AimPart", function(v) end)
+CreateToggle(AimbotSec, "Team Check Verification", "TeamCheck", function(v) end)
 
 local FlightSec = CreateSection(MovementPanel, "Flight Matrix Vector")
+local BaseWalkSec = CreateSection(MovementPanel, "Statistika Karakter")
 CreateToggle(FlightSec, "Aktifkan Modul Fly Vector", "Fly", function(v) end)
 CreateSlider(FlightSec, "Akselerasi Kecepatan Terbang", 10, 200, 50, "FlySpeed", function(v) end)
-
-local SpeedSec = CreateSection(MovementPanel, "Statistika Karakter")
-CreateToggle(SpeedSec, "Bypass Batas WalkSpeed", "SpeedHack", function(v) end)
-CreateSlider(SpeedSec, "Amplifikasi Nilai Kecepatan", 16, 250, 16, "SpeedValue", function(v) end)
+CreateToggle(BaseWalkSec, "Bypass Batas WalkSpeed", "SpeedHack", function(v) end)
+CreateSlider(BaseWalkSec, "Amplifikasi Nilai Kecepatan", 16, 250, 16, "SpeedValue", function(v) end)
+CreateToggle(BaseWalkSec, "Bypass Batas JumpPower", "JumpHack", function(v) end)
+CreateSlider(BaseWalkSec, "Amplifikasi Daya Lompat", 50, 300, 50, "JumpValue", function(v) end)
+CreateToggle(BaseWalkSec, "Infinite Jump Dynamics", "InfJump", function(v) end)
+CreateToggle(BaseWalkSec, "Phase Noclip Collision", "Noclip", function(v) end)
 
 local RenderSec = CreateSection(VisualsPanel, "Quantum Render Option")
 CreateToggle(RenderSec, "Sensivitas Chams Visual", "ESP_Chams", function(v) end)
 CreateToggle(RenderSec, "Bounding Box Frame", "ESP_Boxes", function(v) end)
+CreateToggle(RenderSec, "Identifikasi Nama Objek", "ESP_Names", function(v) end)
+CreateToggle(RenderSec, "Tracer Vector Link", "ESP_Tracer", function(v) end)
 
--- DEFAULT NAVIGATION SELECTION PRE-START
+local MacroSec = CreateSection(AutomationPanel, "Macro Script Engine")
+CreateToggle(MacroSec, "Looping Auto Farm State", "AutoFarm", function(v) end)
+CreateSlider(MacroSec, "Velocity Interpolasi Farm", 10, 150, 50, "AutoFarmSpeed", function(v) end)
+CreateDropdown(MacroSec, "Alokasi Target Entitas", {"Mob_Level1", "Mob_Level2", "Boss_Alpha"}, "TargetSelected", function(v) end)
+
+local SystemSec = CreateSection(MiscPanel, "Utilitas & Jaringan")
+CreateDropdown(SystemSec, "Teleportasi Koordinat Zona", {"Spawn Area", "Shop District", "PVP Arena", "Dungeon Portal"}, "TeleportSelected", function(v)
+    local p = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if p then
+        if v == "Spawn Area" then p.CFrame = CFrame.new(0, 50, 0)
+        elseif v == "Shop District" then p.CFrame = CFrame.new(100, 50, 100)
+        elseif v == "PVP Arena" then p.CFrame = CFrame.new(-200, 20, -50)
+        elseif v == "Dungeon Portal" then p.CFrame = CFrame.new(500, 100, 500) end
+    end
+end)
+
+-- DEFAULT SELECTION PRE-START
 NavigationTabs["Combat Engine"].b.BackgroundTransparency = 0
 NavigationTabs["Combat Engine"].b.TextColor3 = Theme.Accent
 NavigationTabs["Combat Engine"].s.Transparency = 0
@@ -559,11 +582,11 @@ CombatPanel.Visible = true
 activeTab = "Combat Engine"
 
 -- ====================================================================
--- COUPLING RUNNER (DENGAN VALIDASI KEY SYSTEM)
+-- SYSTEM INTRO LOADING SEQUENCE & COUPLING RUNNER
 -- ====================================================================
 local function startMainScriptLoading()
-    KeyFrame:Destroy() -- Hapus UI Key karena sudah sukses
-    LoadingFrame.Visible = true -- Munculkan loading screen bawaan
+    KeyFrame:Destroy() -- Hapus UI Key karena sukses
+    LoadingFrame.Visible = true -- Tampilkan loading screen asli kamu
     
     task.spawn(function()
         local stages = {
@@ -597,14 +620,14 @@ local function startMainScriptLoading()
         f.Completed:Connect(function()
             LoadingFrame:Destroy()
             MainFrame.Visible = true
-            ToggleButton.Visible = true -- Tampilkan tombol toggle setelah masuk menu utama
+            ToggleButton.Visible = true
             MainFrame.Size = UDim2.new(0, 520, 0, 300)
             TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         end)
     end)
 end
 
--- Hubungkan Tombol "Check Key" ke API Node.js di laptop kamu
+-- LOGIKA KLIK TOMBOL VERIFIKASI KEY
 BtnCheckKey.MouseButton1Click:Connect(function()
     local userKey = KeyInput.Text
     if userKey == "" then
@@ -615,7 +638,6 @@ BtnCheckKey.MouseButton1Click:Connect(function()
 
     KeyStatus.Text = "Memverifikasi key ke bot Discord..."
     
-    -- Tembak request ke server API lokal laptop
     local success, response = pcall(function()
         return game:HttpGet(KEY_CONFIG.ApiUrl .. HttpService:UrlEncode(userKey))
     end)
@@ -632,7 +654,7 @@ BtnCheckKey.MouseButton1Click:Connect(function()
         else
             KeyStatus.Text = "<font color='#ff5a5a'>Key Salah atau Tidak Ditemukan!</font>"
             KeyStatus.RichText = true
-            -- Efek guncangan (shake) UI
+            -- Efek guncangan UI
             local originalPos = KeyFrame.Position
             for i = 1, 5 do
                 KeyFrame.Position = originalPos + UDim2.new(0, math.random(-4, 4), 0, 0)
