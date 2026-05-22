@@ -53,7 +53,8 @@ local Theme = {
     TextMuted = Color3.fromRGB(140, 145, 175),
     DeleteRed = Color3.fromRGB(255, 90, 90),
     DeleteBg = Color3.fromRGB(50, 25, 35),
-    ConfirmGreen = Color3.fromRGB(90, 255, 140)
+    ConfirmGreen = Color3.fromRGB(90, 255, 140),
+    DiscordBlue = Color3.fromRGB(88, 101, 242) -- Ditambahkan warna tema asli Discord
 }
 
 -- ====================================================================
@@ -820,13 +821,50 @@ task.spawn(function()
             MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
             TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         else
+            -- Modifikasi Ukuran Frame Key Agar Elemen Baru Muat Sempurna & Rapi
             local KeyFrame = Instance.new("Frame")
-            KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 300, 0, 160) KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -80) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
+            KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 320, 0, 170) KeyFrame.Position = UDim2.new(0.5, -160, 0.5, -85) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
             local keyStroke = Instance.new("UIStroke", KeyFrame) keyStroke.Color = Theme.AccentPurple keyStroke.Thickness = 1.5
 
             local KeyTitle = Instance.new("TextLabel", KeyFrame) KeyTitle.Size = UDim2.new(1, 0, 0, 40) KeyTitle.Position = UDim2.new(0, 0, 0, 10) KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" KeyTitle.Font = Enum.Font.GothamBold KeyTitle.TextColor3 = Theme.TextMain KeyTitle.TextSize = 13 KeyTitle.BackgroundTransparency = 1
+            
             local KeyInput = Instance.new("TextBox", KeyFrame) KeyInput.Size = UDim2.new(1, -40, 0, 32) KeyInput.Position = UDim2.new(0, 20, 0, 55) KeyInput.BackgroundColor3 = Theme.CardBg KeyInput.Font = Enum.Font.GothamMedium KeyInput.PlaceholderText = "Paste key here..." KeyInput.Text = "" KeyInput.TextColor3 = Theme.TextMain KeyInput.PlaceholderColor3 = Theme.TextMuted KeyInput.TextSize = 11 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
-            local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -40, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -50) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+            
+            -- MODIFIKASI: Tombol "VERIFY KEY" disesuaikan lebarnya agar bisa berbagi tempat dengan tombol Discord
+            local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -95, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -50) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+
+            -- PENAMBAHAN: Tombol Discord Baru Berwarna Blurple khas Discord
+            local DiscordBtn = Instance.new("TextButton", KeyFrame)
+            DiscordBtn.Name = "DiscordBtn"
+            DiscordBtn.Size = UDim2.new(0, 45, 0, 32)
+            DiscordBtn.Position = UDim2.new(1, -65, 1, -50)
+            DiscordBtn.BackgroundColor3 = Theme.DiscordBlue
+            DiscordBtn.Text = "" -- Kosong karena digantikan gambar logo
+            Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 5)
+            local dStroke = Instance.new("UIStroke", DiscordBtn) dStroke.Color = Theme.Stroke
+
+            -- PENAMBAHAN: Gambar Logo Discord Transparan HD Resmi Roblox
+            local DiscordImg = Instance.new("ImageLabel", DiscordBtn)
+            DiscordImg.Size = UDim2.new(0, 20, 0, 20)
+            DiscordImg.Position = UDim2.new(0.5, -10, 0.5, -10)
+            DiscordImg.BackgroundTransparency = 1
+            DiscordImg.Image = "rbxassetid://12311440698" -- Asset ID Logo Discord HD
+
+            -- LOGIKA: Salin Link Discord Otomatis ke Clipboard saat Tombol Diklik
+            DiscordBtn.MouseButton1Click:Connect(function()
+                if setclipboard then
+                    setclipboard("https://discord.gg/szU4KAAB")
+                    KeyInput.Text = ""
+                    KeyInput.PlaceholderText = "DISCORD LINK COPIED!"
+                    KeyInput.PlaceholderColor3 = Theme.Accent
+                    task.wait(1.5)
+                    KeyInput.PlaceholderText = "Paste key here..."
+                    KeyInput.PlaceholderColor3 = Theme.TextMuted
+                else
+                    -- Fallback teks jika Executor player tidak memiliki fungsi clipboard
+                    KeyInput.Text = "https://discord.gg/szU4KAAB"
+                end
+            end)
 
             SubmitBtn.MouseButton1Click:Connect(function()
                 if KeyInput.Text == CorrectKey then
