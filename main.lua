@@ -966,7 +966,7 @@ task.spawn(function()
             end)
         end)
 
-   -- LOGIKA TOMBOL VERIFY
+-- LOGIKA TOMBOL VERIFY
         SubmitBtn.MouseButton1Click:Connect(function()
             local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1") -- Bersihkan spasi
             
@@ -978,7 +978,7 @@ task.spawn(function()
             SubmitBtn.Text = "VERIFYING..."
             SubmitBtn.Active = false
 
-            -- [PERBAIKAN UTAMA]: Menembak API Hugging Face menggunakan fungsi ketat dua arah
+            -- [PERBAIKAN]: Menggunakan fungsi verifyKeyWithServer yang sama dengan loadKeyStatus
             if verifyKeyWithServer(userKey) then
                 saveKeyStatus(userKey) -- Simpan key lokal agar awet bypass selama server belum di-reset
                 KeyFrame:Destroy() 
