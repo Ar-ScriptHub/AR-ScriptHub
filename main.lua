@@ -1125,17 +1125,35 @@ pcall(function()
     end
 end)
 
--- 7. INITIAL SPAWN POINT ENGINE (Selalu di urutan pertama & Overwrite otomatis)
+-- ====================================================================
+-- PERBAIKAN REVISI POIN 7: INITIAL SPAWN POINT ENGINE (AKURAT & ANTI-BUG)
+-- ====================================================================
 task.spawn(function()
-    -- Menunggu hingga karakter benar-benar mendarat dengan aman di map saat pertama kali masuk
-    repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    local hrp = Player.Character.HumanoidRootPart
-    task.wait(0.5) -- Jeda aman penstabilan posisi koordinat murni
+    -- 1. Menunggu dasar karakter dimuat penuh secara aman
+    repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
     
+    local char = Player.Character
+    local hrp = char.HumanoidRootPart
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    
+    -- 2. Sistem Deteksi Pendaratan Sempurna (Mencegah koordinat palsu saat loading screen)
+    local isGrounded = false
+    for i = 1, 30 do -- Batas timeout maksimal 15 detik jika game loading-nya sangat lama
+        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then
+            isGrounded = true
+            break
+        end
+        task.wait(0.5)
+    end
+    
+    -- Jeda penstabilan akhir agar karakter tidak terombang-ambing saat baru mendarat
+    task.wait(1) 
+    
+    -- Ambil posisi asli setelah mendarat sempurna di map
     local spawnPos = hrp.Position
     local spawnCFrameData = {math.round(spawnPos.X * 100) / 100, math.round(spawnPos.Y * 100) / 100, math.round(spawnPos.Z * 100) / 100}
     
-    -- Injeksi data koordinat secara paksa ke baris paling atas tanpa merusak simpanan manual
+    -- 3. Injeksi data koordinat secara paksa ke baris paling atas tanpa merusak simpanan manual
     if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
     
     -- Ambil semua data manual yang sudah ada saat ini
@@ -1158,9 +1176,8 @@ task.spawn(function()
     -- Simpan ke penyimpanan lokal .json secara aman
     saveWaypointsToStorage()
     
-    -- Overwrite fungsi visual landmarks bawaan agar memprioritaskan "Initial Spawn" di posisi paling atas
+    -- 4. Overwrite fungsi visual landmarks bawaan agar memprioritaskan "Initial Spawn" di posisi paling atas
     if refreshLandmarksUI then
-        local originalRefresh = refreshLandmarksUI
         refreshLandmarksUI = function()
             -- Bersihkan UI Card
             local milestoneCard = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn"):FindFirstChild("Saved CFrame Milestones") or areaTpCard
@@ -1173,7 +1190,7 @@ task.spawn(function()
             local currentMapData = AllWaypoints[CurrentPlaceId] or {}
             local indexOrder = 1
             
-            -- 1. RENDERING INITIAL SPAWN TERLEBIH DAHULU (PAKSA PALING ATAS)
+            -- RENDERING INITIAL SPAWN TERLEBIH DAHULU (PAKSA PALING ATAS)
             if currentMapData["📍 Initial Spawn"] then
                 local coord = currentMapData["📍 Initial Spawn"]
                 local rowFrame = Instance.new("Frame", milestoneCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = 0
@@ -1181,7 +1198,7 @@ task.spawn(function()
                 
                 btn.MouseButton1Click:Connect(function()
                     if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetCF = CFrame.new(coord, coord, coord)
+                        local targetCF = CFrame.new(coord, coord + 3, coord) -- Ditambah tinggi +3 agar pas teleport tidak amblas ke lantai
                         if not bypassTeleportWithTween(targetCF) then
                             Player.Character.HumanoidRootPart.CFrame = targetCF
                         end
@@ -1190,7 +1207,7 @@ task.spawn(function()
                 indexOrder = indexOrder + 1
             end
             
-            -- 2. RENDERING RE-MAINING WAYPOINTS MANUAL ANDALAN ANDA
+            -- RENDERING WAYPOINTS MANUAL ANDALAN ANDA
             for wpName, coord in pairs(currentMapData) do
                 if wpName ~= "📍 Initial Spawn" then
                     local rowFrame = Instance.new("Frame", milestoneCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
@@ -1211,7 +1228,6 @@ task.spawn(function()
                 end
             end
         end
-        -- Pemicu pembaruan visual list milestones
         pcall(refreshLandmarksUI)
     end
 end)
