@@ -97,28 +97,35 @@ local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
 -- ====================================================================
--- CONFIG KEY SYSTEM (PURE LOCAL TIMEOUT - BYPASS APPROVED)
+-- CONFIG KEY SYSTEM (PERBAIKAN RESOLVER URL HUGGING FACE)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
-local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
--- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
+-- GUNAKAN FORMAT URL DIRECT RESOLVER (Ganti 'username' dan 'space-name' sesuai Space Anda!)
+-- Contoh jika nama Space Anda adalah: hf.space/spaces/ar-hub/arhub-bot
+local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate" 
+
 local function verifyKeyWithServer(targetKey)
     if not targetKey or targetKey == "" then return false end
     
+    -- Bersihkan spasi gaib dari text box Roblox
+    local cleanKey = string.gsub(targetKey, "%s+", "")
+    
     local success, response = pcall(function()
-        return HttpService:GetAsync(HUGGING_FACE_URL .. targetKey)
+        -- Menggunakan URL parameter yang digabungkan secara aman
+        return HttpService:GetAsync(HUGGING_FACE_URL .. "?key=" .. cleanKey)
     end)
     
-    -- Menerima toleransi teks balasan dari Hugging Face
-    if success and (response == "VALID" or response:lower():match("success") or response:lower():match("true") or response:lower():match("valid")) then
+    -- JANGAN gunakan match() longgar. Harus strict memverifikasi string "VALID" secara utuh!
+    if success and response == "VALID" then
         return true
     else
+        -- Log internal untuk mempermudah Anda melakukan debug di Executor
+        warn("AR HUB DEBUG: Server merespon dengan -> " .. tostring(response))
         return false
     end
 end
-
 local function loadKeyStatus()
     local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
     if success and content then
