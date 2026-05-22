@@ -966,7 +966,7 @@ task.spawn(function()
             end)
         end)
 
-        -- LOGIKA TOMBOL VERIFY
+   -- LOGIKA TOMBOL VERIFY
         SubmitBtn.MouseButton1Click:Connect(function()
             local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1") -- Bersihkan spasi
             
@@ -978,18 +978,14 @@ task.spawn(function()
             SubmitBtn.Text = "VERIFYING..."
             SubmitBtn.Active = false
 
-            -- Menembak URL Hugging Face
-            local targetUrl = HUGGING_FACE_URL .. userKey
-            local httpSuccess, response = pcall(function()
-                return game:HttpGet(targetUrl)
-            end)
-
-            -- Validasi fleksibel terhadap balasan teks dari Hugging Face
-            if httpSuccess and (response:lower():match("success") or response:lower():match("valid") or response:lower():match("true")) then
-                saveKeyStatus(userKey) -- Simpan key lokal biar awet 24 jam
+            -- [PERBAIKAN UTAMA]: Menembak API Hugging Face menggunakan fungsi ketat dua arah
+            if verifyKeyWithServer(userKey) then
+                saveKeyStatus(userKey) -- Simpan key lokal agar awet bypass selama server belum di-reset
                 KeyFrame:Destroy() 
-                runLoadingSequence() -- Masuk ke loading screen bawaanmu
+                runLoadingSequence()   -- Masuk ke loading screen bawaan AR Hub
+                print("✅ Key Berhasil Diverifikasi! Membuka UI Hub.")
             else
+                -- Skenario jika key ditolak / salah / expired / server habis di-reset
                 KeyInput.Text = "" 
                 SubmitBtn.Text = "VERIFY KEY"
                 SubmitBtn.Active = true
@@ -997,5 +993,3 @@ task.spawn(function()
                 KeyInput.PlaceholderColor3 = Theme.DeleteRed
             end
         end)
-    end
-end)
