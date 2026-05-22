@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.9 CORE ENGINE REWORK (FULL INTEGRATED 2026)
+-- AR SCRIPT HUB - v7.0 CORE ENGINE (FIXED LOCAL CLOSURE CFRAME)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -12,7 +12,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
--- ANTI-BUG CLEAN-UP ENGINE (Membersihkan sisa terbang dari eksekusi sebelumnya)
+-- ANTI-BUG CLEAN-UP ENGINE
 pcall(function()
     if Player.Character then
         for _, obj in pairs(Player.Character:GetDescendants()) do
@@ -28,7 +28,6 @@ pcall(function()
     end
 end)
 
--- Pembersihan UI lama jika ada
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
     SafeGuiTarget.AR_Script_Hub:Destroy()
 end
@@ -39,7 +38,6 @@ MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
 MainGui.DisplayOrder = 2147483647
 
--- Skrip menyimpan sourcenya sendiri ke atribut ScreenGui agar fitur AUTO RE-EXECUTE tombol Reload bekerja 100%
 local rawSource = debug.infos and debug.infos() or "" 
 MainGui:SetAttribute("ScriptContent", rawSource)
 
@@ -549,7 +547,6 @@ createServerButton(coreActionCard, "🔴 Close System UI", Theme.DeleteBg, funct
     showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
 end, 1)
 
--- RELOAD SYSTEM UI (AUTO RE-EXECUTE FIX)
 createServerButton(coreActionCard, "🔄 Reload System UI", Color3.fromRGB(35, 35, 55), function()
     showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
         if Config.FlyMode then Config.FlyMode = false pcall(handleFlyEngine) end
@@ -559,7 +556,6 @@ createServerButton(coreActionCard, "🔄 Reload System UI", Color3.fromRGB(35, 3
         if loadstring and currentScript ~= "" then
             pcall(function() loadstring(currentScript)() end)
         else
-            -- Fallback jika readfile didukung executor Anda
             pcall(function()
                 if loadstring and readfile and isfile("main.lua") then
                     loadstring(readfile("main.lua"))()
@@ -608,7 +604,7 @@ addToggle(espSettingsCard, "Enforce Team Check", 1, "TeamCheck")
 addSliderWithInput(espSettingsCard, "Max Distance Threshold", 100, 5000, 1000, 2, "MaxDistance")
 
 -- ====================================================================
--- RENDERING TELEPORTATION PAGE (FIXED INTEGRATION)
+-- RENDERING TELEPORTATION PAGE (CLOSURE & INDEX ISOLATED FIX)
 -- ====================================================================
 local tweenCard = createCard(tpRightColumn, "Tween Teleportation Mode", 1)
 addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
@@ -651,10 +647,9 @@ local function deleteWaypoint(wpName)
 end
 
 -- ====================================================================
--- INITIAL SPAWN POINT & RENDER SAVER SYSTEM (ANTI-ERROR)
+-- INITIAL SPAWN POINT & RENDER SAVER SYSTEM (FIXED MEMORY ENVIRONMENT)
 -- ====================================================================
 task.spawn(function()
-    -- Mengambil koordinat asli setelah mendarat stabil di map
     repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
     local hrp = Player.Character.HumanoidRootPart local hum = Player.Character:FindFirstChildOfClass("Humanoid")
     for i = 1, 30 do
@@ -663,14 +658,29 @@ task.spawn(function()
     end
     task.wait(1.5)
     local spawnPos = hrp.Position
-    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z) -- Anti amblas (+3.5)
+    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
-    -- Fungsi Merender UI Landmark List secara Urut & Aman
+    -- Fungsi Pembantu Guna Mengunci Koordinat secara Mutlak (Mencegah Teleport Acak/Salah Alamat)
+    local function makeTeleportRow(wpName, x, y, z, orderIndex)
+        local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = orderIndex
+        local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
+        
+        btn.MouseButton1Click:Connect(function()
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local targetCF = CFrame.new(x, y, z)
+                if not bypassTeleportWithTween(targetCF) then Player.Character.HumanoidRootPart.CFrame = targetCF end
+            end
+        end)
+        
+        local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+        delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
+    end
+
     function refreshLandmarksUI()
         if not areaTpCard then return end
         for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        -- RENDERING TOMBOL INITIAL SPAWN TETAP DI PALING ATAS (LayoutOrder = 0)
+        -- Render Initial Spawn Tetap Aman Terjaga
         local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
         local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 1
         
@@ -680,28 +690,16 @@ task.spawn(function()
             end
         end)
         
-        -- RENDERING SEMUA HASIL SAVE MANUAL ANDALAN ANDA
         if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
         local currentMapData = AllWaypoints[CurrentPlaceId]
         local indexOrder = 1
         for wpName, coord in pairs(currentMapData) do
-            local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
-            local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
-            
-            btn.MouseButton1Click:Connect(function()
-                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                    local targetCF = CFrame.new(coord, coord, coord)
-                    if not bypassTeleportWithTween(targetCF) then Player.Character.HumanoidRootPart.CFrame = targetCF end
-                end
-            end)
-            
-            local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-            delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
+            -- Memanggil fungsi pembungkus agar variabel x, y, z terkunci mandiri per-tombol
+            makeTeleportRow(wpName, coord, coord, coord, indexOrder)
             indexOrder = indexOrder + 1
         end
     end
 
-    -- Konstruktor Koneksi Tombol Save Manual Diletakkan secara Terstruktur
     btnSavePos.MouseButton1Click:Connect(function()
         local name = wpNameInput.Text
         if name ~= "" and name ~= "Initial Spawn Point" then
@@ -714,7 +712,6 @@ task.spawn(function()
         end
     end)
 
-    -- Eksekusi awal render list ui
     refreshLandmarksUI()
 end)
 
