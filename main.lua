@@ -97,26 +97,31 @@ local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
 -- ====================================================================
--- CONFIG KEY SYSTEM (24 JAM BYPASS)
+-- CONFIG KEY SYSTEM (INTEGRASI HUGGING FACE SPACES)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local CorrectKey = "AR_HUB_FREE_2026"
 local KeyVerified = false
+
+-- Catatan: Sesuaikan endpoint sub-path jika backend Python kamu mendaftarkan rute spesifik (misal: /verify?key=)
+local HUGGING_FACE_URL = "https://ar-hub-test-bot.hf.space/verify?key=" 
 
 local function loadKeyStatus()
     local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
+            -- Bypass otomatis 24 jam (86400 detik) jika kunci lokal masih berlaku
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
-                if decodedData.Key == CorrectKey then KeyVerified = true end
+                if decodedData.Key and decodedData.Key ~= "" then 
+                    KeyVerified = true 
+                end
             end
         end
     end
 end
 
-local function saveKeyStatus()
-    local data = { Key = CorrectKey, Timestamp = os.time() }
+local function saveKeyStatus(passedKey)
+    local data = { Key = passedKey, Timestamp = os.time() }
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
 loadKeyStatus()
@@ -844,12 +849,34 @@ task.spawn(function()
         local DiscordTxt = Instance.new("TextLabel", KeyFrame) DiscordTxt.Size = UDim2.new(1, -40, 0, 20) DiscordTxt.Position = UDim2.new(0, 20, 1, -28) DiscordTxt.Text = "discord.gg/arscripthub" DiscordTxt.Font = Enum.Font.GothamMedium DiscordTxt.TextColor3 = Theme.TextMuted DiscordTxt.TextSize = 10 DiscordTxt.BackgroundTransparency = 1
 
         SubmitBtn.MouseButton1Click:Connect(function()
-            if KeyInput.Text == CorrectKey then
-                saveKeyStatus() KeyFrame:Destroy() 
-                -- Jalankan sekuens loading screen hanya setelah key valid dimasukkan
-                runLoadingSequence()
+            -- Membersihkan spasi tak sengaja di awal atau akhir dari hasil copy-paste user
+            local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
+            
+            if userKey == "" then 
+                KeyInput.PlaceholderText = "Key cannot be empty!"
+                return 
+            end
+            
+            SubmitBtn.Text = "VERIFYING..."
+            SubmitBtn.Active = false
+
+            -- Melakukan penembakan HTTP Request ke API Hugging Face kamu
+            local targetUrl = HUGGING_FACE_URL .. userKey
+            local httpSuccess, response = pcall(function()
+                return game:HttpGet(targetUrl)
+            end)
+
+            -- Memvalidasi response teks murni (sukses / valid)
+            if httpSuccess and (response:lower():match("success") or response:lower():match("valid") or response:lower():match("true")) then
+                saveKeyStatus(userKey) -- Mengunci status key ke file lokal selama 24 jam ke depan
+                KeyFrame:Destroy() 
+                runLoadingSequence() -- Membuka Loading sequence menuju UI Utama
             else
-                KeyInput.Text = "" KeyInput.PlaceholderText = "INVALID KEY! Try Again..." KeyInput.PlaceholderColor3 = Theme.DeleteRed
+                KeyInput.Text = "" 
+                SubmitBtn.Text = "VERIFY KEY"
+                SubmitBtn.Active = true
+                KeyInput.PlaceholderText = "INVALID OR EXPIRED KEY!" 
+                KeyInput.PlaceholderColor3 = Theme.DeleteRed
             end
         end)
     end
