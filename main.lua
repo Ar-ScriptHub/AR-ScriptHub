@@ -103,7 +103,14 @@ local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
--- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
+-- ====================================================================
+-- CONFIG KEY SYSTEM (PURE LOCAL TIMEOUT - BYPASS APPROVED)
+-- ====================================================================
+local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
+local KeyVerified = false
+local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
+
+-- Fungsi untuk mengecek validitas key langsung ke server Hugging Face (Hanya dipakai saat input manual)
 local function verifyKeyWithServer(targetKey)
     if not targetKey or targetKey == "" then return false end
     
@@ -123,14 +130,10 @@ local function loadKeyStatus()
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
+            -- LOGIKA UTAMA: Cukup cek waktu lokal, jika belum lewat 24 jam (86400 detik), langsung loloskan!
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
                 if decodedData.Key and decodedData.Key ~= "" then 
-                    if verifyKeyWithServer(decodedData.Key) then
-                        KeyVerified = true 
-                    else
-                        pcall(function() delfile(KEY_FILE_NAME) end)
-                        KeyVerified = false
-                    end
+                    KeyVerified = true 
                 end
             end
         end
@@ -142,7 +145,7 @@ local function saveKeyStatus(passedKey)
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
 
--- Jalankan pengecekan saat script pertama kali dimuat
+-- Jalankan pengecekan bypass waktu lokal saat script pertama kali dimuat
 loadKeyStatus()
 
 -- ==================== METADATA TAMBAHAN ====================
