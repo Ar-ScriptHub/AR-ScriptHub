@@ -53,8 +53,7 @@ local Theme = {
     TextMuted = Color3.fromRGB(140, 145, 175),
     DeleteRed = Color3.fromRGB(255, 90, 90),
     DeleteBg = Color3.fromRGB(50, 25, 35),
-    ConfirmGreen = Color3.fromRGB(90, 255, 140),
-    DiscordBlue = Color3.fromRGB(88, 101, 242) -- Ditambahkan warna tema asli Discord
+    ConfirmGreen = Color3.fromRGB(90, 255, 140)
 }
 
 -- ====================================================================
@@ -365,16 +364,6 @@ local function showConfirmation(message, onYes)
 end
 PopupYes.MouseButton1Click:Connect(function() PopupFrame.Visible = false if currentCallback then currentCallback() end end)
 PopupNo.MouseButton1Click:Connect(function() PopupFrame.Visible = false end)
-
-local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Name = "LoadingFrame" LoadingFrame.Parent = MainGui LoadingFrame.Size = UDim2.new(0, 320, 0, 180) LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90) LoadingFrame.BackgroundColor3 = Theme.Bg LoadingFrame.BackgroundTransparency = 0.05 Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
-local loadStroke = Instance.new("UIStroke", LoadingFrame) loadStroke.Color = Theme.Stroke loadStroke.Thickness = 1.5
-
-local LoadTitle = Instance.new("TextLabel", LoadingFrame) LoadTitle.Size = UDim2.new(1, 0, 0, 40) LoadTitle.Position = UDim2.new(0, 0, 0, 25) LoadTitle.Text = "AR SCRIPT HUB" LoadTitle.Font = Enum.Font.GothamBold LoadTitle.TextColor3 = Theme.TextMain LoadTitle.TextSize = 18 LoadTitle.BackgroundTransparency = 1
-local LoadStatus = Instance.new("TextLabel", LoadingFrame) LoadStatus.Size = UDim2.new(1, 0, 0, 20) LoadStatus.Position = UDim2.new(0, 0, 0, 65) LoadStatus.Text = "Menginisialisasi core script..." LoadStatus.Font = Enum.Font.GothamMedium LoadStatus.TextColor3 = Theme.TextMuted LoadStatus.TextSize = 11 LoadStatus.BackgroundTransparency = 1
-local LoadProgressText = Instance.new("TextLabel", LoadingFrame) LoadProgressText.Size = UDim2.new(1, 0, 0, 20) LoadProgressText.Position = UDim2.new(0, 0, 0, 90) LoadProgressText.Text = "0%" LoadProgressText.Font = Enum.Font.GothamBold LoadProgressText.TextColor3 = Theme.AccentPurple LoadProgressText.TextSize = 14 LoadProgressText.BackgroundTransparency = 1
-local LoadTrack = Instance.new("Frame", LoadingFrame) LoadTrack.Size = UDim2.new(1, -60, 0, 6) LoadTrack.Position = UDim2.new(0, 30, 0, 125) LoadTrack.BackgroundColor3 = Theme.CardBg Instance.new("UICorner", LoadTrack).CornerRadius = UDim.new(0, 3) local ltStroke = Instance.new("UIStroke", LoadTrack) ltStroke.Color = Theme.Stroke
-local LoadFill = Instance.new("Frame", LoadTrack) LoadFill.Size = UDim2.new(0, 0, 1, 0) LoadFill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
 
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
@@ -789,9 +778,19 @@ addToggle(optiCard, "💡 FullBright Core Engine", 4, "FullBright", function(act
 end)
 
 -- ====================================================================
--- INTRO LOADING SEQUENCE & SECURITY GATE RUNNER
+-- INTRO LOADING SEQUENCE ENGINE
 -- ====================================================================
-task.spawn(function()
+local function runLoadingSequence()
+    local LoadingFrame = Instance.new("Frame")
+    LoadingFrame.Name = "LoadingFrame" LoadingFrame.Parent = MainGui LoadingFrame.Size = UDim2.new(0, 320, 0, 180) LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90) LoadingFrame.BackgroundColor3 = Theme.Bg LoadingFrame.BackgroundTransparency = 0.05 Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+    local loadStroke = Instance.new("UIStroke", LoadingFrame) loadStroke.Color = Theme.Stroke loadStroke.Thickness = 1.5
+
+    local LoadTitle = Instance.new("TextLabel", LoadingFrame) LoadTitle.Size = UDim2.new(1, 0, 0, 40) LoadTitle.Position = UDim2.new(0, 0, 0, 25) LoadTitle.Text = "AR SCRIPT HUB" LoadTitle.Font = Enum.Font.GothamBold LoadTitle.TextColor3 = Theme.TextMain LoadTitle.TextSize = 18 LoadTitle.BackgroundTransparency = 1
+    local LoadStatus = Instance.new("TextLabel", LoadingFrame) LoadStatus.Size = UDim2.new(1, 0, 0, 20) LoadStatus.Position = UDim2.new(0, 0, 0, 65) LoadStatus.Text = "Menginisialisasi core script..." LoadStatus.Font = Enum.Font.GothamMedium LoadStatus.TextColor3 = Theme.TextMuted LoadStatus.TextSize = 11 LoadStatus.BackgroundTransparency = 1
+    local LoadProgressText = Instance.new("TextLabel", LoadingFrame) LoadProgressText.Size = UDim2.new(1, 0, 0, 20) LoadProgressText.Position = UDim2.new(0, 0, 0, 90) LoadProgressText.Text = "0%" LoadProgressText.Font = Enum.Font.GothamBold LoadProgressText.TextColor3 = Theme.AccentPurple LoadProgressText.TextSize = 14 LoadProgressText.BackgroundTransparency = 1
+    local LoadTrack = Instance.new("Frame", LoadingFrame) LoadTrack.Size = UDim2.new(1, -60, 0, 6) LoadTrack.Position = UDim2.new(0, 30, 0, 125) LoadTrack.BackgroundColor3 = Theme.CardBg Instance.new("UICorner", LoadTrack).CornerRadius = UDim.new(0, 3) local ltStroke = Instance.new("UIStroke", LoadTrack) ltStroke.Color = Theme.Stroke
+    local LoadFill = Instance.new("Frame", LoadTrack) LoadFill.Size = UDim2.new(0, 0, 1, 0) LoadFill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
+
     local stages = {
         {t = 15, m = "Menyelaraskan Modul Fly..."},
         {t = 45, m = "Mengaktifkan Infinite Jump..."},
@@ -805,6 +804,7 @@ task.spawn(function()
         task.wait(0.02)
     end
     LoadStatus.Text = "Sistem Siap!" task.wait(0.3)
+    
     local f = TweenService:Create(LoadingFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
     TweenService:Create(LoadTitle, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
     TweenService:Create(LoadStatus, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
@@ -817,63 +817,40 @@ task.spawn(function()
     
     f.Completed:Connect(function()
         LoadingFrame:Destroy()
-        if KeyVerified then
-            MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
-            TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
-        else
-            -- Modifikasi Ukuran Frame Key Agar Elemen Baru Muat Sempurna & Rapi
-            local KeyFrame = Instance.new("Frame")
-            KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 320, 0, 170) KeyFrame.Position = UDim2.new(0.5, -160, 0.5, -85) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
-            local keyStroke = Instance.new("UIStroke", KeyFrame) keyStroke.Color = Theme.AccentPurple keyStroke.Thickness = 1.5
-
-            local KeyTitle = Instance.new("TextLabel", KeyFrame) KeyTitle.Size = UDim2.new(1, 0, 0, 40) KeyTitle.Position = UDim2.new(0, 0, 0, 10) KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" KeyTitle.Font = Enum.Font.GothamBold KeyTitle.TextColor3 = Theme.TextMain KeyTitle.TextSize = 13 KeyTitle.BackgroundTransparency = 1
-            
-            local KeyInput = Instance.new("TextBox", KeyFrame) KeyInput.Size = UDim2.new(1, -40, 0, 32) KeyInput.Position = UDim2.new(0, 20, 0, 55) KeyInput.BackgroundColor3 = Theme.CardBg KeyInput.Font = Enum.Font.GothamMedium KeyInput.PlaceholderText = "Paste key here..." KeyInput.Text = "" KeyInput.TextColor3 = Theme.TextMain KeyInput.PlaceholderColor3 = Theme.TextMuted KeyInput.TextSize = 11 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
-            
-            -- MODIFIKASI: Tombol "VERIFY KEY" disesuaikan lebarnya agar bisa berbagi tempat dengan tombol Discord
-            local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -95, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -50) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
-
-            -- PENAMBAHAN: Tombol Discord Baru Berwarna Blurple khas Discord
-            local DiscordBtn = Instance.new("TextButton", KeyFrame)
-            DiscordBtn.Name = "DiscordBtn"
-            DiscordBtn.Size = UDim2.new(0, 45, 0, 32)
-            DiscordBtn.Position = UDim2.new(1, -65, 1, -50)
-            DiscordBtn.BackgroundColor3 = Theme.DiscordBlue
-            DiscordBtn.Text = "" -- Kosong karena digantikan gambar logo
-            Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 5)
-            local dStroke = Instance.new("UIStroke", DiscordBtn) dStroke.Color = Theme.Stroke
-
-            -- PENAMBAHAN: Gambar Logo Discord Transparan HD Resmi Roblox
-            local DiscordImg = Instance.new("ImageLabel", DiscordBtn)
-            DiscordImg.Size = UDim2.new(0, 20, 0, 20)
-            DiscordImg.Position = UDim2.new(0.5, -10, 0.5, -10)
-            DiscordImg.BackgroundTransparency = 1
-            DiscordImg.Image = "rbxassetid://12311440698" -- Asset ID Logo Discord HD
-
-            -- LOGIKA: Salin Link Discord Otomatis ke Clipboard saat Tombol Diklik
-            DiscordBtn.MouseButton1Click:Connect(function()
-                if setclipboard then
-                    setclipboard("https://discord.gg/szU4KAAB")
-                    KeyInput.Text = ""
-                    KeyInput.PlaceholderText = "DISCORD LINK COPIED!"
-                    KeyInput.PlaceholderColor3 = Theme.Accent
-                    task.wait(1.5)
-                    KeyInput.PlaceholderText = "Paste key here..."
-                    KeyInput.PlaceholderColor3 = Theme.TextMuted
-                else
-                    -- Fallback teks jika Executor player tidak memiliki fungsi clipboard
-                    KeyInput.Text = "https://discord.gg/szU4KAAB"
-                end
-            end)
-
-            SubmitBtn.MouseButton1Click:Connect(function()
-                if KeyInput.Text == CorrectKey then
-                    saveKeyStatus() KeyFrame:Destroy() MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
-                    TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
-                else
-                    KeyInput.Text = "" KeyInput.PlaceholderText = "INVALID KEY! Try Again..." KeyInput.PlaceholderColor3 = Theme.DeleteRed
-                end
-            end)
-        end
+        MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
+        TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
     end)
+end
+
+-- ====================================================================
+-- SECURITY GATE RUNNER (DIRECT TO KEY SYSTEM / LOADING POST-VERIFY)
+-- ====================================================================
+task.spawn(function()
+    if KeyVerified then
+        -- Jika key sudah tersimpan dan valid (< 24 jam), langsung jalankan loading screen
+        runLoadingSequence()
+    else
+        -- Jika belum terverifikasi, langsung buat Key UI tanpa Loading Screen di awal
+        local KeyFrame = Instance.new("Frame")
+        KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 300, 0, 180) KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -90) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
+        local keyStroke = Instance.new("UIStroke", KeyFrame) keyStroke.Color = Theme.AccentPurple keyStroke.Thickness = 1.5
+
+        local KeyTitle = Instance.new("TextLabel", KeyFrame) KeyTitle.Size = UDim2.new(1, 0, 0, 40) KeyTitle.Position = UDim2.new(0, 0, 0, 10) KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" KeyTitle.Font = Enum.Font.GothamBold KeyTitle.TextColor3 = Theme.TextMain KeyTitle.TextSize = 13 KeyTitle.BackgroundTransparency = 1
+        local KeyInput = Instance.new("TextBox", KeyFrame) KeyInput.Size = UDim2.new(1, -40, 0, 32) KeyInput.Position = UDim2.new(0, 20, 0, 50) KeyInput.BackgroundColor3 = Theme.CardBg KeyInput.Font = Enum.Font.GothamMedium KeyInput.PlaceholderText = "Paste key here..." KeyInput.Text = "" KeyInput.TextColor3 = Theme.TextMain KeyInput.PlaceholderColor3 = Theme.TextMuted KeyInput.TextSize = 11 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
+        
+        local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -40, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -65) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+
+        -- Teks "discord" di bawah tombol verified key (Tanpa Logo, Hanya Tulisan)
+        local DiscordTxt = Instance.new("TextLabel", KeyFrame) DiscordTxt.Size = UDim2.new(1, -40, 0, 20) DiscordTxt.Position = UDim2.new(0, 20, 1, -28) DiscordTxt.Text = "discord.gg/arscripthub" DiscordTxt.Font = Enum.Font.GothamMedium DiscordTxt.TextColor3 = Theme.TextMuted DiscordTxt.TextSize = 10 DiscordTxt.BackgroundTransparency = 1
+
+        SubmitBtn.MouseButton1Click:Connect(function()
+            if KeyInput.Text == CorrectKey then
+                saveKeyStatus() KeyFrame:Destroy() 
+                -- Jalankan sekuens loading screen hanya setelah key valid dimasukkan
+                runLoadingSequence()
+            else
+                KeyInput.Text = "" KeyInput.PlaceholderText = "INVALID KEY! Try Again..." KeyInput.PlaceholderColor3 = Theme.DeleteRed
+            end
+        end)
+    end
 end)
