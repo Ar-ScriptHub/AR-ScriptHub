@@ -103,7 +103,7 @@ local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
 
 -- Catatan: Sesuaikan endpoint sub-path jika backend Python kamu mendaftarkan rute spesifik (misal: /verify?key=)
-local HUGGING_FACE_URL = "https://ar-hub-ar-hub-bot.hf.space/validate?key=" 
+local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
 local function loadKeyStatus()
     local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
