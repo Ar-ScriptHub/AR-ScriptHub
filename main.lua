@@ -938,7 +938,7 @@ addToggle(optiCard, "Disable Global Shadows", 2, "ShadowsDisabled", applyGraphic
 addToggle(optiCard, "Anti-Lag Core Engine", 3, "AntiLag", applyGraphicsBoost)
 
 -- ====================================================================
--- EXTENSION UPGRADE: AR SCRIPT HUB EXTRA MODULES (JANGAN MERUBAH KODE DI ATAS)
+-- EXTENSION UPGRADE V2: AR SCRIPT HUB FIXED ENGINE (ANTI-ERROR)
 -- ====================================================================
 
 -- 1. ANTI-BUG FLY CLEAN-UP ENGINE (Dijalankan langsung saat eksekusi/reload)
@@ -959,9 +959,9 @@ pcall(function()
     end
 end)
 
--- 2. KONFIGURASI STATE BARU
+-- 2. KONFIGURASI STATE BARU (Bypass global config injection)
 Config.TweenTeleport = false
-Config.TweenSpeed = 350 -- Studs per second (kecepatan gerak halus)
+Config.TweenSpeed = 350
 Config.FullBright = false
 
 -- Storage Cadangan Pencahayaan Asli Map
@@ -973,25 +973,18 @@ local origClockTime = Lighting.ClockTime
 
 -- 3. INJEKSI TOMBOL "RELOAD SYSTEM UI" (Tab Setting - Di bawah Close UI)
 pcall(function()
-    local setLeftCol = menuContainers["Setting"]:FindFirstChild("SetLeftColumn")
     local setRightCol = menuContainers["Setting"]:FindFirstChild("SetRightColumn")
-    
     if setRightCol then
-        local coreCard = setRightCol:FindFirstChildOfClass("Frame") -- Mencari Core Action Card
+        local coreCard = setRightCol:FindFirstChildOfClass("Frame")
         if coreCard and coreCard:FindFirstChild("Frame") then
             local container = coreCard:FindFirstChild("Frame")
-            
-            -- Membuat tombol Reload tepat di bawah tombol Close
             createServerButton(container, "🔄 Reload System UI", Color3.fromRGB(35, 35, 55), function()
                 showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
-                    -- Mematikan sistem fly aktif sebelum reload untuk mencegah bug
                     if Config.FlyMode then 
                         Config.FlyMode = false 
                         pcall(handleFlyEngine) 
                     end
-                    -- Eksekusi ulang skrip utama (Bypass reload menggunakan loader string jika didukung executor)
                     if loadstring then
-                        -- Jika dijalankan sebagai script utuh, baris bawah ini akan memicu re-execute aman
                         local currentScript = MainGui:GetAttribute("ScriptContent") or ""
                         MainGui:Destroy()
                         task.wait(0.1)
@@ -1012,7 +1005,6 @@ pcall(function()
         local optiCard = serverRightCol:FindFirstChildOfClass("Frame")
         if optiCard and optiCard:FindFirstChild("Frame") then
             local container = optiCard:FindFirstChild("Frame")
-            
             addToggle(container, "💡 FullBright Core Engine", 4, "FullBright", function(active)
                 if active then
                     Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -1030,7 +1022,7 @@ pcall(function()
     end
 end)
 
--- Loop konstan untuk menjaga FullBright tetap aktif (Bypass anti-cheat map lighting)
+-- Loop konstan anti-reset lighting bawaan game
 RunService.RenderStepped:Connect(function()
     if Config.FullBright then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -1040,37 +1032,31 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 5. INJEKSI CARD TWEEN TELEPORT & RE-STRUKTURISASI KOLOM KANAN (Tab Teleport)
+-- 5. INJEKSI CARD TWEEN TELEPORT DI ATAS MILESTONES (Tab Teleport)
 local tweenCardContainer
 pcall(function()
     local tpRightCol = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn")
     if tpRightCol then
-        -- Ambil Card Saved Milestones yang sudah ada untuk diturunkan posisinya
         local oldMilestoneCard = tpRightCol:FindFirstChild("Saved CFrame Milestones") or tpRightCol:FindFirstChildOfClass("Frame")
-        
-        -- Buat Card Baru untuk Tween Teleport (Otomatis berada di atas karena LayoutOrder)
         local tweenCard = createCard(tpRightCol, "Tween Teleportation Mode", 1)
         tweenCardContainer = tweenCard
         addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
         addSliderWithInput(tweenCard, "Tween Speed (Studs/Sec)", 50, 1000, 350, 2, "TweenSpeed")
-        
-        -- Atur ulang urutan milestone card agar berada tepat di bawahnya
         if oldMilestoneCard then
             oldMilestoneCard.LayoutOrder = 2
         end
     end
 end)
 
--- 6. TWEEN TELEPORT CORE ENGINE (Hooking fungsi teleportasi agar berjalan mulus)
+-- 6. TWEEN TELEPORT CORE ENGINE (Fungsi Interpolasi Mulus)
 local function bypassTeleportWithTween(targetCFrame)
-    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
     local hrp = Player.Character.HumanoidRootPart
     
     if Config.TweenTeleport then
         local distance = (hrp.Position - targetCFrame.Position).Magnitude
         local duration = distance / math.max(Config.TweenSpeed, 50)
         
-        -- Mematikan efek gravitasi sementara agar pergerakan meluncur mulus tidak patah-patah
         local bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -1083,151 +1069,144 @@ local function bypassTeleportWithTween(targetCFrame)
         tween.Completed:Connect(function()
             bodyVelocity:Destroy()
         end)
-        return true -- Menandakan teleportasi ditangani oleh sistem tween
+        return true
     end
-    return false -- Menggunakan teleportasi instan bawaan script asli
+    return false
 end
 
--- Hooking Tombol Teleport ke Player agar mendukung Tween
+-- Hooking Tombol Teleport Player agar mendukung Fitur Tween
 pcall(function()
-    local tpLeftCol = menuContainers["Teleportation"]:FindFirstChild("TpLeftColumn")
-    if tpLeftCol then
-        for _, card in pairs(tpLeftCol:GetChildren()) do
-            local btn = card:FindFirstChildOfClass("Frame") and card:FindFirstChildOfClass("Frame"):FindFirstChildOfClass("TextButton")
-            if btn and btn.Text:find("Teleport ke Player") then
-                -- Modifikasi event klik tanpa merusak fungsi asli
-                local originalConnections = getconnections or get_signal_cons
-                if originalConnections then
-                    -- Fitur advance executor jika ada untuk bypass connection
-                    for _, connection in pairs(originalConnections(btn.MouseButton1Click)) do
-                        local oldFunction = connection.Function
-                        connection:Disable()
-                        btn.MouseButton1Click:Connect(function()
-                            local targetName = card:FindFirstChildOfClass("Frame"):FindFirstChildOfClass("TextBox").Text:lower()
-                            if targetName ~= "" then
-                                for _, p in pairs(Players:GetPlayers()) do
-                                    if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
-                                        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                                            local targetCF = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
-                                            if not bypassTeleportWithTween(targetCF) then
-                                                pcall(oldFunction)
-                                            end
-                                            break
-                                        end
+    local btnPlayerTp = menuContainers["Teleportation"]:FindFirstChild("TpLeftColumn"):FindFirstChildOfClass("Frame"):FindFirstChildOfClass("TextButton")
+    if btnPlayerTp then
+        local originalConnections = getconnections or get_signal_cons
+        if originalConnections then
+            for _, connection in pairs(originalConnections(btnPlayerTp.MouseButton1Click)) do
+                local oldFunction = connection.Function
+                connection:Disable()
+                btnPlayerTp.MouseButton1Click:Connect(function()
+                    if Config.TweenTeleport then
+                        local targetName = btnPlayerTp.Parent:FindFirstChildOfClass("TextBox").Text:lower()
+                        if targetName ~= "" then
+                            for _, p in pairs(Players:GetPlayers()) do
+                                if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
+                                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                        bypassTeleportWithTween(p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0))
+                                        break
                                     end
                                 end
                             end
-                        end)
+                        end
+                    else
+                        pcall(oldFunction)
                     end
-                end
+                end)
             end
         end
     end
 end)
 
--- ====================================================================
--- PERBAIKAN REVISI POIN 7: INITIAL SPAWN POINT ENGINE (AKURAT & ANTI-BUG)
--- ====================================================================
+-- 7. INITIAL SPAWN POINT ENGINE & SAFE UI HOOKING (100% Memperbaiki Bug Target Koordinat)
 task.spawn(function()
-    -- 1. Menunggu dasar karakter dimuat penuh secara aman
+    -- Ambil posisi koordinat asli saat karakter mendarat tegak di server
     repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
+    local hrp = Player.Character.HumanoidRootPart
+    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
     
-    local char = Player.Character
-    local hrp = char.HumanoidRootPart
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    
-    -- 2. Sistem Deteksi Pendaratan Sempurna (Mencegah koordinat palsu saat loading screen)
-    local isGrounded = false
-    for i = 1, 30 do -- Batas timeout maksimal 15 detik jika game loading-nya sangat lama
-        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then
-            isGrounded = true
-            break
-        end
+    for i = 1, 30 do
+        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
         task.wait(0.5)
     end
+    task.wait(1.2) -- Jeda penstabilan koordinat final
     
-    -- Jeda penstabilan akhir agar karakter tidak terombang-ambing saat baru mendarat
-    task.wait(1) 
-    
-    -- Ambil posisi asli setelah mendarat sempurna di map
     local spawnPos = hrp.Position
-    local spawnCFrameData = {math.round(spawnPos.X * 100) / 100, math.round(spawnPos.Y * 100) / 100, math.round(spawnPos.Z * 100) / 100}
-    
-    -- 3. Injeksi data koordinat secara paksa ke baris paling atas tanpa merusak simpanan manual
-    if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-    
-    -- Ambil semua data manual yang sudah ada saat ini
-    local temporaryStorage = {}
-    for name, coord in pairs(AllWaypoints[CurrentPlaceId]) do
-        if name ~= "📍 Initial Spawn" then
-            temporaryStorage[name] = coord
-        end
-    end
-    
-    -- Reset ulang dan susun struktur: Isi "Initial Spawn" dulu di index pertama
-    AllWaypoints[CurrentPlaceId] = {}
-    AllWaypoints[CurrentPlaceId]["📍 Initial Spawn"] = spawnCFrameData
-    
-    -- Kembalikan sisa data simpanan manual Anda ke bawahnya
-    for name, coord in pairs(temporaryStorage) do
-        AllWaypoints[CurrentPlaceId][name] = coord
-    end
-    
-    -- Simpan ke penyimpanan lokal .json secara aman
-    saveWaypointsToStorage()
-    
-    -- 4. Overwrite fungsi visual landmarks bawaan agar memprioritaskan "Initial Spawn" di posisi paling atas
+    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z) -- Offset +3.5 agar tidak amblas ke lantai
+
+    -- Intersepsi (Hook) fungsi refreshLandmarksUI bawaan agar tidak merusak fungsi tombol manual asli Anda
     if refreshLandmarksUI then
+        local originalRefreshLandmarksUI = refreshLandmarksUI
+        
         refreshLandmarksUI = function()
-            -- Bersihkan UI Card
+            -- Biarkan fungsi asli `main.lua` merender semua tombol manual andalan Anda terlebih dahulu
+            pcall(originalRefreshLandmarksUI)
+            
+            -- Menyelinap ke dalam Card untuk menaruh tombol "Initial Spawn" di posisi teratas
             local milestoneCard = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn"):FindFirstChild("Saved CFrame Milestones") or areaTpCard
             if milestoneCard then
-                for _, child in pairs(milestoneCard:GetChildren()) do 
-                    if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end 
+                -- Menata ulang LayoutOrder semua tombol manual bawaan agar turun ke bawah (+1)
+                for _, child in pairs(milestoneCard:GetChildren()) do
+                    if child:IsA("Frame") and child.LayoutOrder >= 0 then
+                        child.LayoutOrder = child.LayoutOrder + 1
+                    end
+                    -- Menghapus text "Belum ada landmark tersimpan" bawaan jika ada, karena sekarang sudah ada Initial Spawn
+                    if child:IsA("TextLabel") and child.Text:find("Belum ada") then
+                        child:Destroy()
+                    end
                 end
-            end
-            
-            local currentMapData = AllWaypoints[CurrentPlaceId] or {}
-            local indexOrder = 1
-            
-            -- RENDERING INITIAL SPAWN TERLEBIH DAHULU (PAKSA PALING ATAS)
-            if currentMapData["📍 Initial Spawn"] then
-                local coord = currentMapData["📍 Initial Spawn"]
-                local rowFrame = Instance.new("Frame", milestoneCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = 0
-                local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, 0, 1, 0) btn.BackgroundColor3 = Color3.fromRGB(28, 40, 38) btn.Font = Enum.Font.GothamBold btn.Text = "📍 Initial Spawn" btn.TextColor3 = Theme.ConfirmGreen btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.ConfirmGreen
                 
+                -- Membuat Tombol Khusus "Initial Spawn Point" Resmi di Urutan Ke-0 (Paling Atas)
+                local rowFrame = Instance.new("Frame")
+                rowFrame.Name = "InitialSpawnRow"
+                rowFrame.Size = UDim2.new(1, 0, 0, 26)
+                rowFrame.BackgroundTransparency = 1
+                rowFrame.LayoutOrder = 0
+                rowFrame.Parent = milestoneCard
+                
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, 0, 1, 0)
+                btn.BackgroundColor3 = Color3.fromRGB(24, 38, 36)
+                btn.Font = Enum.Font.GothamBold
+                btn.Text = "📍 Initial Spawn Point"
+                btn.TextColor3 = Theme.ConfirmGreen
+                btn.TextSize = 11
+                btn.Parent = rowFrame
+                
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+                local btnStroke = Instance.new("UIStroke", btn)
+                btnStroke.Color = Theme.ConfirmGreen
+                btnStroke.Thickness = 1
+                
+                -- Sistem eksekusi teleportasi (Mendukung instan maupun mode tween)
                 btn.MouseButton1Click:Connect(function()
                     if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetCF = CFrame.new(coord, coord + 3, coord) -- Ditambah tinggi +3 agar pas teleport tidak amblas ke lantai
-                        if not bypassTeleportWithTween(targetCF) then
-                            Player.Character.HumanoidRootPart.CFrame = targetCF
+                        if not bypassTeleportWithTween(initialSpawnCFrame) then
+                            Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame
                         end
                     end
                 end)
-                indexOrder = indexOrder + 1
-            end
-            
-            -- RENDERING WAYPOINTS MANUAL ANDALAN ANDA
-            for wpName, coord in pairs(currentMapData) do
-                if wpName ~= "📍 Initial Spawn" then
-                    local rowFrame = Instance.new("Frame", milestoneCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
-                    local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
-                    
-                    btn.MouseButton1Click:Connect(function()
-                        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                            local targetCF = CFrame.new(coord, coord, coord)
-                            if not bypassTeleportWithTween(targetCF) then
-                                Player.Character.HumanoidRootPart.CFrame = targetCF
-                            end
-                        end
-                    end)
-                    
-                    local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-                    delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
-                    indexOrder = indexOrder + 1
-                end
             end
         end
+        
+        -- Daftarkan ulang sistem deteksi klik tombol manual agar mendukung sistem Tween Teleport secara dinamis
+        local originalBtnSavePosConnections = btnSavePos.MouseButton1Click
+        pcall(function()
+            local milestoneCard = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn"):FindFirstChild("Saved CFrame Milestones") or areaTpCard
+            milestoneCard.ChildAdded:Connect(function(child)
+                task.wait(0.05)
+                local btn = child:FindFirstChildOfClass("TextButton")
+                if btn and btn.Text:find("📍") and child.LayoutOrder > 0 then
+                    local originalConnections = getconnections or get_signal_cons
+                    if originalConnections then
+                        for _, connection in pairs(originalConnections(btn.MouseButton1Click)) do
+                            local oldTpFunc = connection.Function
+                            connection:Disable()
+                            btn.MouseButton1Click:Connect(function()
+                                if Config.TweenTeleport then
+                                    local wpName = btn.Text:gsub("📍 ", "")
+                                    local coord = AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName]
+                                    if coord then
+                                        bypassTeleportWithTween(CFrame.new(coord, coord, coord))
+                                    end
+                                else
+                                    pcall(oldTpFunc)
+                                end
+                            end)
+                        end
+                    end
+                end
+            end)
+        end)
+
+        -- Jalankan refresh pertama kali agar tombol langsung nongol di menu saat start up
         pcall(refreshLandmarksUI)
     end
 end)
