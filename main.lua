@@ -99,23 +99,53 @@ local origClockTime = Lighting.ClockTime
 -- ====================================================================
 -- CONFIG KEY SYSTEM (INTEGRASI HUGGING FACE SPACES)
 -- ====================================================================
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
 
--- Catatan: Sesuaikan endpoint sub-path jika backend Python kamu mendaftarkan rute spesifik (misal: /verify?key=)
+-- Endpoint API Hugging Face kamu
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
+
+-- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
+local function verifyKeyWithServer(targetKey)
+    if not targetKey or targetKey == "" then return false end
+    
+    local success, response = pcall(function()
+        return HttpService:GetAsync(HUGGING_FACE_URL .. targetKey)
+    end)
+    
+    -- MAIN UI HANYA BISA KEBuka JIKA SERVER MEMBALAS SEBAGAI "VALID"
+    if success and response == "VALID" then
+        return true
+    else
+        return false
+    end
+end
 
 local function loadKeyStatus()
     local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
-            -- Bypass otomatis 24 jam (86400 detik) jika kunci lokal masih berlaku
+            
+            -- Cek apakah file lokal masih di bawah 24 jam
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
                 if decodedData.Key and decodedData.Key ~= "" then 
-                    KeyVerified = true 
+                    
+                    -- [PERBAIKAN UTAMA]: Cek ulang ke Hugging Face, jangan asal meloloskan!
+                    if verifyKeyWithServer(decodedData.Key) then
+                        KeyVerified = true 
+                    else
+                        -- Jika di server sudah terhapus/invalid/expired, hapus file lokal palsu ini
+                        pcall(function() delfile(KEY_FILE_NAME) end)
+                        KeyVerified = false
+                    end
+                    
                 end
             end
+            
         end
     end
 end
@@ -124,8 +154,11 @@ local function saveKeyStatus(passedKey)
     local data = { Key = passedKey, Timestamp = os.time() }
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
+
+-- Jalankan pengecekan saat script pertama kali dimuat
 loadKeyStatus()
 
+-- ==================== METADATA TAMBAHAN ====================
 local CurrentMapName = "Unknown Game"
 pcall(function()
     local productInfo = MarketplaceService:GetProductInfo(game.PlaceId)
