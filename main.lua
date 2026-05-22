@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v6.8 CORE ENGINE REWORK (PART 1)
+-- AR SCRIPT HUB - v6.8 CORE ENGINE REWORK (INTEGRATED VERSION 2026)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -12,6 +12,22 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
+-- ANTI-BUG FLY CLEAN-UP ENGINE (Dijalankan di awal eksekusi untuk membersihkan sisa skrip lama)
+pcall(function()
+    if Player.Character then
+        for _, obj in pairs(Player.Character:GetDescendants()) do
+            if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
+                obj:Destroy()
+            end
+        end
+        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end
+end)
+
 -- Pembersihan UI lama
 if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
     SafeGuiTarget.AR_Script_Hub:Destroy()
@@ -21,7 +37,6 @@ local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
 MainGui.ResetOnSpawn = false
--- Menggunakan nilai interger positif 32-bit tertinggi agar berada di atas Chat/Voice Mic Roblox
 MainGui.DisplayOrder = 2147483647
 
 local Theme = {
@@ -44,7 +59,7 @@ local Theme = {
 -- ====================================================================
 local Config = {
     FlyMode = false,
-    FlySpeed = 5, -- Standalone scale base
+    FlySpeed = 5,
     Noclip = false,
     SuperSpeed = false,
     SuperSpeedVal = 16,
@@ -58,23 +73,34 @@ local Config = {
     EnableESP = false,
     ShowBoxes = false,
     ShowNames = false,
-    ShowGlow = false, -- Fitur tubuh glowing baru
+    ShowGlow = false,
     TeamCheck = false,
     MaxDistance = 1000,
     ShadowsDisabled = false,
     AntiLag = false,
-    UiTransparency = 0.15 -- Slider baru untuk transparansi UI
+    UiTransparency = 0.15,
+    -- Variabel Tambahan Ekstensi
+    TweenTeleport = false,
+    TweenSpeed = 350,
+    FullBright = false
 }
 
 local FILE_NAME = "AR_Hub_Waypoints.json"
 local CurrentPlaceId = tostring(game.PlaceId)
 local AllWaypoints = {}
 
+-- Cadangan Pencahayaan Asli Map untuk Fitur FullBright
+local Lighting = game:GetService("Lighting")
+local origAmbient = Lighting.Ambient
+local origOutdoorAmbient = Lighting.OutdoorAmbient
+local origBrightness = Lighting.Brightness
+local origClockTime = Lighting.ClockTime
+
 -- ====================================================================
 -- INTEGRASI CONFIG KEY SYSTEM (24 JAM BYPASS)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local CorrectKey = "AR_HUB_FREE_2026" -- Ubah string ini dengan key yang Anda inginkan
+local CorrectKey = "AR_HUB_FREE_2026"
 local KeyVerified = false
 
 local function loadKeyStatus()
@@ -82,7 +108,6 @@ local function loadKeyStatus()
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
-            -- Memeriksa jika penanda waktu (timestamp) belum melewati 24 jam (86400 detik)
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
                 if decodedData.Key == CorrectKey then
                     KeyVerified = true
@@ -95,15 +120,13 @@ end
 local function saveKeyStatus()
     local data = {
         Key = CorrectKey,
-        Timestamp = os.time() -- Menyimpan waktu Unix saat ini dalam satuan detik
+        Timestamp = os.time()
     }
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
 
--- Menjalankan verifikasi penyimpanan lokal di awal skrip
 loadKeyStatus()
 
--- Mendapatkan info map saat ini secara aman
 local CurrentMapName = "Unknown Game"
 pcall(function()
     local productInfo = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -112,7 +135,6 @@ pcall(function()
     end
 end)
 
--- Mendapatkan nama executor secara aman
 local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
 
 -- ====================================================================
@@ -165,22 +187,18 @@ local function handleFlyEngine()
             local camCF = camera.CFrame
             local direction = Vector3.new(0, 0, 0)
             
-            -- Mendeteksi arah tombol W/A/S/D secara murni mengikuti kamera 3D
             if moveDir.Magnitude > 0 then
                 local lookVector = camCF.LookVector
                 local rightVector = camCF.RightVector
                 
-                -- Proyeksi pergerakan lokal berdasarkan input arah pemain
                 local forwardInput = moveDir:Dot(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
                 local sideInput = moveDir:Dot(Vector3.new(rightVector.X, 0, rightVector.Z).Unit)
                 
                 direction = (lookVector * forwardInput) + (rightVector * sideInput)
             end
             
-            -- Kalkulasi kecepatan dasar dari arah kamera
             local finalVelocity = (direction.Magnitude > 0) and (direction.Unit * speed) or Vector3.new(0, 0, 0)
             
-            -- Integrasi tombol Space & LeftShift untuk kontrol vertikal murni
             local verticalSpeed = 0
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                 verticalSpeed = speed
@@ -188,14 +206,12 @@ local function handleFlyEngine()
                 verticalSpeed = -speed
             end
             
-            -- Gabungkan arah horizontal-kamera dengan kontrol vertikal tambahan
             if verticalSpeed ~= 0 then
                 flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
             else
                 flyBv.velocity = finalVelocity
             end
             
-            -- Karakter berputar mulus menghadap ke mana kamera diarahkan
             flyBg.cframe = camCF
             task.wait()
         end
@@ -203,7 +219,6 @@ local function handleFlyEngine()
     end)
 end
 
--- Infinite Jump Engine menggunakan JumpRequest (100% bypass)
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
@@ -213,7 +228,6 @@ game:GetService("UserInputService").JumpRequest:Connect(function()
     end
 end)
 
--- Noclip & Anti-Ragdoll Looping Engine
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
@@ -253,6 +267,42 @@ task.spawn(function()
     end
 end)
 
+-- Loop konstan anti-reset pencahayaan map (FullBright Engine)
+RunService.RenderStepped:Connect(function()
+    if Config.FullBright then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+    end
+end)
+
+-- TWEEN TELEPORT ENGINE
+local function bypassTeleportWithTween(targetCFrame)
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
+    local hrp = Player.Character.HumanoidRootPart
+    
+    if Config.TweenTeleport then
+        local distance = (hrp.Position - targetCFrame.Position).Magnitude
+        local duration = distance / math.max(Config.TweenSpeed, 50)
+        
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Parent = hrp
+        
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+        tween:Play()
+        
+        tween.Completed:Connect(function()
+            bodyVelocity:Destroy()
+        end)
+        return true
+    end
+    return false
+end
+
 -- ====================================================================
 -- ADVANCED ESP GLOW & CHAMS ENGINE
 -- ====================================================================
@@ -287,7 +337,6 @@ local function buildESP(target)
 
         if not espCache[target] then espCache[target] = {} end
 
-        -- 1. BOX ESP
         if Config.ShowBoxes and onScreen then
             if not espCache[target].Box then
                 local b = Instance.new("BoxHandleAdornment")
@@ -299,7 +348,6 @@ local function buildESP(target)
             if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
         end
 
-        -- 2. NAME & DISTANCE ESP
         if Config.ShowNames and onScreen then
             if not espCache[target].Label then
                local bgui = Instance.new("BillboardGui") bgui.Size = UDim2.new(0, 150, 0, 40) bgui.AlwaysOnTop = true bgui.StudsOffset = Vector3.new(0, 3, 0)
@@ -312,7 +360,6 @@ local function buildESP(target)
             if espCache[target].Label then espCache[target].Label:Destroy() espCache[target].Label = nil end
         end
 
-        -- 3. BODY GLOW ESP (HIGHLIGHTS - ALWAYS ON TOP)
         if Config.ShowGlow then
            if not espCache[target].Highlight then
                 local hl = Instance.new("Highlight")
@@ -338,11 +385,10 @@ local function applyGraphicsBoost()
     game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
     if Config.AntiLag then settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end
 end
+
 -- ====================================================================
 -- AR SCRIPT HUB - v6.8 VISUAL PANEL & UI COUPLING (PART 2)
 -- ====================================================================
-
--- SYSTEM UTILITY STORAGE STORAGE SYSTEM LOAD
 local function loadWaypointsFromStorage()
     AllWaypoints = {}
     local success, content = pcall(function() return readfile(FILE_NAME) end)
@@ -360,7 +406,6 @@ local function saveWaypointsToStorage()
 end
 loadWaypointsFromStorage()
 
--- GLOBAL SYSTEM POP-UP CONFIRMATION
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame"
 PopupFrame.Parent = MainGui
@@ -422,7 +467,6 @@ end
 PopupYes.MouseButton1Click:Connect(function() PopupFrame.Visible = false if currentCallback then currentCallback() end end)
 PopupNo.MouseButton1Click:Connect(function() PopupFrame.Visible = false end)
 
--- LOADING SCREEN VISUAL ELEMENTS
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Name = "LoadingFrame"
 LoadingFrame.Parent = MainGui
@@ -475,7 +519,6 @@ LoadFill.Size = UDim2.new(0, 0, 1, 0)
 LoadFill.BackgroundColor3 = Theme.Accent
 Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
 
--- DRAGGABLE BUILDER ENGINE
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -493,7 +536,6 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- FLOATING BUTTON BUILDER
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainGui
@@ -511,7 +553,6 @@ local tbStroke = Instance.new("UIStroke", ToggleButton)
 tbStroke.Color = Theme.AccentPurple
 makeDraggable(ToggleButton, ToggleButton)
 
--- MAIN PANEL CONTAINER
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = MainGui
@@ -525,7 +566,6 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1.5
 
--- UPDATE PANEL TRANSPARENCY FUNCTION
 local function updateUiTransparency(value)
     Config.UiTransparency = value
     MainFrame.BackgroundTransparency = value
@@ -533,7 +573,6 @@ local function updateUiTransparency(value)
     PopupFrame.BackgroundTransparency = value
 end
 
--- HEADER CONTAINER
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
@@ -560,7 +599,6 @@ ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = true Toggl
 MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false ToggleButton.Visible = true end)
 CloseBtn.MouseButton1Click:Connect(function() showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function() MainGui:Destroy() end) end)
 
--- TOP BAR NAVIGATION
 local TopBarNav = Instance.new("Frame", MainFrame)
 TopBarNav.Name = "TopBarNav"
 TopBarNav.Size = UDim2.new(1, -32, 0, 36)
@@ -574,7 +612,6 @@ navStroke.Color = Theme.Stroke
 local NavLayout = Instance.new("UIListLayout", TopBarNav) NavLayout.FillDirection = Enum.FillDirection.Horizontal NavLayout.SortOrder = Enum.SortOrder.LayoutOrder NavLayout.VerticalAlignment = Enum.VerticalAlignment.Center NavLayout.Padding = UDim.new(0, 4)
 local paddingNav = Instance.new("UIPadding", TopBarNav) paddingNav.PaddingLeft = UDim.new(0, 6)
 
--- CANVAS CONTENT WITH AUTOMATIC SCROLLING
 local MainContentFrame = Instance.new("ScrollingFrame", MainFrame)
 MainContentFrame.Name = "MainContentFrame"
 MainContentFrame.Size = UDim2.new(1, -16, 1, -105)
@@ -637,7 +674,6 @@ addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- DYNAMIC BUILDER HELPERS FOR INLINE INTERACTION
 local function addToggle(parent, labelText, order, configKey, callback)
     local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
     local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(1, -40, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
@@ -719,7 +755,6 @@ local function createShiftedRightColumn(parentName, columnName)
     return col
 end
 
--- COLUMN INSTANCES CREATION
 local LeftColumn = createLeftColumn("Player", "LeftColumn")
 local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn")
@@ -730,7 +765,7 @@ local serverLeftColumn = createLeftColumn("Server", "ServerLeftColumn")
 local serverRightColumn = createShiftedRightColumn("Server", "ServerRightColumn")
 
 -- ====================================================================
--- RENDERING SETTING PAGE (CLIENT INFO & TRANSPARENCY SLIDER)
+-- RENDERING SETTING PAGE
 -- ====================================================================
 local SetLeftColumn = createLeftColumn("Setting", "SetLeftColumn")
 local SetRightColumn = createShiftedRightColumn("Setting", "SetRightColumn")
@@ -756,6 +791,31 @@ local coreActionCard = createCard(SetRightColumn, "Core Actions", 1)
 createServerButton(coreActionCard, "🔴 Close System UI", Theme.DeleteBg, function()
     showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
 end, 1)
+
+-- INJEKSI TOMBOL "RELOAD SYSTEM UI" (Mendukung Auto Re-Execute Lewat Cache String)
+createServerButton(coreActionCard, "🔄 Reload System UI", Color3.fromRGB(35, 35, 55), function()
+    showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
+        if Config.FlyMode then 
+            Config.FlyMode = false 
+            pcall(handleFlyEngine) 
+        end
+        
+        local currentScript = MainGui:GetAttribute("ScriptContent") or ""
+        MainGui:Destroy()
+        task.wait(0.15)
+        
+        if loadstring and currentScript ~= "" then
+            pcall(function() loadstring(currentScript)() end)
+        else
+            -- Fallback alternatif re-execute global jika tidak ada cache atribut
+            pcall(function()
+                if loadstring then
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/..."))() -- Jika Anda menggunakan loader eksternal
+                end
+            end)
+        end
+    end)
+end, 2)
 
 -- ====================================================================
 -- RENDERING PLAYER PAGE
@@ -798,6 +858,12 @@ addSliderWithInput(espSettingsCard, "Max Distance Threshold", 100, 5000, 1000, 2
 -- ====================================================================
 -- RENDERING TELEPORTATION PAGE
 -- ====================================================================
+
+-- INJEKSI CARD TWEEN TELEPORTATION DI TAB TP (URUTAN TERATAS)
+local tweenCard = createCard(tpRightColumn, "Tween Teleportation Mode", 1)
+addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
+addSliderWithInput(tweenCard, "Tween Speed (Studs/Sec)", 50, 1000, 350, 2, "TweenSpeed")
+
 local playerTpCard = createCard(tpLeftColumn, "Target Player Teleport", 1)
 local inputPlayerFrame = Instance.new("Frame", playerTpCard) inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28) inputPlayerFrame.BackgroundTransparency = 1 inputPlayerFrame.LayoutOrder = 1
 local tpPlayerInput = Instance.new("TextBox", inputPlayerFrame) tpPlayerInput.Size = UDim2.new(1, 0, 1, 0) tpPlayerInput.BackgroundColor3 = Theme.Bg tpPlayerInput.Font = Enum.Font.GothamMedium tpPlayerInput.PlaceholderText = "Masukkan nama player..." tpPlayerInput.TextColor3 = Theme.TextMain tpPlayerInput.PlaceholderColor3 = Theme.TextMuted tpPlayerInput.TextSize = 11 Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", tpPlayerInput).Color = Theme.Stroke
@@ -810,7 +876,10 @@ btnPlayerTp.MouseButton1Click:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
                 if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                    Player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+                    local targetCF = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+                    if not bypassTeleportWithTween(targetCF) then
+                        Player.Character.HumanoidRootPart.CFrame = targetCF
+                    end
                     break
                 end
             end
@@ -824,7 +893,7 @@ local wpNameInput = Instance.new("TextBox", inputWpFrame) wpNameInput.Size = UDi
 
 local btnSavePos = Instance.new("TextButton", waypointCard) btnSavePos.Size = UDim2.new(1, 0, 0, 26) btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85) btnSavePos.Font = Enum.Font.GothamBold btnSavePos.Text = "💾 Simpan Posisi Saat Ini" btnSavePos.TextColor3 = Theme.Accent btnSavePos.TextSize = 11 btnSavePos.LayoutOrder = 2 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
 
-local areaTpCard = createCard(tpRightColumn, "Saved CFrame Milestones", 1)
+local areaTpCard = createCard(tpRightColumn, "Saved CFrame Milestones", 2)
 local refreshLandmarksUI
 
 local function deleteWaypoint(wpName)
@@ -833,43 +902,76 @@ local function deleteWaypoint(wpName)
     end
 end
 
-function refreshLandmarksUI()
-    for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
-    local currentMapData = AllWaypoints[CurrentPlaceId] or {}
-    local indexOrder = 1
-     for wpName, coord in pairs(currentMapData) do
-        local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
-        local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📍 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
+-- ====================================================================
+-- INITIAL SPAWN ENGINE & SAFE UI HOOKING
+-- ====================================================================
+task.spawn(function()
+    -- Ambil koordinat setelah loading screen / karakter mendarat di map
+    repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
+    local hrp = Player.Character.HumanoidRootPart
+    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+    
+    for i = 1, 30 do
+        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
+        task.wait(0.5)
+    end
+    task.wait(1.5) -- Penstabilan akhir
+    
+    local spawnPos = hrp.Position
+    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
+
+    function refreshLandmarksUI()
+        for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        btn.MouseButton1Click:Connect(function()
+        -- RENDERING TOMBOL INITIAL SPAWN PALING ATAS (LayoutOrder = 0)
+        local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
+        local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 1
+        
+        btnSpawn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                Player.Character.HumanoidRootPart.CFrame = CFrame.new(coord[1], coord[2], coord[3])
+                if not bypassTeleportWithTween(initialSpawnCFrame) then
+                    Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame
+                end
             end
         end)
         
-        local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-         delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
-        indexOrder = indexOrder + 1
+        -- RENDERING TOMBOL WAYPOINT MANUAL ASLI ANDA (LayoutOrder dimajukan mulai dari 1)
+        local currentMapData = AllWaypoints[CurrentPlaceId] or {}
+        local indexOrder = 1
+        for wpName, coord in pairs(currentMapData) do
+            local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = indexOrder
+            local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName .. " " btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
+            
+            btn.MouseButton1Click:Connect(function()
+                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetCF = CFrame.new(coord, coord, coord)
+                    if not bypassTeleportWithTween(targetCF) then
+                        Player.Character.HumanoidRootPart.CFrame = targetCF
+                    end
+                end
+            end)
+            
+            local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+            delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
+            indexOrder = indexOrder + 1
+        end
     end
-    if indexOrder == 1 then
-        local emptyTxt = Instance.new("TextLabel", areaTpCard) emptyTxt.Size = UDim2.new(1, 0, 0, 24) emptyTxt.BackgroundTransparency = 1 emptyTxt.Font = Enum.Font.GothamMedium emptyTxt.Text = "Belum ada landmark tersimpan." emptyTxt.TextColor3 = Theme.TextMuted emptyTxt.TextSize = 10 emptyTxt.LayoutOrder = 1
-    end
-end
 
-btnSavePos.MouseButton1Click:Connect(function()
-    local name = wpNameInput.Text
-    if name ~= "" then
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local currentPos = Player.Character.HumanoidRootPart.Position
-            AllWaypoints[CurrentPlaceId][name] = {math.round(currentPos.X * 100) / 100, math.round(currentPos.Y * 100) / 100, math.round(currentPos.Z * 100) / 100}
-            saveWaypointsToStorage() wpNameInput.Text = "" refreshLandmarksUI()
-         end
-    end
+    btnSavePos.MouseButton1Click:Connect(function()
+        local name = wpNameInput.Text
+        if name ~= "" and name ~= "Initial Spawn Point" then
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local currentPos = Player.Character.HumanoidRootPart.Position
+                AllWaypoints[CurrentPlaceId][name] = {math.round(currentPos.X * 100) / 100, math.round(currentPos.Y * 100) / 100, math.round(currentPos.Z * 100) / 100}
+                saveWaypointsToStorage() wpNameInput.Text = "" refreshLandmarksUI()
+             end
+        end
+    end)
+    refreshLandmarksUI()
 end)
-refreshLandmarksUI()
 
 -- ====================================================================
--- RENDERING SERVER PAGE (FIXED TELEMETRY REALTIME DETECTOR)
+-- RENDERING SERVER PAGE
 -- ====================================================================
 local statsCard = createCard(serverLeftColumn, "Live Server Telemetry", 1)
 local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
@@ -891,23 +993,22 @@ task.spawn(function()
             lastTime = now
         end
         
-        -- Mengambil Data Ping Langsung Dari Roblox Stats Service secara Aman
          local pingVal = 0
         pcall(function()
             pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000)
         end)
-        if pingVal <= 0 then pingVal = math.round(Player:GetNetworkPing() * 2000) end -- Fallback Method
-        if pingVal <= 0 then pingVal = 15 end -- Safety Cap Minimum
+        if pingVal <= 0 then pingVal = math.round(Player:GetNetworkPing() * 2000) end
+        if pingVal <= 0 then pingVal = 15 end
         
         local sTime = math.round(workspace.DistributedGameTime)
-         local hours = string.format("%02d", math.floor(sTime / 3600))
+        local hours = string.format("%02d", math.floor(sTime / 3600))
         local minutes = string.format("%02d", math.floor((sTime % 3600) / 60))
         local seconds = string.format("%02d", sTime % 60)
         
         lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(currentFps) .. " FPS</font>"
         lblFps.RichText = true
         lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingVal) .. " ms</font>"
-         lblPing.RichText = true
+        lblPing.RichText = true
         lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>"
         lblTime.RichText = true
     end
@@ -937,293 +1038,21 @@ end, 1)
 addToggle(optiCard, "Disable Global Shadows", 2, "ShadowsDisabled", applyGraphicsBoost)
 addToggle(optiCard, "Anti-Lag Core Engine", 3, "AntiLag", applyGraphicsBoost)
 
--- ====================================================================
--- EXTENSION UPGRADE V3: FINAL FIXED ENGINE (AUTO RE-EXECUTE)
--- ====================================================================
-
--- 1. ANTI-BUG FLY CLEAN-UP ENGINE (Dijalankan langsung saat eksekusi/reload)
-pcall(function()
-    if Player.Character then
-        -- Menghapus paksa objek fisik terbang sisa dari skrip sebelumnya
-        for _, obj in pairs(Player.Character:GetDescendants()) do
-            if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
-                obj:Destroy()
-            end
-        end
-        -- Mengembalikan state humanoid ke normal agar tidak tersangkut di udara
-        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
-            hum:ChangeState(Enum.HumanoidStateType.Running)
-        end
-    end
-end)
-
--- 2. KONFIGURASI STATE BARU (Bypass global config injection)
-Config.TweenTeleport = false
-Config.TweenSpeed = 350
-Config.FullBright = false
-
--- Storage Cadangan Pencahayaan Asli Map
-local Lighting = game:GetService("Lighting")
-local origAmbient = Lighting.Ambient
-local origOutdoorAmbient = Lighting.OutdoorAmbient
-local origBrightness = Lighting.Brightness
-local origClockTime = Lighting.ClockTime
-
--- 3. INJEKSI TOMBOL "RELOAD SYSTEM UI" (Tab Setting - LANGSUNG AUTO RE-EXECUTE)
-pcall(function()
-    local setRightCol = menuContainers["Setting"]:FindFirstChild("SetRightColumn")
-    if setRightCol then
-        local coreCard = setRightCol:FindFirstChildOfClass("Frame")
-        if coreCard and coreCard:FindFirstChild("Frame") then
-            local container = coreCard:FindFirstChild("Frame")
-            
-            createServerButton(container, "🔄 Reload System UI", Color3.fromRGB(35, 35, 55), function()
-                showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
-                    -- Mematikan sistem fly aktif sebelum reload untuk mencegah bug menggantung
-                    if Config.FlyMode then 
-                        Config.FlyMode = false 
-                        pcall(handleFlyEngine) 
-                    end
-                    
-                    -- Mengambil source script dari attribute executor jika didukung, atau fallback ke reload global string
-                    local currentScript = MainGui:GetAttribute("ScriptContent") or ""
-                    
-                    -- Hancurkan UI Lama secara total
-                    MainGui:Destroy()
-                    task.wait(0.15)
-                    
-                    -- Memicu eksekusi ulang script secara otomatis (Mendukung loadstring executor)
-                    if loadstring and currentScript ~= "" then
-                        pcall(function() loadstring(currentScript)() end)
-                    else
-                        -- Fallback: Jika executor tidak menyimpan string di attribute, panggil kembali loader utama Anda di sini jika ada.
-                        -- Untuk saat ini ia akan re-execute aman via loadstring eksternal.
-                        pcall(function()
-                            if loadstring then
-                                -- Memicu re-execute fallback aman
-                                loadstring(game:HttpGet(string.format("https://raw.githubusercontent.com/...")))() -- Sesuai loader asli Anda jika ada
-                            end
-                        end)
-                    end
-                end)
-            end, 2)
-        end
-    end
-end)
-
--- 4. INJEKSI SAKELAR "FULLBRIGHT" (Tab Server - Di bawah Anti-Lag)
-pcall(function()
-    local serverRightCol = menuContainers["Server"]:FindFirstChild("ServerRightColumn")
-    if serverRightCol then
-        local optiCard = serverRightCol:FindFirstChildOfClass("Frame")
-        if optiCard and optiCard:FindFirstChild("Frame") then
-            local container = optiCard:FindFirstChild("Frame")
-            addToggle(container, "💡 FullBright Core Engine", 4, "FullBright", function(active)
-                if active then
-                    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-                    Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-                    Lighting.Brightness = 2
-                    Lighting.ClockTime = 14
-                else
-                    Lighting.Ambient = origAmbient
-                    Lighting.OutdoorAmbient = origOutdoorAmbient
-                    Lighting.Brightness = origBrightness
-                    Lighting.ClockTime = origClockTime
-                end
-            end)
-        end
-    end
-end)
-
--- Loop konstan anti-reset lighting bawaan game
-RunService.RenderStepped:Connect(function()
-    if Config.FullBright then
+-- INJEKSI SAKELAR FULLBRIGHT DI TAB SERVER
+addToggle(optiCard, "💡 FullBright Core Engine", 4, "FullBright", function(active)
+    if active then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
         Lighting.Brightness = 2
         Lighting.ClockTime = 14
+    else
+        Lighting.Ambient = origAmbient
+        Lighting.OutdoorAmbient = origOutdoorAmbient
+        Lighting.Brightness = origBrightness
+        Lighting.ClockTime = origClockTime
     end
 end)
 
--- 5. INJEKSI CARD TWEEN TELEPORT DI ATAS MILESTONES (Tab Teleport)
-local tweenCardContainer
-pcall(function()
-    local tpRightCol = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn")
-    if tpRightCol then
-        local oldMilestoneCard = tpRightCol:FindFirstChild("Saved CFrame Milestones") or tpRightCol:FindFirstChildOfClass("Frame")
-        local tweenCard = createCard(tpRightCol, "Tween Teleportation Mode", 1)
-        tweenCardContainer = tweenCard
-        addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
-        addSliderWithInput(tweenCard, "Tween Speed (Studs/Sec)", 50, 1000, 350, 2, "TweenSpeed")
-        if oldMilestoneCard then
-            oldMilestoneCard.LayoutOrder = 2
-        end
-    end
-end)
-
--- 6. TWEEN TELEPORT CORE ENGINE (Fungsi Interpolasi Mulus)
-local function bypassTeleportWithTween(targetCFrame)
-    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
-    local hrp = Player.Character.HumanoidRootPart
-    
-    if Config.TweenTeleport then
-        local distance = (hrp.Position - targetCFrame.Position).Magnitude
-        local duration = distance / math.max(Config.TweenSpeed, 50)
-        
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVelocity.Parent = hrp
-        
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-        tween:Play()
-        
-        tween.Completed:Connect(function()
-            bodyVelocity:Destroy()
-        end)
-        return true
-    end
-    return false
-end
-
--- Hooking Tombol Teleport Player agar mendukung Fitur Tween
-pcall(function()
-    local btnPlayerTp = menuContainers["Teleportation"]:FindFirstChild("TpLeftColumn"):FindFirstChildOfClass("Frame"):FindFirstChildOfClass("TextButton")
-    if btnPlayerTp then
-        local originalConnections = getconnections or get_signal_cons
-        if originalConnections then
-            for _, connection in pairs(originalConnections(btnPlayerTp.MouseButton1Click)) do
-                local oldFunction = connection.Function
-                connection:Disable()
-                btnPlayerTp.MouseButton1Click:Connect(function()
-                    if Config.TweenTeleport then
-                        local targetName = btnPlayerTp.Parent:FindFirstChildOfClass("TextBox").Text:lower()
-                        if targetName ~= "" then
-                            for _, p in pairs(Players:GetPlayers()) do
-                                if p ~= Player and (p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName) then
-                                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                                        bypassTeleportWithTween(p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0))
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                    else
-                        pcall(oldFunction)
-                    end
-                end)
-            end
-        end
-    end
-end)
-
--- 7. INITIAL SPAWN POINT ENGINE & SAFE UI HOOKING (Memperbaiki Bug Koordinat)
-task.spawn(function()
-    -- Ambil posisi koordinat asli saat karakter mendarat tegak di server
-    repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
-    local hrp = Player.Character.HumanoidRootPart
-    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-    
-    for i = 1, 30 do
-        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
-        task.wait(0.5)
-    end
-    task.wait(1.5) -- Jeda penstabilan koordinat final
-    
-    local spawnPos = hrp.Position
-    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z) -- Offset +3.5 agar tidak amblas ke lantai
-
-    -- Intersepsi (Hook) fungsi refreshLandmarksUI bawaan agar tidak merusak fungsi tombol manual asli Anda
-    if refreshLandmarksUI then
-        local originalRefreshLandmarksUI = refreshLandmarksUI
-        
-        refreshLandmarksUI = function()
-            -- Biarkan fungsi asli `main.lua` merender semua tombol manual andalan Anda terlebih dahulu
-            pcall(originalRefreshLandmarksUI)
-            
-            -- Menyelinap ke dalam Card untuk menaruh tombol "Initial Spawn" di posisi teratas
-            local milestoneCard = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn"):FindFirstChild("Saved CFrame Milestones") or areaTpCard
-            if milestoneCard then
-                -- Menata ulang LayoutOrder semua tombol manual bawaan agar turun ke bawah (+1)
-                for _, child in pairs(milestoneCard:GetChildren()) do
-                    if child:IsA("Frame") and child.LayoutOrder >= 0 then
-                        child.LayoutOrder = child.LayoutOrder + 1
-                    end
-                    -- Menghapus text "Belum ada landmark tersimpan" bawaan jika ada, karena sekarang sudah ada Initial Spawn
-                    if child:IsA("TextLabel") and child.Text:find("Belum ada") then
-                        child:Destroy()
-                    end
-                end
-                
-                -- Membuat Tombol Khusus "Initial Spawn Point" Resmi di Urutan Ke-0 (Paling Atas)
-                local rowFrame = Instance.new("Frame")
-                rowFrame.Name = "InitialSpawnRow"
-                rowFrame.Size = UDim2.new(1, 0, 0, 26)
-                rowFrame.BackgroundTransparency = 1
-                rowFrame.LayoutOrder = 0
-                rowFrame.Parent = milestoneCard
-                
-                local btn = Instance.new("TextButton")
-                btn.Size = UDim2.new(1, 0, 1, 0)
-                btn.BackgroundColor3 = Color3.fromRGB(24, 38, 36)
-                btn.Font = Enum.Font.GothamBold
-                btn.Text = "📍 Initial Spawn Point"
-                btn.TextColor3 = Theme.ConfirmGreen
-                btn.TextSize = 11
-                btn.Parent = rowFrame
-                
-                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-                local btnStroke = Instance.new("UIStroke", btn)
-                btnStroke.Color = Theme.ConfirmGreen
-                btnStroke.Thickness = 1
-                
-                -- Sistem eksekusi teleportasi (Mendukung instan maupun mode tween)
-                btn.MouseButton1Click:Connect(function()
-                    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        if not bypassTeleportWithTween(initialSpawnCFrame) then
-                            Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame
-                        end
-                    end
-                end)
-            end
-        end
-        
-        -- Daftarkan ulang sistem deteksi klik tombol manual agar mendukung sistem Tween Teleport secara dinamis
-        pcall(function()
-            local milestoneCard = menuContainers["Teleportation"]:FindFirstChild("TpRightColumn"):FindFirstChild("Saved CFrame Milestones") or areaTpCard
-            milestoneCard.ChildAdded:Connect(function(child)
-                task.wait(0.05)
-                local btn = child:FindFirstChildOfClass("TextButton")
-                if btn and btn.Text:find("📍") and child.LayoutOrder > 0 then
-                    local originalConnections = getconnections or get_signal_cons
-                    if originalConnections then
-                        for _, connection in pairs(originalConnections(btn.MouseButton1Click)) do
-                            local oldTpFunc = connection.Function
-                            connection:Disable()
-                            btn.MouseButton1Click:Connect(function()
-                                if Config.TweenTeleport then
-                                    local wpName = btn.Text:gsub("📍 ", "")
-                                    local coord = AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName]
-                                    if coord then
-                                        bypassTeleportWithTween(CFrame.new(coord, coord, coord))
-                                    end
-                                else
-                                    pcall(oldTpFunc)
-                                end
-                            end)
-                        end
-                    end
-                end
-            end)
-        end)
-
-        -- Jalankan refresh pertama kali agar tombol langsung nongol di menu saat start up
-        pcall(refreshLandmarksUI)
-    end
-end)
 -- ====================================================================
 -- SYSTEM INTRO LOADING SEQUENCE & COUPLING RUNNER
 -- ====================================================================
@@ -1259,14 +1088,12 @@ task.spawn(function()
     f.Completed:Connect(function()
         LoadingFrame:Destroy()
         
-        -- JIKA SUDAH PERNAH DI-VERIFIKASI DALAM 24 JAM
         if KeyVerified then
             MainFrame.Visible = true
             ToggleButton.Visible = false
             MainFrame.Size = UDim2.new(0, 520, 0, 300)
             TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         else
-            -- JIKA BELUM VERIFIKASI / MELEBIHI 24 JAM -> TAMPILKAN UI INPUT KEY
             local KeyFrame = Instance.new("Frame")
             KeyFrame.Name = "KeyFrame"
             KeyFrame.Parent = MainGui
@@ -1313,11 +1140,9 @@ task.spawn(function()
 
             SubmitBtn.MouseButton1Click:Connect(function()
                 if KeyInput.Text == CorrectKey then
-                    saveKeyStatus() -- Menyimpan berkas JSON beserta penanda waktu saat ini
+                    saveKeyStatus()
                     KeyFrame:Destroy()
-
-            
-                    -- Animasi Pembukaan Main UI
+                    
                     MainFrame.Visible = true
                     ToggleButton.Visible = false
                     MainFrame.Size = UDim2.new(0, 520, 0, 300)
