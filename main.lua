@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v7.0 CORE ENGINE (FIXED LOCAL CLOSURE CFRAME)
+-- AR SCRIPT HUB - v7.1 CORE ENGINE (FIXED JSON DICTIONARY VOID BUG)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -86,7 +86,7 @@ local Config = {
     FullBright = false
 }
 
-local FILE_NAME = "AR_Hub_Waypoints.json"
+local FILE_NAME = "AR_Hub_Waypoints_v71.json"
 local CurrentPlaceId = tostring(game.PlaceId)
 local AllWaypoints = {}
 
@@ -325,7 +325,7 @@ local function applyGraphicsBoost()
 end
 
 -- ====================================================================
--- WAYPOINT MANAGEMENT STORAGE
+-- WAYPOINT MANAGEMENT STORAGE (FIXED DICTIONARY STRUCT)
 -- ====================================================================
 local function loadWaypointsFromStorage()
     AllWaypoints = {}
@@ -405,7 +405,7 @@ local function updateUiTransparency(value)
 end
 
 local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, 0, 0, 40) Header.BackgroundTransparency = 1
-local Title = Instance.new("TextLabel", Header) Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.0</font>" Title.RichText = true Title.Size = UDim2.new(0.5, 0, 1, 0) Title.Position = UDim2.new(0, 16, 0, 0) Title.Font = Enum.Font.GothamBold Title.TextColor3 = Theme.TextMain Title.TextSize = 14 Title.TextXAlignment = Enum.TextXAlignment.Left Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Header) Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.1</font>" Title.RichText = true Title.Size = UDim2.new(0.5, 0, 1, 0) Title.Position = UDim2.new(0, 16, 0, 0) Title.Font = Enum.Font.GothamBold Title.TextColor3 = Theme.TextMain Title.TextSize = 14 Title.TextXAlignment = Enum.TextXAlignment.Left Title.BackgroundTransparency = 1
 local CloseBtn = Instance.new("TextButton", Header) CloseBtn.Text = "×" CloseBtn.Size = UDim2.new(0, 35, 1, 0) CloseBtn.Position = UDim2.new(1, -35, 0, 0) CloseBtn.Font = Enum.Font.GothamMedium CloseBtn.TextColor3 = Theme.DeleteRed CloseBtn.TextSize = 24 CloseBtn.BackgroundTransparency = 1
 local MinimizeBtn = Instance.new("TextButton", Header) MinimizeBtn.Text = "−" MinimizeBtn.Size = UDim2.new(0, 35, 1, 0) MinimizeBtn.Position = UDim2.new(1, -70, 0, 0) MinimizeBtn.Font = Enum.Font.GothamMedium MinimizeBtn.TextColor3 = Theme.TextMuted MinimizeBtn.TextSize = 20 MinimizeBtn.BackgroundTransparency = 1
 
@@ -604,7 +604,7 @@ addToggle(espSettingsCard, "Enforce Team Check", 1, "TeamCheck")
 addSliderWithInput(espSettingsCard, "Max Distance Threshold", 100, 5000, 1000, 2, "MaxDistance")
 
 -- ====================================================================
--- RENDERING TELEPORTATION PAGE (CLOSURE & INDEX ISOLATED FIX)
+-- RENDERING TELEPORTATION PAGE
 -- ====================================================================
 local tweenCard = createCard(tpRightColumn, "Tween Teleportation Mode", 1)
 addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
@@ -635,7 +635,7 @@ local waypointCard = createCard(tpLeftColumn, "Local Position Saver", 2)
 local inputWpFrame = Instance.new("Frame", waypointCard) inputWpFrame.Size = UDim2.new(1, 0, 0, 28) inputWpFrame.BackgroundTransparency = 1 inputWpFrame.LayoutOrder = 1
 local wpNameInput = Instance.new("TextBox", inputWpFrame) wpNameInput.Size = UDim2.new(1, 0, 1, 0) wpNameInput.BackgroundColor3 = Theme.Bg wpNameInput.Font = Enum.Font.GothamMedium wpNameInput.PlaceholderText = "Nama waypoint baru..." wpNameInput.TextColor3 = Theme.TextMain wpNameInput.PlaceholderColor3 = Theme.TextMuted wpNameInput.TextSize = 11 Instance.new("UICorner", wpNameInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", wpNameInput).Color = Theme.Stroke
 
-local btnSavePos = Instance.new("TextButton", waypointCard) btnSavePos.Size = UDim2.new(1, 0, 0, 26) btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85) btnSavePos.Font = Enum.Font.GothamBold btnSavePos.Text = "💾 Simpan Posisi Saat Ini" btnSavePos.TextColor3 = Theme.Accent btnSavePos.TextSize = 11 btnSavePos.LayoutOrder = 2 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
+local btnSavePos = Instance.new("TextButton", waypointCard) btnSavePos.Size = UDim2.new(1, 0, 0, 26) btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85) btnSavePos.Font = Enum.Font.GothamBold btnSavePos.Text = "💾 Simpan Posisi Saat Ini" btnSavePos.TextColor3 = Theme.Accent btnSavePos.TextSize = 11 btnSavePos.LayoutOrder = 2 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5) btnSavePos.BorderSizePixel = 0 Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
 
 local areaTpCard = createCard(tpRightColumn, "Saved CFrame Milestones", 2)
 local refreshLandmarksUI
@@ -647,7 +647,7 @@ local function deleteWaypoint(wpName)
 end
 
 -- ====================================================================
--- INITIAL SPAWN POINT & RENDER SAVER SYSTEM (FIXED MEMORY ENVIRONMENT)
+-- INITIAL SPAWN POINT & RENDER SAVER SYSTEM (DICTIONARY EXPLICIT LOCK)
 -- ====================================================================
 task.spawn(function()
     repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
@@ -660,14 +660,18 @@ task.spawn(function()
     local spawnPos = hrp.Position
     local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
-    -- Fungsi Pembantu Guna Mengunci Koordinat secara Mutlak (Mencegah Teleport Acak/Salah Alamat)
-    local function makeTeleportRow(wpName, x, y, z, orderIndex)
+    -- MEMBUAT BARIS TOMBOL DENGAN MENGUNCI VARIABLE X, Y, Z KAMU SECARA ABSOLUT
+    local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
         local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = orderIndex
         local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                local targetCF = CFrame.new(x, y, z)
+                -- Validasi ganda tipe data number untuk menangkal bug void
+                local finalX = tonumber(targetX) or 0
+                local finalY = tonumber(targetY) or 0
+                local finalZ = tonumber(targetZ) or 0
+                local targetCF = CFrame.new(finalX, finalY, finalZ)
                 if not bypassTeleportWithTween(targetCF) then Player.Character.HumanoidRootPart.CFrame = targetCF end
             end
         end)
@@ -680,7 +684,7 @@ task.spawn(function()
         if not areaTpCard then return end
         for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        -- Render Initial Spawn Tetap Aman Terjaga
+        -- Default Initial Spawn Point
         local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
         local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 1
         
@@ -694,9 +698,14 @@ task.spawn(function()
         local currentMapData = AllWaypoints[CurrentPlaceId]
         local indexOrder = 1
         for wpName, coord in pairs(currentMapData) do
-            -- Memanggil fungsi pembungkus agar variabel x, y, z terkunci mandiri per-tombol
-            makeTeleportRow(wpName, coord, coord, coord, indexOrder)
-            indexOrder = indexOrder + 1
+            if type(coord) == "table" then
+                -- Mengantisipasi pembacaan JSON Array lawas maupun Dictionary baru agar tidak crash
+                local posX = coord.X or coord or 0
+                local posY = coord.Y or coord or 0
+                local posZ = coord.Z or coord or 0
+                makeTeleportRow(wpName, posX, posY, posZ, indexOrder)
+                indexOrder = indexOrder + 1
+            end
         end
     end
 
@@ -706,7 +715,13 @@ task.spawn(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                 local currentPos = Player.Character.HumanoidRootPart.Position
                 if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-                AllWaypoints[CurrentPlaceId][name] = {math.round(currentPos.X * 100) / 100, math.round(currentPos.Y * 100) / 100, math.round(currentPos.Z * 100) / 100}
+                
+                -- DICTIONARY EXPLICIT METHOD: Mengunci data koordinat mati menggunakan KEY string "X, Y, Z"
+                AllWaypoints[CurrentPlaceId][name] = {
+                    X = math.round(currentPos.X * 100) / 100, 
+                    Y = math.round(currentPos.Y * 100) / 100, 
+                    Z = math.round(currentPos.Z * 100) / 100
+                }
                 saveWaypointsToStorage() wpNameInput.Text = "" refreshLandmarksUI()
              end
         end
