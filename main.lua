@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v7.1 CORE ENGINE (FIXED JSON DICTIONARY VOID BUG)
+-- AR SCRIPT HUB - v7.1 CORE ENGINE (PURE 24H LOCAL TIMEOUT VERSION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -97,20 +97,13 @@ local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
 -- ====================================================================
--- CONFIG KEY SYSTEM (INTEGRASI HUGGING FACE SPACES)
--- ====================================================================
-local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local KeyVerified = false
-local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
-
--- ====================================================================
 -- CONFIG KEY SYSTEM (PURE LOCAL TIMEOUT - BYPASS APPROVED)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
--- Fungsi untuk mengecek validitas key langsung ke server Hugging Face (Hanya dipakai saat input manual)
+-- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
 local function verifyKeyWithServer(targetKey)
     if not targetKey or targetKey == "" then return false end
     
@@ -118,7 +111,8 @@ local function verifyKeyWithServer(targetKey)
         return HttpService:GetAsync(HUGGING_FACE_URL .. targetKey)
     end)
     
-    if success and response == "VALID" then
+    -- Menerima toleransi teks balasan dari Hugging Face
+    if success and (response == "VALID" or response:lower():match("success") or response:lower():match("true") or response:lower():match("valid")) then
         return true
     else
         return false
@@ -130,7 +124,7 @@ local function loadKeyStatus()
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
-            -- LOGIKA UTAMA: Cukup cek waktu lokal, jika belum lewat 24 jam (86400 detik), langsung loloskan!
+            -- BISA MASUK LANGSUNG SELAMA BELUM LEWAT 24 JAM (Bahkan meski HF direset)
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
                 if decodedData.Key and decodedData.Key ~= "" then 
                     KeyVerified = true 
@@ -852,7 +846,6 @@ task.spawn(function()
     if KeyVerified then
         runLoadingSequence()
     else
-        -- DEKLARASI GLOBAL DI DALAM RUNNER BIAR SINKRON DENGAN TOMBOL VERIFY
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Name = "KeyFrame" 
         KeyFrame.Parent = MainGui 
@@ -942,7 +935,7 @@ task.spawn(function()
             end)
         end)
 
-        -- ==================== SINKRONISASI TOMBOL SUBMIT ====================
+        -- ==================== LOGIKA VERIFIKASI SUBMIT TOMBOL ====================
         SubmitBtn.MouseButton1Click:Connect(function()
             local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
             
@@ -954,7 +947,7 @@ task.spawn(function()
             SubmitBtn.Text = "VERIFYING..."
             SubmitBtn.Active = false
 
-            -- Menembak fungsi ketat buatan kita ke Hugging Face
+            -- Menembak modul verifikasi penyaring yang fleksibel
             if verifyKeyWithServer(userKey) then
                 saveKeyStatus(userKey) 
                 KeyFrame:Destroy() 
