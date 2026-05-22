@@ -99,13 +99,8 @@ local origClockTime = Lighting.ClockTime
 -- ====================================================================
 -- CONFIG KEY SYSTEM (INTEGRASI HUGGING FACE SPACES)
 -- ====================================================================
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
-
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = false
-
--- Endpoint API Hugging Face kamu
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
 -- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
@@ -116,7 +111,6 @@ local function verifyKeyWithServer(targetKey)
         return HttpService:GetAsync(HUGGING_FACE_URL .. targetKey)
     end)
     
-    -- MAIN UI HANYA BISA KEBuka JIKA SERVER MEMBALAS SEBAGAI "VALID"
     if success and response == "VALID" then
         return true
     else
@@ -129,23 +123,16 @@ local function loadKeyStatus()
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
-            
-            -- Cek apakah file lokal masih di bawah 24 jam
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
                 if decodedData.Key and decodedData.Key ~= "" then 
-                    
-                    -- [PERBAIKAN UTAMA]: Cek ulang ke Hugging Face, jangan asal meloloskan!
                     if verifyKeyWithServer(decodedData.Key) then
                         KeyVerified = true 
                     else
-                        -- Jika di server sudah terhapus/invalid/expired, hapus file lokal palsu ini
                         pcall(function() delfile(KEY_FILE_NAME) end)
                         KeyVerified = false
                     end
-                    
                 end
             end
-            
         end
     end
 end
@@ -688,14 +675,12 @@ task.spawn(function()
     local spawnPos = hrp.Position
     local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
-    -- MEMBUAT BARIS TOMBOL DENGAN MENGUNCI VARIABLE X, Y, Z KAMU SECARA ABSOLUT
     local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
         local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = orderIndex
         local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Validasi ganda tipe data number untuk menangkal bug void
                 local finalX = tonumber(targetX) or 0
                 local finalY = tonumber(targetY) or 0
                 local finalZ = tonumber(targetZ) or 0
@@ -712,7 +697,6 @@ task.spawn(function()
         if not areaTpCard then return end
         for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        -- Default Initial Spawn Point
         local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
         local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 0
         
@@ -727,7 +711,6 @@ task.spawn(function()
         local indexOrder = 1
         for wpName, coord in pairs(currentMapData) do
             if type(coord) == "table" then
-                -- Mengantisipasi pembacaan JSON Array lawas maupun Dictionary baru agar tidak crash
                 local posX = coord.X or coord or 0
                 local posY = coord.Y or coord or 0
                 local posZ = coord.Z or coord or 0
@@ -744,7 +727,6 @@ task.spawn(function()
                 local currentPos = Player.Character.HumanoidRootPart.Position
                 if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
                 
-                -- DICTIONARY EXPLICIT METHOD: Mengunci data koordinat mati menggunakan KEY string "X, Y, Z"
                 AllWaypoints[CurrentPlaceId][name] = {
                     X = math.round(currentPos.X * 100) / 100, 
                     Y = math.round(currentPos.Y * 100) / 100, 
@@ -865,14 +847,13 @@ end
 -- ====================================================================
 task.spawn(function()
     if KeyVerified then
-        -- Jika key sudah tersimpan dan valid (< 24 jam), langsung jalankan loading screen
         runLoadingSequence()
     else
-        -- Jika belum terverifikasi, buat Key UI dengan Tombol Close & Tombol Discord aktif
+        -- DEKLARASI GLOBAL DI DALAM RUNNER BIAR SINKRON DENGAN TOMBOL VERIFY
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Name = "KeyFrame" 
         KeyFrame.Parent = MainGui 
-        KeyFrame.Size = UDim2.new(0, 300, 0, 200) -- Ukuran ditambah sedikit biar pas
+        KeyFrame.Size = UDim2.new(0, 300, 0, 200) 
         KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -100) 
         KeyFrame.BackgroundColor3 = Theme.Bg 
         KeyFrame.BackgroundTransparency = Config.UiTransparency 
@@ -882,7 +863,6 @@ task.spawn(function()
         keyStroke.Color = Theme.AccentPurple 
         keyStroke.Thickness = 1.5
 
-        -- TOMBOL CLOSE / BATAL (Pojok Kanan Atas)
         local CloseKeyBtn = Instance.new("TextButton", KeyFrame)
         CloseKeyBtn.Size = UDim2.new(0, 28, 0, 28)
         CloseKeyBtn.Position = UDim2.new(1, -32, 0, 6)
@@ -898,7 +878,6 @@ task.spawn(function()
             end)
         end)
 
-        -- JUDUL KEY SYSTEM
         local KeyTitle = Instance.new("TextLabel", KeyFrame) 
         KeyTitle.Size = UDim2.new(1, -60, 0, 40) 
         KeyTitle.Position = UDim2.new(0, 20, 0, 5) 
@@ -909,7 +888,6 @@ task.spawn(function()
         KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
         KeyTitle.BackgroundTransparency = 1
 
-        -- INPUT TEXTBOX
         local KeyInput = Instance.new("TextBox", KeyFrame) 
         KeyInput.Size = UDim2.new(1, -40, 0, 32) 
         KeyInput.Position = UDim2.new(0, 20, 0, 48) 
@@ -923,7 +901,6 @@ task.spawn(function()
         Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) 
         Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
         
-        -- TOMBOL VERIFY
         local SubmitBtn = Instance.new("TextButton", KeyFrame) 
         SubmitBtn.Size = UDim2.new(1, -40, 0, 32) 
         SubmitBtn.Position = UDim2.new(0, 20, 0, 92) 
@@ -934,29 +911,25 @@ task.spawn(function()
         SubmitBtn.TextSize = 11 
         Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
 
-        -- TOMBOL DISCORD LINK ACTIVATOR
         local DiscordBtn = Instance.new("TextButton", KeyFrame) 
         DiscordBtn.Size = UDim2.new(1, -40, 0, 26) 
         DiscordBtn.Position = UDim2.new(0, 20, 1, -42) 
-        DiscordBtn.BackgroundColor3 = Color3.fromRGB(44, 47, 72) -- Warna khas Discord gelap
+        DiscordBtn.BackgroundColor3 = Color3.fromRGB(44, 47, 72) 
         DiscordBtn.Font = Enum.Font.GothamMedium 
         DiscordBtn.Text = "🔗 Get Key on Discord Server" 
-        DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218) -- Warna teks Discord Blue
+        DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218) 
         DiscordBtn.TextSize = 11 
         Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 5)
         local discStroke = Instance.new("UIStroke", DiscordBtn)
         discStroke.Color = Color3.fromRGB(88, 101, 242)
 
-        -- Efek klik tombol Discord (Otomatis copy link / set clipboard)
         DiscordBtn.MouseButton1Click:Connect(function()
             local inviteLink = "https://discord.gg/arscripthub"
             local setClipboard = setclipboard or toclipboard or set_clipboard or function() end
-            
             setClipboard(inviteLink)
             DiscordBtn.Text = "✅ Link Copied to Clipboard!"
             DiscordBtn.TextColor3 = Theme.ConfirmGreen
             discStroke.Color = Theme.ConfirmGreen
-            
             task.delay(3, function()
                 if DiscordBtn and DiscordBtn.Parent then
                     DiscordBtn.Text = "🔗 Get Key on Discord Server"
@@ -966,9 +939,9 @@ task.spawn(function()
             end)
         end)
 
-        -- LOGIKA TOMBOL VERIFY
+        -- ==================== SINKRONISASI TOMBOL SUBMIT ====================
         SubmitBtn.MouseButton1Click:Connect(function()
-            local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1") -- Bersihkan spasi
+            local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
             
             if userKey == "" then 
                 KeyInput.PlaceholderText = "Key cannot be empty!"
@@ -978,17 +951,12 @@ task.spawn(function()
             SubmitBtn.Text = "VERIFYING..."
             SubmitBtn.Active = false
 
-            -- Menembak URL Hugging Face
-            local targetUrl = HUGGING_FACE_URL .. userKey
-            local httpSuccess, response = pcall(function()
-                return game:HttpGet(targetUrl)
-            end)
-
-            -- Validasi fleksibel terhadap balasan teks dari Hugging Face
-            if httpSuccess and (response:lower():match("success") or response:lower():match("valid") or response:lower():match("true")) then
-                saveKeyStatus(userKey) -- Simpan key lokal biar awet 24 jam
+            -- Menembak fungsi ketat buatan kita ke Hugging Face
+            if verifyKeyWithServer(userKey) then
+                saveKeyStatus(userKey) 
                 KeyFrame:Destroy() 
-                runLoadingSequence() -- Masuk ke loading screen bawaanmu
+                runLoadingSequence() 
+                print("✅ Key Valid! Membuka Menu Hub.")
             else
                 KeyInput.Text = "" 
                 SubmitBtn.Text = "VERIFY KEY"
