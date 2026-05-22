@@ -835,22 +835,107 @@ task.spawn(function()
         -- Jika key sudah tersimpan dan valid (< 24 jam), langsung jalankan loading screen
         runLoadingSequence()
     else
-        -- Jika belum terverifikasi, langsung buat Key UI tanpa Loading Screen di awal
+        -- Jika belum terverifikasi, buat Key UI dengan Tombol Close & Tombol Discord aktif
         local KeyFrame = Instance.new("Frame")
-        KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 300, 0, 180) KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -90) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
-        local keyStroke = Instance.new("UIStroke", KeyFrame) keyStroke.Color = Theme.AccentPurple keyStroke.Thickness = 1.5
-
-        local KeyTitle = Instance.new("TextLabel", KeyFrame) KeyTitle.Size = UDim2.new(1, 0, 0, 40) KeyTitle.Position = UDim2.new(0, 0, 0, 10) KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" KeyTitle.Font = Enum.Font.GothamBold KeyTitle.TextColor3 = Theme.TextMain KeyTitle.TextSize = 13 KeyTitle.BackgroundTransparency = 1
-        local KeyInput = Instance.new("TextBox", KeyFrame) KeyInput.Size = UDim2.new(1, -40, 0, 32) KeyInput.Position = UDim2.new(0, 20, 0, 50) KeyInput.BackgroundColor3 = Theme.CardBg KeyInput.Font = Enum.Font.GothamMedium KeyInput.PlaceholderText = "Paste key here..." KeyInput.Text = "" KeyInput.TextColor3 = Theme.TextMain KeyInput.PlaceholderColor3 = Theme.TextMuted KeyInput.TextSize = 11 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
+        KeyFrame.Name = "KeyFrame" 
+        KeyFrame.Parent = MainGui 
+        KeyFrame.Size = UDim2.new(0, 300, 0, 200) -- Ukuran ditambah sedikit biar pas
+        KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -100) 
+        KeyFrame.BackgroundColor3 = Theme.Bg 
+        KeyFrame.BackgroundTransparency = Config.UiTransparency 
+        Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
         
-        local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -40, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -65) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+        local keyStroke = Instance.new("UIStroke", KeyFrame) 
+        keyStroke.Color = Theme.AccentPurple 
+        keyStroke.Thickness = 1.5
 
-        -- Teks "discord" di bawah tombol verified key (Tanpa Logo, Hanya Tulisan)
-        local DiscordTxt = Instance.new("TextLabel", KeyFrame) DiscordTxt.Size = UDim2.new(1, -40, 0, 20) DiscordTxt.Position = UDim2.new(0, 20, 1, -28) DiscordTxt.Text = "discord.gg/arscripthub" DiscordTxt.Font = Enum.Font.GothamMedium DiscordTxt.TextColor3 = Theme.TextMuted DiscordTxt.TextSize = 10 DiscordTxt.BackgroundTransparency = 1
+        -- TOMBOL CLOSE / BATAL (Pojok Kanan Atas)
+        local CloseKeyBtn = Instance.new("TextButton", KeyFrame)
+        CloseKeyBtn.Size = UDim2.new(0, 28, 0, 28)
+        CloseKeyBtn.Position = UDim2.new(1, -32, 0, 6)
+        CloseKeyBtn.BackgroundTransparency = 1
+        CloseKeyBtn.Text = "×"
+        CloseKeyBtn.Font = Enum.Font.GothamMedium
+        CloseKeyBtn.TextColor3 = Theme.DeleteRed
+        CloseKeyBtn.TextSize = 22
+        
+        CloseKeyBtn.MouseButton1Click:Connect(function()
+            showConfirmation("Batal memverifikasi key dan tutup script?", function()
+                MainGui:Destroy()
+            end)
+        end)
 
+        -- JUDUL KEY SYSTEM
+        local KeyTitle = Instance.new("TextLabel", KeyFrame) 
+        KeyTitle.Size = UDim2.new(1, -60, 0, 40) 
+        KeyTitle.Position = UDim2.new(0, 20, 0, 5) 
+        KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" 
+        KeyTitle.Font = Enum.Font.GothamBold 
+        KeyTitle.TextColor3 = Theme.TextMain 
+        KeyTitle.TextSize = 13 
+        KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
+        KeyTitle.BackgroundTransparency = 1
+
+        -- INPUT TEXTBOX
+        local KeyInput = Instance.new("TextBox", KeyFrame) 
+        KeyInput.Size = UDim2.new(1, -40, 0, 32) 
+        KeyInput.Position = UDim2.new(0, 20, 0, 48) 
+        KeyInput.BackgroundColor3 = Theme.CardBg 
+        KeyInput.Font = Enum.Font.GothamMedium 
+        KeyInput.PlaceholderText = "Paste key here..." 
+        KeyInput.Text = "" 
+        KeyInput.TextColor3 = Theme.TextMain 
+        KeyInput.PlaceholderColor3 = Theme.TextMuted 
+        KeyInput.TextSize = 11 
+        Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) 
+        Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
+        
+        -- TOMBOL VERIFY
+        local SubmitBtn = Instance.new("TextButton", KeyFrame) 
+        SubmitBtn.Size = UDim2.new(1, -40, 0, 32) 
+        SubmitBtn.Position = UDim2.new(0, 20, 0, 92) 
+        SubmitBtn.BackgroundColor3 = Theme.Accent 
+        SubmitBtn.Font = Enum.Font.GothamBold 
+        SubmitBtn.Text = "VERIFY KEY" 
+        SubmitBtn.TextColor3 = Theme.Bg 
+        SubmitBtn.TextSize = 11 
+        Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+
+        -- TOMBOL DISCORD LINK ACTIVATOR
+        local DiscordBtn = Instance.new("TextButton", KeyFrame) 
+        DiscordBtn.Size = UDim2.new(1, -40, 0, 26) 
+        DiscordBtn.Position = UDim2.new(0, 20, 1, -42) 
+        DiscordBtn.BackgroundColor3 = Color3.fromRGB(44, 47, 72) -- Warna khas Discord gelap
+        DiscordBtn.Font = Enum.Font.GothamMedium 
+        DiscordBtn.Text = "🔗 Get Key on Discord Server" 
+        DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218) -- Warna teks Discord Blue
+        DiscordBtn.TextSize = 11 
+        Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 5)
+        local discStroke = Instance.new("UIStroke", DiscordBtn)
+        discStroke.Color = Color3.fromRGB(88, 101, 242)
+
+        -- Efek klik tombol Discord (Otomatis copy link / set clipboard)
+        DiscordBtn.MouseButton1Click:Connect(function()
+            local inviteLink = "https://discord.gg/arscripthub"
+            local setClipboard = setclipboard or toclipboard or set_clipboard or function() end
+            
+            setClipboard(inviteLink)
+            DiscordBtn.Text = "✅ Link Copied to Clipboard!"
+            DiscordBtn.TextColor3 = Theme.ConfirmGreen
+            discStroke.Color = Theme.ConfirmGreen
+            
+            task.delay(3, function()
+                if DiscordBtn and DiscordBtn.Parent then
+                    DiscordBtn.Text = "🔗 Get Key on Discord Server"
+                    DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
+                    discStroke.Color = Color3.fromRGB(88, 101, 242)
+                end
+            end)
+        end)
+
+        -- LOGIKA TOMBOL VERIFY
         SubmitBtn.MouseButton1Click:Connect(function()
-            -- Membersihkan spasi tak sengaja di awal atau akhir dari hasil copy-paste user
-            local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
+            local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1") -- Bersihkan spasi
             
             if userKey == "" then 
                 KeyInput.PlaceholderText = "Key cannot be empty!"
@@ -860,17 +945,17 @@ task.spawn(function()
             SubmitBtn.Text = "VERIFYING..."
             SubmitBtn.Active = false
 
-            -- Melakukan penembakan HTTP Request ke API Hugging Face kamu
+            -- Menembak URL Hugging Face
             local targetUrl = HUGGING_FACE_URL .. userKey
             local httpSuccess, response = pcall(function()
                 return game:HttpGet(targetUrl)
             end)
 
-            -- Memvalidasi response teks murni (sukses / valid)
+            -- Validasi fleksibel terhadap balasan teks dari Hugging Face
             if httpSuccess and (response:lower():match("success") or response:lower():match("valid") or response:lower():match("true")) then
-                saveKeyStatus(userKey) -- Mengunci status key ke file lokal selama 24 jam ke depan
+                saveKeyStatus(userKey) -- Simpan key lokal biar awet 24 jam
                 KeyFrame:Destroy() 
-                runLoadingSequence() -- Membuka Loading sequence menuju UI Utama
+                runLoadingSequence() -- Masuk ke loading screen bawaanmu
             else
                 KeyInput.Text = "" 
                 SubmitBtn.Text = "VERIFY KEY"
