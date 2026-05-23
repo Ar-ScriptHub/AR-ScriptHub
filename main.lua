@@ -36,7 +36,7 @@ end
 -- CONFIG KEY SYSTEM (INTEGRASI RE-STRICT RESOLVER HUGGING FACE)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local KeyVerified = false
+local KeyVerified = true
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
 -- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
