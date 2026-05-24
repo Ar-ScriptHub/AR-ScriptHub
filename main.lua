@@ -39,24 +39,33 @@ local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = true
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
--- Fungsi untuk mengecek validitas key langsung ke server Hugging Face
-local function verifyKeyWithServer(targetKey)
-    if not targetKey or targetKey == "" then return false end
+local function verifyKeyWithServer(key)
+    local url = "https://ar-hub-arhub-bot.hf.space/validate?key=" .. HttpService:UrlEncode(key)
     
-    -- Bersihkan spasi gaib (trim) secara menyeluruh
-    local cleanKey = string.gsub(targetKey, "^%s*(.-)%s*$", "%1")
-    
+    -- Menggunakan pcall agar script tidak crash jika executor gagal menembak website
     local success, response = pcall(function()
-        return HttpService:GetAsync(HUGGING_FACE_URL .. tostring(cleanKey))
+        -- Untuk executor seperti Delta, disarankan menggunakan game:HttpGet jika HttpService dibatasi
+        return game:HttpGet(url)
     end)
     
-    -- Strict Logic: Hanya menerima respons murni "VALID" dari API Express Anda
-    if success and response == "VALID" then
-        return true
-    else
-        warn("AR HUB DEBUG: Validasi gagal. Server merespon: " .. tostring(response))
-        return false
+    -- Jika game:HttpGet gagal, coba gunakan HttpService sebagai cadangan
+    if not success then
+        success, response = pcall(function()
+            return HttpService:GetAsync(url)
+        end)
     end
+    
+    -- DEBUGGING UTK DI DELTA (Bisa kamu hapus nanti kalau sudah normal)
+    print("=== DEBUG KEY DELTA ===")
+    print("Koneksi Sukses:", success)
+    print("Respon Server:", tostring(response))
+    
+    -- Cek secara fleksibel (menggunakan string.find karena kadang respon disisipi spasi oleh executor)
+    if success and response and string.find(tostring(response), "VALID") then
+        return true
+    end
+    
+    return false
 end
 
 local function loadKeyStatus()
