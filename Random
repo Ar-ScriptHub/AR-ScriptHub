@@ -1,0 +1,239 @@
+-- ====================================================================
+-- DELTA EXECUTOR - AUTOMATIC SHOP ITEM LISTER & BUYER SYSTEM
+-- ====================================================================
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Bersihkan UI lama jika ada biar gak tumpang tindih
+if SafeGuiTarget:FindFirstChild("DeltaItemLister") then
+    SafeGuiTarget.DeltaItemLister:Destroy()
+end
+
+-- ScreenGui Utama
+local DeltaItemLister = Instance.new("ScreenGui")
+DeltaItemLister.Name = "DeltaItemLister"
+DeltaItemLister.Parent = SafeGuiTarget
+DeltaItemLister.ResetOnSpawn = false
+
+-- Tema Warna (Gelap & Neon Hijau khas Delta)
+local Theme = {
+    Bg = Color3.fromRGB(15, 15, 20),
+    CardBg = Color3.fromRGB(25, 25, 32),
+    Stroke = Color3.fromRGB(45, 45, 55),
+    Accent = Color3.fromRGB(0, 255, 136), -- Hijau Neon Delta
+    TextMain = Color3.fromRGB(255, 255, 255),
+    TextMuted = Color3.fromRGB(150, 150, 160)
+}
+
+-- Jendela Utama Frame (Main Window)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 450, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -160)
+MainFrame.BackgroundColor3 = Theme.Bg
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = DeltaItemLister
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = MainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Thickness = 1.5
+mainStroke.Color = Theme.Stroke
+mainStroke.Parent = MainFrame
+
+-- Judul Menu / Header
+local Header = Instance.new("Frame")
+Header.Name = "Header"
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundTransparency = 1
+Header.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Text = "DELTA ITEM LISTER & BUYER"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextColor3 = Theme.Accent
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -38, 0, 2)
+CloseBtn.Text = "×"
+CloseBtn.Font = Enum.Font.GothamMedium
+CloseBtn.TextSize = 22
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Parent = Header
+CloseBtn.MouseButton1Click:Connect(function()
+    DeltaItemLister:Destroy()
+end)
+
+-- Container Tempat List Item (Scrolling Frame)
+local Container = Instance.new("ScrollingFrame")
+Container.Name = "Container"
+Container.Size = UDim2.new(1, -24, 1, -55)
+Container.Position = UDim2.new(0, 12, 0, 45)
+Container.BackgroundTransparency = 1
+Container.ScrollBarThickness = 3
+Container.ScrollBarImageColor3 = Theme.Accent
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Container.Parent = MainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 8)
+listLayout.Parent = Container
+
+-- Fungsi Membuat Fitur Drag (Bisa Digeser di Layar HP/PC)
+local function makeDraggable(frame, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true dragStart = input.Position startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+makeDraggable(MainFrame, Header)
+
+-- ====================================================================
+-- CORE SYSTEM ENGINE (LOGIKA DETECTION & PEMBELIAN)
+-- ====================================================================
+
+-- Fungsi Utama untuk membuat Baris Item di UI
+local function addItemToList(itemName, itemPrice, buyCallback)
+    local ItemCard = Instance.new("Frame")
+    ItemCard.Name = itemName .. "Card"
+    ItemCard.Size = UDim2.new(1, -4, 0, 45)
+    ItemCard.BackgroundColor3 = Theme.CardBg
+    ItemCard.BorderSizePixel = 0
+    ItemCard.Parent = Container
+
+    Instance.new("UICorner", ItemCard).CornerRadius = UDim.new(0, 6)
+    local cardStroke = Instance.new("UIStroke", ItemCard)
+    cardStroke.Color = Theme.Stroke
+    cardStroke.Thickness = 1
+
+    local NameLabel = Instance.new("TextLabel", ItemCard)
+    NameLabel.Size = UDim2.new(0.6, 0, 0, 20)
+    NameLabel.Position = UDim2.new(0, 10, 0, 4)
+    NameLabel.Text = itemName
+    NameLabel.Font = Enum.Font.GothamBold
+    NameLabel.TextSize = 12
+    NameLabel.TextColor3 = Theme.TextMain
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.BackgroundTransparency = 1
+
+    local PriceLabel = Instance.new("TextLabel", ItemCard)
+    PriceLabel.Size = UDim2.new(0.6, 0, 0, 16)
+    PriceLabel.Position = UDim2.new(0, 10, 0, 22)
+    PriceLabel.Text = "💰 Price: " .. tostring(itemPrice)
+    PriceLabel.Font = Enum.Font.GothamMedium
+    PriceLabel.TextSize = 10
+    PriceLabel.TextColor3 = Theme.TextMuted
+    PriceLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PriceLabel.BackgroundTransparency = 1
+
+    local BuyBtn = Instance.new("TextButton", ItemCard)
+    BuyBtn.Size = UDim2.new(0, 80, 0, 28)
+    BuyBtn.Position = UDim2.new(1, -90, 0.5, -14)
+    BuyBtn.BackgroundColor3 = Color3.fromRGB(20, 40, 30)
+    BuyBtn.Text = "BUY ITEM"
+    BuyBtn.Font = Enum.Font.GothamBold
+    BuyBtn.TextSize = 10
+    BuyBtn.TextColor3 = Theme.Accent
+    Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 4)
+    local btnStroke = Instance.new("UIStroke", BuyBtn)
+    btnStroke.Color = Theme.Accent
+
+    BuyBtn.MouseButton1Click:Connect(function()
+        BuyBtn.Text = "BUYING..."
+        BuyBtn.TextColor3 = Theme.TextMuted
+        
+        -- Jalankan fungsi beli
+        pcall(buyCallback)
+        
+        task.wait(0.5)
+        BuyBtn.Text = "BUY ITEM"
+        BuyBtn.TextColor3 = Theme.Accent
+    end)
+end
+
+-- ====================================================================
+-- SCANNING SHOP SYSTEM (MENYESUAIKAN GAME YANG DIMAINKAN)
+-- ====================================================================
+
+-- 1. Deteksi otomatis letak folder Item Toko di dalam game script
+local ShopFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Shop") 
+    or game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+    or workspace:FindFirstChild("Shop")
+    or game:GetService("ReplicatedStorage"):FindFirstChild("ShopItems")
+
+-- 2. Cari RemoteEvent/RemoteFunction yang biasa dipakai game untuk transaksi beli
+local BuyRemote = game:GetService("ReplicatedStorage"):FindFirstChild("BuyItem")
+    or game:GetService("ReplicatedStorage"):FindFirstChild("PurchaseItem")
+    or (ShopFolder and ShopFolder:FindFirstChild("Remote"))
+
+if ShopFolder then
+    -- Jika folder shop di dalam game ketemu, buat list otomatis
+    for _, item in pairs(ShopFolder:GetChildren()) do
+        if item:IsA("Configuration") or item:IsA("Folder") or item:IsA("Tool") then
+            -- Cari harga item di dalam objek (biasanya disimpan di IntValue/NumberValue bernama Price atau Cost)
+            local priceObj = item:FindFirstChild("Price") or item:FindFirstChild("Cost") or item:FindFirstChild("Value")
+            local actualPrice = priceObj and priceObj.Value or "Free/Unknown"
+            
+            addItemToList(item.Name, actualPrice, function()
+                -- LOGIKA EXPLOIT PEMBELIAN:
+                -- Mengirim data pembelian ke server game menggunakan RemoteEvent game tersebut
+                if BuyRemote and BuyRemote:IsA("RemoteEvent") then
+                    BuyRemote:FireServer(item.Name)
+                elseif BuyRemote and BuyRemote:IsA("RemoteFunction") then
+                    BuyRemote:InvokeServer(item.Name)
+                else
+                    -- Alternatif jika remote berada langsung di dalam item masing-masing
+                    local localRemote = item:FindFirstChildOfClass("RemoteEvent") or item:FindFirstChild("Buy")
+                    if localRemote then
+                        localRemote:FireServer()
+                    else
+                        print("Gagal menemukan Remote Pembelian untuk: " .. item.Name)
+                    end
+                end
+            end)
+        end
+    end
+else
+    -- JIKA GAME TIDAK MENGGUNAKAN FOLDER STANDARD (MANUAL LIST FALLBACK)
+    -- Ini adalah contoh list item tiruan jika skrip tidak berhasil melakukan auto-scan objek game:
+    addItemToList("Common Sword", "100 Coins", function()
+        -- Ganti bagian ini dengan RemoteEvent game spesifikmu
+        print("Membeli Common Sword...")
+    end)
+    
+    addItemToList("Hyper Laser Gun", "5,000 Coins", function()
+        print("Membeli Hyper Laser Gun...")
+    end)
+    
+    addItemToList("Speed Boots Nitro", "1,200 Coins", function()
+        print("Membeli Speed Boots Nitro...")
+    end)
+end
+
+print("Delta Item Lister aktif!")
