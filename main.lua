@@ -41,6 +41,33 @@ local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key="
 
 -- Fungsi untuk mengecek validitas key langsung ke server Hugging Face (VERSI BYPASS EXECUTOR DELTA)
 local function verifyKeyWithServer(targetKey)
+    local OWNER_KEY = "AR-OWNER-999"
+
+local function verifyKeyWithServer(targetKey)
+    if not targetKey or targetKey == "" then
+        return false
+    end
+
+    local cleanKey = string.gsub(targetKey, "^%s*(.-)%s*$", "%1")
+
+    -- PERMANENT OWNER KEY
+    if cleanKey == OWNER_KEY then
+        return true
+    end
+
+    local success, response = pcall(function()
+        return HttpService:GetAsync(HUGGING_FACE_URL .. tostring(cleanKey))
+    end)
+
+    local cleanResponse = tostring(response):gsub("%s+", "")
+
+    if success and cleanResponse == "VALID" then
+        return true
+    else
+        warn("AR HUB DEBUG: " .. tostring(response))
+        return false
+    end
+end
     if not targetKey or targetKey == "" then return false end
     
     -- Bersihkan spasi gaib (trim) secara menyeluruh
