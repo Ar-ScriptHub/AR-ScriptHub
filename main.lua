@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v7.1 CORE ENGINE (PURE 24H LOCAL TIMEOUT VERSION)
+-- AR SCRIPT HUB - v7.1 CORE ENGINE (PURE LOCAL KEY VERSION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -33,108 +33,9 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
 end
 
 -- ====================================================================
--- CONFIG KEY SYSTEM (INTEGRASI RE-STRICT RESOLVER HUGGING FACE)
+-- CONFIG KEY SYSTEM (LOCAL HARDCODED VERSION)
 -- ====================================================================
-local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local KeyVerified = true
-local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
-
--- Fungsi untuk mengecek validitas key langsung ke server Hugging Face (VERSI BYPASS EXECUTOR DELTA)
-local function verifyKeyWithServer(targetKey)
-    local OWNER_KEY = "AR-OWNER-999"
-
-local function verifyKeyWithServer(targetKey)
-    if not targetKey or targetKey == "" then
-        return false
-    end
-
-    local cleanKey = string.gsub(targetKey, "^%s*(.-)%s*$", "%1")
-
-    -- PERMANENT OWNER KEY
-    if cleanKey == OWNER_KEY then
-        return true
-    end
-
-    local success, response = pcall(function()
-        return HttpService:GetAsync(HUGGING_FACE_URL .. tostring(cleanKey))
-    end)
-
-    local cleanResponse = tostring(response):gsub("%s+", "")
-
-    if success and cleanResponse == "VALID" then
-        return true
-    else
-        warn("AR HUB DEBUG: " .. tostring(response))
-        return false
-    end
-end
-    if not targetKey or targetKey == "" then return false end
-    
-    -- Bersihkan spasi gaib (trim) secara menyeluruh
-    local cleanKey = string.gsub(targetKey, "^%s*(.-)%s*$", "%1")
-    local fullUrl = HUGGING_FACE_URL .. tostring(cleanKey)
-    
-    local success, response
-    
-    -- Cara 1: Coba pakai game:HttpGet (Fungsi standar yang paling disukai Executor/Delta)
-    success, response = pcall(function()
-        return game:HttpGet(fullUrl)
-    end)
-    
-    -- Cara 2: Jika gagal, coba pakai request/http_request bawaan exploit tingkat tinggi
-    if not success or not response then
-        local httpRequest = (syn and syn.request) or (http and http.request) or request or http_request
-        if httpRequest then
-            success, response = pcall(function()
-                local res = httpRequest({
-                    Url = fullUrl,
-                    Method = "GET"
-                })
-                return res.Body
-            end)
-        end
-    end
-    
-    -- Cara 3: Cadangan terakhir jika executor kamu sangat ketat
-    if not success or not response then
-        success, response = pcall(function()
-            return HttpService:GetAsync(fullUrl)
-        end)
-    end
-    
-    -- DEBUG LOG: Untuk melihat isi respon asli di Developer Console (F9) Delta kamu
-    warn("AR HUB DEBUG: Sukses koneksi = " .. tostring(success))
-    warn("AR HUB DEBUG: Respon Server = '" .. tostring(response) .. "'")
-    
-    -- Pengecekan Fleksibel: Menggunakan string.find agar tidak gagal karena spasi gaib / baris baru (\n)
-   local clean = tostring(response):gsub("%s+", "")
-if success and clean == "VALID" then
-        return true
-    else
-        return false
-    end
-end
-
-local function loadKeyStatus()
-    local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
-    if success and content then
-        local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-        if decodeSuccess and type(decodedData) == "table" then
-            -- Berlaku 24 jam lokal saver
-            if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
-                if decodedData.Key and decodedData.Key ~= "" then 
-                    return decodedData.Key
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function saveKeyStatus(passedKey)
-    local data = { Key = passedKey, Timestamp = os.time() }
-    pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
-end
+local MASTER_KEY = "AR-OWNER-831"
 
 -- Master ScreenGui Context bawaan file asli lu
 local AR_Script_Hub = Instance.new("ScreenGui")
@@ -195,8 +96,8 @@ local Config = {
 -- ====================================================================
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Name = "KeyFrame"
-KeyFrame.Size = UDim2.new(0, 420, 0, 290)
-KeyFrame.Position = UDim2.new(0.5, -210, 0.5, -145)
+KeyFrame.Size = UDim2.new(0, 420, 0, 240) -- Diatur tingginya karena tombol Discord dihapus
+KeyFrame.Position = UDim2.new(0.5, -210, 0.5, -120)
 KeyFrame.BackgroundColor3 = Theme.Bg
 KeyFrame.BorderSizePixel = 0
 KeyFrame.ClipsDescendants = true
@@ -239,7 +140,7 @@ SubTitle.Name = "SubTitle"
 SubTitle.Size = UDim2.new(1, 0, 0, 20)
 SubTitle.Position = UDim2.new(0, 0, 0, 58)
 SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "Please enter your 24-hour product key below"
+SubTitle.Text = "Please enter your exclusive master key below"
 SubTitle.Font = Enum.Font.GothamSemibold
 SubTitle.TextSize = 12
 SubTitle.TextColor3 = Theme.TextMuted
@@ -252,7 +153,7 @@ KeyInput.Position = UDim2.new(0.5, -170, 0, 105)
 KeyInput.BackgroundColor3 = Theme.CardBg
 KeyInput.BorderSizePixel = 0
 KeyInput.Text = ""
-KeyInput.PlaceholderText = "Paste your AR-XXXXXX key here..."
+KeyInput.PlaceholderText = "Enter your secret key here..."
 KeyInput.Font = Enum.Font.Gotham
 KeyInput.TextSize = 14
 KeyInput.TextColor3 = Theme.TextMain
@@ -292,29 +193,6 @@ btnStroke.Color = Theme.Stroke
 btnStroke.Thickness = 1
 btnStroke.Parent = SubmitBtn
 
-local DiscordBtn = Instance.new("TextButton")
-DiscordBtn.Name = "DiscordBtn"
-DiscordBtn.Size = UDim2.new(0, 340, 0, 38)
-DiscordBtn.Position = UDim2.new(0.5, -170, 0, 230)
-DiscordBtn.BackgroundColor3 = Theme.CardBg
-DiscordBtn.BorderSizePixel = 0
-DiscordBtn.Text = "🔗 Get Key on Discord Server"
-DiscordBtn.Font = Enum.Font.GothamSemibold
-DiscordBtn.TextSize = 12
-DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
-DiscordBtn.AutoButtonColor = true
-DiscordBtn.Parent = KeyFrame
-
-local discCorner = Instance.new("UICorner")
-discCorner.CornerRadius = UDim.new(0, 8)
-discCorner.Parent = DiscordBtn
-
-local discStroke = Instance.new("UIStroke")
-discStroke.Thickness = 1
-discStroke.Color = Color3.fromRGB(88, 101, 242)
-discStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-discStroke.Parent = DiscordBtn
-
 -- Dragging KeyFrame
 local function makeKeyDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
@@ -335,9 +213,9 @@ end
 makeKeyDraggable(KeyFrame, TitleHub)
 
 -- Pop Setup Animation
-KeyFrame.Size = UDim2.new(0, 400, 0, 270)
-KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -135)
-TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 290), Position = UDim2.new(0.5, -210, 0.5, -145)}):Play()
+KeyFrame.Size = UDim2.new(0, 400, 0, 220)
+KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -110)
+TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 240), Position = UDim2.new(0.5, -210, 0.5, -120)}):Play()
 
 -- ====================================================================
 -- DI SINI ADALAH FUNGSI UTAMA DASHBOARD ASLI LU (100% PURE COPY)
@@ -679,7 +557,6 @@ local function buildMainDashboard()
         local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 38) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
         local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.65, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
         local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 36, 0, 16) inputBox.Position = UDim2.new(1, -36, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
-        -- (Sisa fungsi Slider / Komponen pembantu UI Anda terus berjalan di bawahnya murni)
     end
 
     -- Rendering komponen Toggles & Sliders bawaan lu bro
@@ -765,25 +642,10 @@ local function runLoadingSequence()
 end
 
 -- ====================================================================
--- KEY SYSTEM CONTROLLER CONNECTIONS (INTERAKSI INPUT KEY)
+-- KEY SYSTEM CONTROLLER CONNECTIONS (INTERAKSI INPUT KEY LOKAL)
 -- ====================================================================
-DiscordBtn.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard("https://discord.gg/szU4KAAB")
-    end
-    DiscordBtn.Text = "✅ Link Copied to Clipboard!"
-    DiscordBtn.TextColor3 = Theme.ConfirmGreen
-    discStroke.Color = Theme.ConfirmGreen
-    task.delay(3, function()
-        if DiscordBtn and DiscordBtn.Parent then
-            DiscordBtn.Text = "🔗 Get Key on Discord Server"
-            DiscordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
-            discStroke.Color = Color3.fromRGB(88, 101, 242)
-        end
-    end)
-end)
-
 SubmitBtn.MouseButton1Click:Connect(function()
+    -- Bersihkan spasi gaib (trim) secara menyeluruh
     local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
     
     if userKey == "" then 
@@ -793,10 +655,10 @@ SubmitBtn.MouseButton1Click:Connect(function()
     
     SubmitBtn.Text = "VERIFYING..."
     SubmitBtn.Active = false
+    task.wait(0.5) -- Menambahkan delay buatan agar transisi verifikasi terasa mulus
 
-    -- Menembak server validasi Hugging Face secara ketat
-    if verifyKeyWithServer(userKey) then
-        saveKeyStatus(userKey) 
+    -- Pengecekan lokal murni ke 1 key khusus
+    if userKey == MASTER_KEY then
         KeyFrame:Destroy() 
         runLoadingSequence() 
         print("✅ Key Valid! Membuka Menu Hub.")
@@ -816,11 +678,3 @@ SubmitBtn.MouseButton1Click:Connect(function()
         KeyFrame.Position = originalPos
     end
 end)
-
--- Auto Login Check pada Startup
-local saved = loadKeyStatus()
-if saved and verifyKeyWithServer(saved) then
-    KeyFrame:Destroy()
-    runLoadingSequence()
-    print("✅ Auto-Login Berhasil menggunakan saved key!")
-end
