@@ -713,7 +713,7 @@ end
 -- ====================================================================
 DiscordBtn.MouseButton1Click:Connect(function()
     if setclipboard then
-        setclipboard("https://discord.gg/YOUR_INVITE_LINK")
+        setclipboard("https://discord.gg/szU4KAAB")
     end
     DiscordBtn.Text = "✅ Link Copied to Clipboard!"
     DiscordBtn.TextColor3 = Theme.ConfirmGreen
