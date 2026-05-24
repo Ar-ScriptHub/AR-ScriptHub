@@ -1,0 +1,293 @@
+-- ====================================================================
+-- CONTROL HUB V2: EAT JELLY FOR BRAINROTS UTILITY (DELTA EXECUTOR)
+-- ====================================================================
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Bersihkan UI lama agar tidak tumpang tindih
+if SafeGuiTarget:FindFirstChild("BrainrotControlHubV2") then
+    SafeGuiTarget.BrainrotControlHubV2:Destroy()
+end
+
+-- Path Dinamis Menggunakan ID Player Lu
+local StatsPath = ReplicatedStorage:WaitForChild("PlayerSaves")
+    :WaitForChild("PlayerStats")
+    :WaitForChild(tostring(Player.UserId))
+
+local SelectedSpoon = StatsPath:WaitForChild("SelectedSpoon")
+local Damage = StatsPath:WaitForChild("Damage")
+local Speed = StatsPath:WaitForChild("Speed")
+local OwnedSpoons = StatsPath:WaitForChild("OwnedSpoons")
+local UsedHomeTeleport = StatsPath:WaitForChild("UsedHomeTeleport")
+
+-- SCREEN GUI UTAMA
+local BrainrotControlHubV2 = Instance.new("ScreenGui")
+BrainrotControlHubV2.Name = "BrainrotControlHubV2"
+BrainrotControlHubV2.Parent = SafeGuiTarget
+BrainrotControlHubV2.ResetOnSpawn = false
+
+local Theme = {
+    Bg = Color3.fromRGB(15, 15, 20),
+    CardBg = Color3.fromRGB(24, 24, 30),
+    Stroke = Color3.fromRGB(45, 45, 55),
+    Accent = Color3.fromRGB(0, 255, 136), -- Hijau Neon Delta
+    TextMain = Color3.fromRGB(255, 255, 255),
+    TextMuted = Color3.fromRGB(150, 150, 160)
+}
+
+-- Main Frame (Ukuran tinggi ditambah sedikit biar muat tombol baru)
+local MainFrame = Instance.new("Frame", BrainrotControlHubV2)
+MainFrame.Size = UDim2.new(0, 340, 0, 440)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -220)
+MainFrame.BackgroundColor3 = Theme.Bg
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local mainStroke = Instance.new("UIStroke", MainFrame)
+mainStroke.Thickness = 1.5
+mainStroke.Color = Theme.Stroke
+
+-- Header
+local Header = Instance.new("Frame", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundTransparency = 1
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Text = "AR - EAT JELLY FOR BRAINROT"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextColor3 = Theme.Accent
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+
+local CloseBtn = Instance.new("TextButton", Header)
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -38, 0, 2)
+CloseBtn.Text = "×"
+CloseBtn.Font = Enum.Font.GothamMedium
+CloseBtn.TextSize = 22
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.MouseButton1Click:Connect(function() BrainrotControlHubV2:Destroy() end)
+
+-- Fitur Geser UI (Draggable)
+local function makeDraggable(frame, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true dragStart = input.Position startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+makeDraggable(MainFrame, Header)
+
+-- Container Konten (Y-Padding Layout)
+local ContentContainer = Instance.new("Frame", MainFrame)
+ContentContainer.Size = UDim2.new(1, -24, 1, -55)
+ContentContainer.Position = UDim2.new(0, 12, 0, 45)
+ContentContainer.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", ContentContainer)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 12)
+
+-- ====================================================================
+-- KORIDOR FITUR UI
+-- ====================================================================
+
+-- 1. FITUR UNLOCK ALL SPOONS (Toggle Master)
+local UnlockCard = Instance.new("Frame", ContentContainer)
+UnlockCard.Size = UDim2.new(1, 0, 0, 60)
+UnlockCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", UnlockCard).CornerRadius = UDim.new(0, 6)
+
+local UnlockTitle = Instance.new("TextLabel", UnlockCard)
+UnlockTitle.Size = UDim2.new(0.6, 0, 1, 0)
+UnlockTitle.Position = UDim2.new(0, 10, 0, 0)
+UnlockTitle.Text = "Unlock All Spoons"
+UnlockTitle.Font = Enum.Font.GothamBold
+UnlockTitle.TextSize = 11
+UnlockTitle.TextColor3 = Theme.TextMain
+UnlockTitle.TextXAlignment = Enum.TextXAlignment.Left
+UnlockTitle.BackgroundTransparency = 1
+
+local UnlockBtn = Instance.new("TextButton", UnlockCard)
+UnlockBtn.Size = UDim2.new(0, 90, 0, 30)
+UnlockBtn.Position = UDim2.new(1, -100, 0.5, -15)
+UnlockBtn.BackgroundColor3 = Color3.fromRGB(20, 40, 25)
+UnlockBtn.Text = "UNLOCK ALL"
+UnlockBtn.Font = Enum.Font.GothamBold
+UnlockBtn.TextSize = 10
+UnlockBtn.TextColor3 = Theme.Accent
+Instance.new("UICorner", UnlockBtn).CornerRadius = UDim.new(0, 4)
+Instance.new("UIStroke", UnlockBtn).Color = Theme.Accent
+
+UnlockBtn.MouseButton1Click:Connect(function()
+    OwnedSpoons.Value = "11111111111"
+    UnlockBtn.Text = "SUCCESS ✅"
+    task.wait(1)
+    UnlockBtn.Text = "UNLOCK ALL"
+end)
+
+-- 2. FITUR USED HOME TELEPORT BYPASS (FITUR BARU)
+local TeleportCard = Instance.new("Frame", ContentContainer)
+TeleportCard.Size = UDim2.new(1, 0, 0, 60)
+TeleportCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", TeleportCard).CornerRadius = UDim.new(0, 6)
+
+local TeleportTitle = Instance.new("TextLabel", TeleportCard)
+TeleportTitle.Size = UDim2.new(0.6, 0, 1, 0)
+TeleportTitle.Position = UDim2.new(0, 10, 0, 0)
+TeleportTitle.Text = "🏠 Teleport Status Cooldown\nStatus: " .. (UsedHomeTeleport.Value and "LOCKED 🛑" or "READY 🟢")
+TeleportTitle.Font = Enum.Font.GothamBold
+TeleportTitle.TextSize = 11
+TeleportTitle.TextColor3 = Theme.TextMain
+TeleportTitle.TextXAlignment = Enum.TextXAlignment.Left
+TeleportTitle.BackgroundTransparency = 1
+
+UsedHomeTeleport.Changed:Connect(function(val)
+    TeleportTitle.Text = "🏠 Teleport Status Cooldown\nStatus: " .. (val and "LOCKED 🛑" or "READY 🟢")
+end)
+
+local TeleportBtn = Instance.new("TextButton", TeleportCard)
+TeleportBtn.Size = UDim2.new(0, 90, 0, 30)
+TeleportBtn.Position = UDim2.new(1, -100, 0.5, -15)
+TeleportBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 20)
+TeleportBtn.Text = "RESET JEDA"
+TeleportBtn.Font = Enum.Font.GothamBold
+TeleportBtn.TextSize = 10
+TeleportBtn.TextColor3 = Color3.fromRGB(255, 170, 0)
+Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0, 4)
+Instance.new("UIStroke", TeleportBtn).Color = Color3.fromRGB(255, 170, 0)
+
+TeleportBtn.MouseButton1Click:Connect(function()
+    UsedHomeTeleport.Value = false -- Memaksa checkbox kembali menjadi tidak tercentang (false)
+    TeleportBtn.Text = "RESETTED ⚡"
+    task.wait(1)
+    TeleportBtn.Text = "RESET JEDA"
+end)
+
+-- 3. FITUR SELECTED SPOON ID CHANGER
+local SpoonCard = Instance.new("Frame", ContentContainer)
+SpoonCard.Size = UDim2.new(1, 0, 0, 65)
+SpoonCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", SpoonCard).CornerRadius = UDim.new(0, 6)
+
+local SpoonTitle = Instance.new("TextLabel", SpoonCard)
+SpoonTitle.Size = UDim2.new(1, -20, 0, 25)
+SpoonTitle.Position = UDim2.new(0, 10, 0, 4)
+SpoonTitle.Text = "🥄 Change Active Spoon ID (Current: " .. tostring(SelectedSpoon.Value) .. ")"
+SpoonTitle.Font = Enum.Font.GothamBold
+SpoonTitle.TextSize = 11
+SpoonTitle.TextColor3 = Theme.TextMain
+SpoonTitle.TextXAlignment = Enum.TextXAlignment.Left
+SpoonTitle.BackgroundTransparency = 1
+
+SelectedSpoon.Changed:Connect(function(val)
+    SpoonTitle.Text = "🥄 Change Active Spoon ID (Current: " .. tostring(val) .. ")"
+end)
+
+local SpoonBox = Instance.new("TextBox", SpoonCard)
+SpoonBox.Size = UDim2.new(1, -20, 0, 28)
+SpoonBox.Position = UDim2.new(0, 10, 0, 30)
+SpoonBox.BackgroundColor3 = Theme.Bg
+SpoonBox.PlaceholderText = "Type ID (1 to 11)..."
+SpoonBox.Text = ""
+SpoonBox.Font = Enum.Font.Gotham
+SpoonBox.TextSize = 11
+SpoonBox.TextColor3 = Theme.TextMain
+SpoonBox.PlaceholderColor3 = Theme.TextMuted
+Instance.new("UICorner", SpoonBox).CornerRadius = UDim.new(0, 4)
+
+SpoonBox.FocusLost:Connect(function(enterPressed)
+    local num = tonumber(SpoonBox.Text)
+    if num then SelectedSpoon.Value = num end
+end)
+
+-- 4. FITUR DAMAGE MODIFIER
+local DmgCard = Instance.new("Frame", ContentContainer)
+DmgCard.Size = UDim2.new(1, 0, 0, 65)
+DmgCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", DmgCard).CornerRadius = UDim.new(0, 6)
+
+local DmgTitle = Instance.new("TextLabel", DmgCard)
+DmgTitle.Size = UDim2.new(1, -20, 0, 25)
+DmgTitle.Position = UDim2.new(0, 10, 0, 4)
+DmgTitle.Text = "💥 Set Weapon Damage (Current: " .. tostring(Damage.Value) .. ")"
+DmgTitle.Font = Enum.Font.GothamBold
+DmgTitle.TextSize = 11
+DmgTitle.TextColor3 = Theme.TextMain
+DmgTitle.TextXAlignment = Enum.TextXAlignment.Left
+DmgTitle.BackgroundTransparency = 1
+
+Damage.Changed:Connect(function(val)
+    DmgTitle.Text = "💥 Set Weapon Damage (Current: " .. tostring(val) .. ")"
+end)
+
+local DmgBox = Instance.new("TextBox", DmgCard)
+DmgBox.Size = UDim2.new(1, -20, 0, 28)
+DmgBox.Position = UDim2.new(0, 10, 0, 30)
+DmgBox.BackgroundColor3 = Theme.Bg
+DmgBox.PlaceholderText = "Type desired damage amount..."
+DmgBox.Text = ""
+DmgBox.Font = Enum.Font.Gotham
+DmgBox.TextSize = 11
+DmgBox.TextColor3 = Theme.TextMain
+DmgBox.PlaceholderColor3 = Theme.TextMuted
+Instance.new("UICorner", DmgBox).CornerRadius = UDim.new(0, 4)
+
+DmgBox.FocusLost:Connect(function()
+    local num = tonumber(DmgBox.Text)
+    if num then Damage.Value = num end
+end)
+
+-- 5. FITUR SPEED MODIFIER
+local SpeedCard = Instance.new("Frame", ContentContainer)
+SpeedCard.Size = UDim2.new(1, 0, 0, 65)
+SpeedCard.BackgroundColor3 = Theme.CardBg
+Instance.new("UICorner", SpeedCard).CornerRadius = UDim.new(0, 6)
+
+local SpeedTitle = Instance.new("TextLabel", SpeedCard)
+SpeedTitle.Size = UDim2.new(1, -20, 0, 25)
+SpeedTitle.Position = UDim2.new(0, 10, 0, 4)
+SpeedTitle.Text = "⚡ Set Walk Speed (Current: " .. tostring(Speed.Value) .. ")"
+SpeedTitle.Font = Enum.Font.GothamBold
+SpeedTitle.TextSize = 11
+SpeedTitle.TextColor3 = Theme.TextMain
+SpeedTitle.TextXAlignment = Enum.TextXAlignment.Left
+SpeedTitle.BackgroundTransparency = 1
+
+Speed.Changed:Connect(function(val)
+    SpeedTitle.Text = "⚡ Set Walk Speed (Current: " .. tostring(val) .. ")"
+end)
+
+local SpeedBox = Instance.new("TextBox", SpeedCard)
+SpeedBox.Size = UDim2.new(1, -20, 0, 28)
+SpeedBox.Position = UDim2.new(0, 10, 0, 30)
+SpeedBox.BackgroundColor3 = Theme.Bg
+SpeedBox.PlaceholderText = "Type custom speed value..."
+SpeedBox.Text = ""
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.TextSize = 11
+SpeedBox.TextColor3 = Theme.TextMain
+SpeedBox.PlaceholderColor3 = Theme.TextMuted
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 4)
+
+SpeedBox.FocusLost:Connect(function()
+    local num = tonumber(SpeedBox.Text)
+    if num then Speed.Value = num end
+end)
+
+print("Brainrot Control Hub V2 Berhasil Dimuat!")
