@@ -36,6 +36,27 @@ end
 -- CONFIG KEY SYSTEM (LOCAL KEY VERIFICATION)
 -- ====================================================================
 local MASTER_KEY = "AR-OWNER-831"
+local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
+
+local function loadKeyStatus()
+    local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
+    if success and content then
+        local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
+        if decodeSuccess and type(decodedData) == "table" then
+            if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
+                if decodedData.Key and decodedData.Key == MASTER_KEY then 
+                    return decodedData.Key
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function saveKeyStatus(passedKey)
+    local data = { Key = passedKey, Timestamp = os.time() }
+    pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
+end
 
 -- Master ScreenGui Context bawaan file asli lu
 local AR_Script_Hub = Instance.new("ScreenGui")
@@ -192,6 +213,30 @@ local btnStroke = Instance.new("UIStroke")
 btnStroke.Color = Theme.Stroke
 btnStroke.Thickness = 1
 btnStroke.Parent = SubmitBtn
+
+-- Sesuai Layout Asli Biar Gak Berantakan, Tombol Tetap Ada Tapi Berfungsi Sebagai Pemegang Info Master Key
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Name = "DiscordBtn"
+DiscordBtn.Size = UDim2.new(0, 340, 0, 38)
+DiscordBtn.Position = UDim2.new(0.5, -170, 0, 230)
+DiscordBtn.BackgroundColor3 = Theme.CardBg
+DiscordBtn.BorderSizePixel = 0
+DiscordBtn.Text = "🔑 Click to Copy Key: AR-OWNER-831"
+DiscordBtn.Font = Enum.Font.GothamSemibold
+DiscordBtn.TextSize = 12
+DiscordBtn.TextColor3 = Color3.fromRGB(190, 130, 255)
+DiscordBtn.AutoButtonColor = true
+DiscordBtn.Parent = KeyFrame
+
+local discCorner = Instance.new("UICorner")
+discCorner.CornerRadius = UDim.new(0, 8)
+discCorner.Parent = DiscordBtn
+
+local discStroke = Instance.new("UIStroke")
+discStroke.Thickness = 1
+discStroke.Color = Theme.Stroke
+discStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+discStroke.Parent = DiscordBtn
 
 -- Dragging KeyFrame
 local function makeKeyDraggable(frame, dragHandle)
@@ -553,10 +598,50 @@ local function buildMainDashboard()
         end)
     end
 
+    -- FUNGSI SLIDER DIKEMBALIKAN UTUH 100% SEMPURNA TANPA POTONGAN KODE
     local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
         local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 38) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
         local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.65, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
-        local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 36, 0, 16) inputBox.Position = UDim2.new(1, -36, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+        local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 45, 0, 18) inputBox.Position = UDim2.new(1, -45, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+        
+        local slideBar = Instance.new("TextButton", holder) slideBar.Size = UDim2.new(1, 0, 0, 6) slideBar.Position = UDim2.new(0, 0, 1, -10) slideBar.BackgroundColor3 = Theme.CardBg slideBar.Text = "" Instance.new("UICorner", slideBar).CornerRadius = UDim.new(0, 3)
+        local fill = Instance.new("Frame", slideBar) fill.Size = UDim2.new(math.clamp((defaultVal - min)/(max - min), 0, 1), 0, 1, 0) fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+        
+        local function updateSlider(inputPos)
+            local percent = math.clamp((inputPos - slideBar.AbsolutePosition.X) / slideBar.AbsoluteSize.X, 0, 1)
+            local val = math.round(min + (percent * (max - min)))
+            inputBox.Text = tostring(val) fill.Size = UDim2.new(percent, 0, 1, 0)
+            if configKey then Config[configKey] = val end if callback then callback(val) end
+        end
+        
+        slideBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                updateSlider(input.Position.X)
+                local moveCon; moveCon = UserInputService.InputChanged:Connect(function(move)
+                    if move.UserInputType == Enum.UserInputType.MouseMovement or move.UserInputType == Enum.UserInputType.Touch then
+                        updateSlider(move.Position.X)
+                    end
+                end)
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then moveCon:Disconnect() end
+                end)
+            end
+        end)
+        
+        inputBox.FocusLost:Connect(function()
+            local val = tonumber(inputBox.Text) or defaultVal
+            val = math.clamp(math.round(val), min, max)
+            inputBox.Text = tostring(val)
+            fill.Size = UDim2.new((val - min)/(max - min), 0, 1, 0)
+            if configKey then Config[configKey] = val end if callback then callback(val) end
+        end)
+    end
+
+    -- Layout UI List Layout untuk page rendering bawaan lu bro
+    for _, page in pairs(menuContainers) do
+        local layout = Instance.new("UIListLayout", page)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 10)
     end
 
     -- Rendering komponen Toggles & Sliders bawaan lu bro
@@ -627,23 +712,37 @@ local function runLoadingSequence()
 
     local barFillCorner = Instance.new("UICorner") barFillCorner.CornerRadius = UDim.new(0, 3) barFillCorner.Parent = BarFill
 
-    local barTween = TweenService:Create(BarFill, TweenInfo.new(2.0, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
+    local barTween = TweenService:Create(BarFill, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
     barTween:Play()
     
     barTween.Completed:Connect(function()
         LoadTxt.Text = "WELCOME TO AR HUB!"
         LoadTxt.TextColor3 = Theme.ConfirmGreen
-        task.wait(0.8)
+        task.wait(0.5)
         LoaderFrame:Destroy()
-        
-        -- Memanggil Menu Dashboard Asli Milik Anda
         buildMainDashboard()
     end)
 end
 
 -- ====================================================================
--- KEY SYSTEM CONTROLLER CONNECTIONS (PURE LOCAL VALIDATION)
+-- KEY SYSTEM CONTROLLER CONNECTIONS (INTERAKSI INPUT KEY)
 -- ====================================================================
+DiscordBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(MASTER_KEY)
+    end
+    DiscordBtn.Text = "✅ Key Copied to Clipboard!"
+    DiscordBtn.TextColor3 = Theme.ConfirmGreen
+    discStroke.Color = Theme.ConfirmGreen
+    task.delay(2.5, function()
+        if DiscordBtn and DiscordBtn.Parent then
+            DiscordBtn.Text = "🔑 Click to Copy Key: " .. MASTER_KEY
+            DiscordBtn.TextColor3 = Color3.fromRGB(190, 130, 255)
+            discStroke.Color = Theme.Stroke
+        end
+    end)
+end)
+
 SubmitBtn.MouseButton1Click:Connect(function()
     local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
     
@@ -654,10 +753,10 @@ SubmitBtn.MouseButton1Click:Connect(function()
     
     SubmitBtn.Text = "VERIFYING..."
     SubmitBtn.Active = false
-    task.wait(0.3)
+    task.wait(0.2)
 
-    -- Pengkondisian mutlak menggunakan Master Key baru tanpa Hugging Face
     if userKey == MASTER_KEY then
+        saveKeyStatus(userKey) 
         KeyFrame:Destroy() 
         runLoadingSequence() 
         print("✅ Key Valid! Membuka Menu Hub.")
@@ -668,7 +767,6 @@ SubmitBtn.MouseButton1Click:Connect(function()
         KeyInput.PlaceholderText = "INVALID OR EXPIRED KEY!" 
         KeyInput.PlaceholderColor3 = Theme.DeleteRed
         
-        -- Efek Guncang (Shake Frame) saat Key Salah bawaan asli file lu
         local originalPos = KeyFrame.Position
         for i = 1, 5 do
             KeyFrame.Position = originalPos + UDim2.new(0, math.random(-6, 6), 0, 0)
@@ -677,3 +775,11 @@ SubmitBtn.MouseButton1Click:Connect(function()
         KeyFrame.Position = originalPos
     end
 end)
+
+-- Auto Login Check pada Startup
+local saved = loadKeyStatus()
+if saved and saved == MASTER_KEY then
+    KeyFrame:Destroy()
+    runLoadingSequence()
+    print("✅ Auto-Login Berhasil menggunakan saved key!")
+end
