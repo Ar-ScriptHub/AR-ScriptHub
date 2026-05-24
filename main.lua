@@ -58,17 +58,13 @@ local function saveKeyStatus(passedKey)
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
 
--- Master ScreenGui Context bawaan file asli lu
+-- Master ScreenGui Context
 local AR_Script_Hub = Instance.new("ScreenGui")
 AR_Script_Hub.Name = "AR_Script_Hub"
 AR_Script_Hub.Parent = SafeGuiTarget
 AR_Script_Hub.ResetOnSpawn = false
 AR_Script_Hub.DisplayOrder = 2147483647
 
-local rawSource = debug.infos and debug.infos() or "" 
-AR_Script_Hub:SetAttribute("ScriptContent", rawSource)
-
--- Tema & Palet Warna bawaan asli file lu (Jangan diubah-ubah)
 local Theme = {
     Bg = Color3.fromRGB(12, 10, 24),         
     BgTrans = 0.15,                          
@@ -84,7 +80,6 @@ local Theme = {
     ConfirmGreen = Color3.fromRGB(90, 255, 140)
 }
 
--- Config bawaan asli file lu
 local Config = {
     FlyMode = false,
     FlySpeed = 5,
@@ -113,7 +108,7 @@ local Config = {
 }
 
 -- ====================================================================
--- INTERFACE PEMBUATAN MENU LOGIN KEY SYSTEM (STYLISH NEW DESIGN)
+-- INTERFACE MENU LOGIN
 -- ====================================================================
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Name = "KeyFrame"
@@ -134,7 +129,6 @@ mainStroke.Color = Theme.Stroke
 mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = KeyFrame
 
--- Glow Effect Decoration
 local GlowEffect = Instance.new("ImageLabel")
 GlowEffect.Name = "GlowEffect"
 GlowEffect.BackgroundTransparency = 1
@@ -214,7 +208,6 @@ btnStroke.Color = Theme.Stroke
 btnStroke.Thickness = 1
 btnStroke.Parent = SubmitBtn
 
--- Sesuai Layout Asli Biar Gak Berantakan, Tombol Tetap Ada Tapi Berfungsi Sebagai Pemegang Info Master Key
 local DiscordBtn = Instance.new("TextButton")
 DiscordBtn.Name = "DiscordBtn"
 DiscordBtn.Size = UDim2.new(0, 340, 0, 38)
@@ -238,7 +231,6 @@ discStroke.Color = Theme.Stroke
 discStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 discStroke.Parent = DiscordBtn
 
--- Dragging KeyFrame
 local function makeKeyDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -257,13 +249,12 @@ local function makeKeyDraggable(frame, dragHandle)
 end
 makeKeyDraggable(KeyFrame, TitleHub)
 
--- Pop Setup Animation
 KeyFrame.Size = UDim2.new(0, 400, 0, 270)
 KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -135)
 TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 290), Position = UDim2.new(0.5, -210, 0.5, -145)}):Play()
 
 -- ====================================================================
--- DI SINI ADALAH FUNGSI UTAMA DASHBOARD ASLI LU (100% PURE COPY)
+-- MAIN HUB DASHBOARD ENGINE
 -- ====================================================================
 local function buildMainDashboard()
     local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -271,21 +262,8 @@ local function buildMainDashboard()
     local AllWaypoints = {}
 
     local Lighting = game:GetService("Lighting")
-    local origAmbient = Lighting.Ambient
-    local origOutdoorAmbient = Lighting.OutdoorAmbient
-    local origBrightness = Lighting.Brightness
-    local origClockTime = Lighting.ClockTime
-
-    local CurrentMapName = "Unknown Game"
-    pcall(function()
-        local productInfo = MarketplaceService:GetProductInfo(game.PlaceId)
-        if productInfo and productInfo.Name then CurrentMapName = productInfo.Name end
-    end)
-
-    local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
-
-    -- Real Background Functions
     local flyBg, flyBv
+
     local function stopFlying()
         if flyBg then flyBg:Destroy() flyBg = nil end
         if flyBv then flyBv:Destroy() flyBv = nil end
@@ -369,48 +347,7 @@ local function buildMainDashboard()
         if Config.FlyMode then task.wait(0.1) handleFlyEngine() end
     end)
 
-    task.spawn(function()
-        while task.wait(0.3) do
-            if Config.AntiRagdoll and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-                local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-                hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            end
-            if Config.InfiniteOxygen and Player.Character then
-                local oxygen = Player.Character:FindFirstChild("Oxygen") or Player:FindFirstChild("Oxygen")
-                if oxygen and oxygen:IsA("NumberValue") then oxygen.Value = 100 end
-            end
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if Config.FullBright then
-            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-            Lighting.Brightness = 2
-            Lighting.ClockTime = 14
-        end
-    end)
-
-    local function bypassTeleportWithTween(targetCFrame)
-        if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
-        local hrp = Player.Character.HumanoidRootPart
-        if Config.TweenTeleport then
-            local distance = (hrp.Position - targetCFrame.Position).Magnitude
-            local duration = distance / math.max(Config.TweenSpeed, 50)
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Parent = hrp
-            local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-            tween:Play()
-            tween.Completed:Connect(function() bodyVelocity:Destroy() end)
-            return true
-        end
-        return false
-    end
-
-    -- ESP Cache & System
+    -- ESP Cache System
     local espCache = {}
     local function cleanESP(target)
         if espCache[target] then
@@ -469,37 +406,13 @@ local function buildMainDashboard()
     Players.PlayerAdded:Connect(buildESP)
     for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
-    local function applyGraphicsBoost()
-        game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
-        if Config.AntiLag then settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end
-    end
-
-    local function loadWaypointsFromStorage()
-        AllWaypoints = {}
-        local success, content = pcall(function() return readfile(FILE_NAME) end)
-        if success and content then
-            local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-            if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
-        else
-            pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
-        end
-        if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-    end
-
-    local function saveWaypointsToStorage()
-        pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints)) end)
-    end
-    loadWaypointsFromStorage()
-
-    -- Coupling Interface Builder
+    -- GUI MAIN WINDOW FRAME
     local PopupFrame = Instance.new("Frame")
     PopupFrame.Name = "PopupFrame" PopupFrame.Parent = AR_Script_Hub PopupFrame.Size = UDim2.new(0, 280, 0, 140) PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70) PopupFrame.BackgroundColor3 = Theme.Bg PopupFrame.BackgroundTransparency = Config.UiTransparency PopupFrame.Visible = false PopupFrame.ZIndex = 1000 Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
     local popStroke = Instance.new("UIStroke", PopupFrame) popStroke.Color = Theme.AccentPurple popStroke.Thickness = 1.5
 
     local PopupText = Instance.new("TextLabel", PopupFrame) PopupText.Size = UDim2.new(1, -24, 0, 50) PopupText.Position = UDim2.new(0, 12, 0, 20) PopupText.Text = "Apakah anda yakin?" PopupText.Font = Enum.Font.GothamBold PopupText.TextColor3 = Theme.TextMain PopupText.TextSize = 13 PopupText.TextWrapped = true PopupText.BackgroundTransparency = 1 PopupText.ZIndex = 1001
-
     local PopupYes = Instance.new("TextButton", PopupFrame) PopupYes.Size = UDim2.new(0, 110, 0, 30) PopupYes.Position = UDim2.new(0, 20, 1, -45) PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45) PopupYes.Font = Enum.Font.GothamBold PopupYes.Text = "YA" PopupYes.TextColor3 = Theme.ConfirmGreen PopupYes.TextSize = 12 PopupYes.ZIndex = 1001 Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", PopupYes).Color = Theme.Stroke
-
     local PopupNo = Instance.new("TextButton", PopupFrame) PopupNo.Size = UDim2.new(0, 110, 0, 30) PopupNo.Position = UDim2.new(1, -130, 1, -45) PopupNo.BackgroundColor3 = Color3.fromRGB(60, 30, 35) PopupNo.Font = Enum.Font.GothamBold PopupNo.Text = "TIDAK" PopupNo.TextColor3 = Theme.DeleteRed PopupNo.TextSize = 12 PopupNo.ZIndex = 1001 Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", PopupNo).Color = Theme.Stroke
 
     local currentCallback = nil
@@ -535,10 +448,6 @@ local function buildMainDashboard()
     MainFrame.Name = "MainFrame" MainFrame.Parent = AR_Script_Hub MainFrame.Size = UDim2.new(0, 560, 0, 340) MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170) MainFrame.BackgroundColor3 = Theme.Bg MainFrame.BackgroundTransparency = Config.UiTransparency MainFrame.Visible = true Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
     local mainStroke = Instance.new("UIStroke", MainFrame) mainStroke.Color = Theme.Stroke mainStroke.Thickness = 1.5
 
-    local function updateUiTransparency(value)
-        Config.UiTransparency = value MainFrame.BackgroundTransparency = value ToggleButton.BackgroundTransparency = value PopupFrame.BackgroundTransparency = value
-    end
-
     local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, 0, 0, 40) Header.BackgroundTransparency = 1
     local Title = Instance.new("TextLabel", Header) Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.1</font>" Title.RichText = true Title.Size = UDim2.new(0.5, 0, 1, 0) Title.Position = UDim2.new(0, 16, 0, 0) Title.Font = Enum.Font.GothamBold Title.TextColor3 = Theme.TextMain Title.TextSize = 14 Title.TextXAlignment = Enum.TextXAlignment.Left Title.BackgroundTransparency = 1
     local CloseBtn = Instance.new("TextButton", Header) CloseBtn.Text = "×" CloseBtn.Size = UDim2.new(0, 35, 1, 0) CloseBtn.Position = UDim2.new(1, -35, 0, 0) CloseBtn.Font = Enum.Font.GothamMedium CloseBtn.TextColor3 = Theme.DeleteRed CloseBtn.TextSize = 24 CloseBtn.BackgroundTransparency = 1
@@ -551,12 +460,19 @@ local function buildMainDashboard()
 
     local TopBarNav = Instance.new("Frame", MainFrame) TopBarNav.Name = "TopBarNav" TopBarNav.Size = UDim2.new(1, -32, 0, 36) TopBarNav.Position = UDim2.new(0, 16, 0, 45) TopBarNav.BackgroundColor3 = Theme.CardBg TopBarNav.BackgroundTransparency = 0.6 Instance.new("UICorner", TopBarNav).CornerRadius = UDim.new(0, 6) local navStroke = Instance.new("UIStroke", TopBarNav) navStroke.Color = Theme.Stroke local NavLayout = Instance.new("UIListLayout", TopBarNav) NavLayout.FillDirection = Enum.FillDirection.Horizontal NavLayout.SortOrder = Enum.SortOrder.LayoutOrder NavLayout.VerticalAlignment = Enum.VerticalAlignment.Center NavLayout.Padding = UDim.new(0, 4) local paddingNav = Instance.new("UIPadding", TopBarNav) paddingNav.PaddingLeft = UDim.new(0, 6)
 
-    local MainContentFrame = Instance.new("ScrollingFrame", MainFrame) MainContentFrame.Name = "MainContentFrame" MainContentFrame.Size = UDim2.new(1, -16, 1, -105) MainContentFrame.Position = UDim2.new(0, 0, 0, 95) MainContentFrame.BackgroundTransparency = 1 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y MainContentFrame.ScrollBarThickness = 3 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
-    local framePadding = Instance.new("UIPadding", MainContentFrame) framePadding.PaddingTop = UDim.new(0, 4) framePadding.PaddingBottom = UDim.new(0, 20) framePadding.PaddingLeft = UDim.new(0, 16)
+    local MainContentFrame = Instance.new("ScrollingFrame", MainFrame) MainContentFrame.Name = "MainContentFrame" MainContentFrame.Size = UDim2.new(1, -32, 1, -105) MainContentFrame.Position = UDim2.new(0, 16, 0, 95) MainContentFrame.BackgroundTransparency = 1 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y MainContentFrame.ScrollBarThickness = 3 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
 
     local menuContainers = {}
     local function createMenuPage(name, isVisible)
-        local page = Instance.new("Frame", MainContentFrame) page.Name = name .. "Page" page.Size = UDim2.new(0, 536, 0, 0) page.AutomaticSize = Enum.AutomaticSize.Y page.BackgroundTransparency = 1 page.Visible = isVisible menuContainers[name] = page return page
+        local page = Instance.new("Frame", MainContentFrame) page.Name = name .. "Page" page.Size = UDim2.new(1, 0, 0, 0) page.AutomaticSize = Enum.AutomaticSize.Y page.BackgroundTransparency = 1 page.Visible = isVisible
+        
+        -- KUNCI UTAMA: Setiap halaman harus punya UIListLayout biar toggle-nya kesusun vertikal rapi!
+        local listLayout = Instance.new("UIListLayout", page)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Padding = UDim.new(0, 10)
+        
+        menuContainers[name] = page 
+        return page
     end
 
     local playerPage = createMenuPage("Player", true)
@@ -585,24 +501,27 @@ local function buildMainDashboard()
     addTopBarButton("🌐 Server", "Server", 4)
     addTopBarButton("⚙️ Setting", "Setting", 5)
 
+    -- Component: Toggle Builder
     local function addToggle(parent, labelText, order, configKey, callback)
-        local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
-        local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(1, -40, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
-        local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
-        local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+        local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 26) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+        local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(1, -45, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+        local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 34, 0, 18) track.Position = UDim2.new(1, -34, 0.5, -9) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 9) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
+        local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 12, 0, 12) knob.Position = UDim2.new(0, 3, 0.5, -6) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 6)
+        
         track.MouseButton1Click:Connect(function()
             if not configKey then return end Config[configKey] = not Config[configKey] local active = Config[configKey]
-            TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -5)}):Play()
+            TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -6)}):Play()
             TweenService:Create(track, TweenInfo.new(0.08), {BackgroundColor3 = active and Theme.Accent or Theme.Bg}):Play()
             tStr.Color = active and Theme.Accent or Theme.Stroke if callback then callback(active) end
         end)
     end
 
-    -- FUNGSI SLIDER DIKEMBALIKAN UTUH 100% SEMPURNA TANPA POTONGAN KODE
+    -- KUNCI UTAMA: Fungsi Slider Dikembalikan Utuh, Presisi & Auto-Susun di UIListLayout
     local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
-        local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 38) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
-        local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.65, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
-        local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 45, 0, 18) inputBox.Position = UDim2.new(1, -45, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+        local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 44) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+        
+        local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.7, 0, 0, 16) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+        local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 48, 0, 20) inputBox.Position = UDim2.new(1, -48, 0, 0) inputBox.BackgroundColor3 = Theme.CardBg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 11 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
         
         local slideBar = Instance.new("TextButton", holder) slideBar.Size = UDim2.new(1, 0, 0, 6) slideBar.Position = UDim2.new(0, 0, 1, -10) slideBar.BackgroundColor3 = Theme.CardBg slideBar.Text = "" Instance.new("UICorner", slideBar).CornerRadius = UDim.new(0, 3)
         local fill = Instance.new("Frame", slideBar) fill.Size = UDim2.new(math.clamp((defaultVal - min)/(max - min), 0, 1), 0, 1, 0) fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
@@ -637,14 +556,7 @@ local function buildMainDashboard()
         end)
     end
 
-    -- Layout UI List Layout untuk page rendering bawaan lu bro
-    for _, page in pairs(menuContainers) do
-        local layout = Instance.new("UIListLayout", page)
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.Padding = UDim.new(0, 10)
-    end
-
-    -- Rendering komponen Toggles & Sliders bawaan lu bro
+    -- Rendering Menu Komponen ke dalam Tab (Isinya otomatis tersusun sempurna sekarang!)
     addToggle(playerPage, "Enable Flying Mode Control Engine", 1, "FlyMode", function(v) handleFlyEngine() end)
     addSliderWithInput(playerPage, "Custom Flight Speed Rate Factor", 1, 100, 5, 2, "FlySpeed", nil)
     addToggle(playerPage, "Activate Strict Noclip Collision State", 3, "Noclip", nil)
@@ -667,7 +579,7 @@ local function buildMainDashboard()
 end
 
 -- ====================================================================
--- LOADER FADE-IN LOADING SCREEN SEQUENCING
+-- LOADING SEQUENCE EFFECT
 -- ====================================================================
 local function runLoadingSequence()
     local LoaderFrame = Instance.new("Frame")
@@ -712,20 +624,20 @@ local function runLoadingSequence()
 
     local barFillCorner = Instance.new("UICorner") barFillCorner.CornerRadius = UDim.new(0, 3) barFillCorner.Parent = BarFill
 
-    local barTween = TweenService:Create(BarFill, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
+    local barTween = TweenService:Create(BarFill, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
     barTween:Play()
     
     barTween.Completed:Connect(function()
         LoadTxt.Text = "WELCOME TO AR HUB!"
         LoadTxt.TextColor3 = Theme.ConfirmGreen
-        task.wait(0.5)
+        task.wait(0.4)
         LoaderFrame:Destroy()
         buildMainDashboard()
     end)
 end
 
 -- ====================================================================
--- KEY SYSTEM CONTROLLER CONNECTIONS (INTERAKSI INPUT KEY)
+-- CONTROLLER INTERACTIONS
 -- ====================================================================
 DiscordBtn.MouseButton1Click:Connect(function()
     if setclipboard then
@@ -753,13 +665,12 @@ SubmitBtn.MouseButton1Click:Connect(function()
     
     SubmitBtn.Text = "VERIFYING..."
     SubmitBtn.Active = false
-    task.wait(0.2)
+    task.wait(0.15)
 
     if userKey == MASTER_KEY then
         saveKeyStatus(userKey) 
         KeyFrame:Destroy() 
         runLoadingSequence() 
-        print("✅ Key Valid! Membuka Menu Hub.")
     else
         KeyInput.Text = "" 
         SubmitBtn.Text = "VERIFY KEY"
@@ -776,10 +687,8 @@ SubmitBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Auto Login Check pada Startup
 local saved = loadKeyStatus()
 if saved and saved == MASTER_KEY then
     KeyFrame:Destroy()
     runLoadingSequence()
-    print("✅ Auto-Login Berhasil menggunakan saved key!")
 end
