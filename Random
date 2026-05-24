@@ -1,59 +1,61 @@
 -- ====================================================================
--- DELTA EXECUTOR - ADVANCED UNIVERSAL UNDETECTED ITEM LISTER
+-- REMOTE INTERACTION TESTER (SpoonShopRemote ANALYSIS)
 -- ====================================================================
 
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Bersihkan sisa UI lama agar tidak tumpang tindih
-if SafeGuiTarget:FindFirstChild("DeltaUniversalLister") then
-    SafeGuiTarget.DeltaUniversalLister:Destroy()
+-- Bersihkan UI pengujian sebelumnya jika ada
+if SafeGuiTarget:FindFirstChild("SpoonRemoteTester") then
+    SafeGuiTarget.SpoonRemoteTester:Destroy()
 end
 
+-- Cari keberadaan target remote di ReplicatedStorage
+local TargetRemote = ReplicatedStorage:FindFirstChild("SpoonShopRemote")
+
 -- ScreenGui Utama
-local DeltaUniversalLister = Instance.new("ScreenGui")
-DeltaUniversalLister.Name = "DeltaUniversalLister"
-DeltaUniversalLister.Parent = SafeGuiTarget
-DeltaUniversalLister.ResetOnSpawn = false
+local SpoonRemoteTester = Instance.new("ScreenGui")
+SpoonRemoteTester.Name = "SpoonRemoteTester"
+SpoonRemoteTester.Parent = SafeGuiTarget
+SpoonRemoteTester.ResetOnSpawn = false
 
 local Theme = {
-    Bg = Color3.fromRGB(15, 15, 20),
-    CardBg = Color3.fromRGB(22, 22, 28),
-    Stroke = Color3.fromRGB(40, 40, 50),
-    Accent = Color3.fromRGB(0, 255, 136), -- Hijau Neon Delta
-    TextMain = Color3.fromRGB(240, 240, 245),
-    TextMuted = Color3.fromRGB(140, 140, 150)
+    Bg = Color3.fromRGB(20, 20, 25),
+    CardBg = Color3.fromRGB(30, 30, 38),
+    Stroke = Color3.fromRGB(55, 55, 65),
+    Accent = Color3.fromRGB(255, 180, 0), -- Jingga/Kuning
+    TextMain = Color3.fromRGB(255, 255, 255),
+    TextMuted = Color3.fromRGB(150, 150, 160)
 }
 
--- Main Window
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 440, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -220, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 380, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -110)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BorderSizePixel = 0
-MainFrame.Parent = DeltaUniversalLister
+MainFrame.Parent = SpoonRemoteTester
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Thickness = 1.5
 mainStroke.Color = Theme.Stroke
 
 -- Header
 local Header = Instance.new("Frame", MainFrame)
-Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 14, 0, 0)
-Title.Text = "DELTA ITEM LISTER (ANTI-DETECTION)"
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Text = "SPOON SHOP REMOTE TESTER"
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
+Title.TextSize = 12
 Title.TextColor3 = Theme.Accent
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
@@ -66,24 +68,52 @@ CloseBtn.Font = Enum.Font.GothamMedium
 CloseBtn.TextSize = 22
 CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.MouseButton1Click:Connect(function() DeltaUniversalLister:Destroy() end)
+CloseBtn.MouseButton1Click:Connect(function() SpoonRemoteTester:Destroy() end)
 
--- Container List Item
-local Container = Instance.new("ScrollingFrame", MainFrame)
-Container.Name = "Container"
-Container.Size = UDim2.new(1, -24, 1, -55)
-Container.Position = UDim2.new(0, 12, 0, 45)
-Container.BackgroundTransparency = 1
-Container.ScrollBarThickness = 2
-Container.ScrollBarImageColor3 = Theme.Accent
-Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- Status Indicator
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, -24, 0, 20)
+StatusLabel.Position = UDim2.new(0, 12, 0, 45)
+StatusLabel.Font = Enum.Font.GothamMedium
+StatusLabel.TextSize = 11
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.BackgroundTransparency = 1
 
-local listLayout = Instance.new("UIListLayout", Container)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 6)
+if TargetRemote then
+    StatusLabel.Text = "🟢 Remote Found Location: ReplicatedStorage.SpoonShopRemote"
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+else
+    StatusLabel.Text = "🔴 Remote Not Found! Check the object name in ReplicatedStorage."
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+end
 
--- Fitur Dragging Mobile/PC Bypass
+-- Textbox Input Nama Item
+local ItemInput = Instance.new("TextBox", MainFrame)
+ItemInput.Size = UDim2.new(1, -24, 0, 36)
+ItemInput.Position = UDim2.new(0, 12, 0, 75)
+ItemInput.BackgroundColor3 = Theme.CardBg
+ItemInput.Font = Enum.Font.Gotham
+ItemInput.Text = ""
+ItemInput.PlaceholderText = "Type Item Name Here (e.g., GoldenSpoon)..."
+ItemInput.TextColor3 = Theme.TextMain
+ItemInput.PlaceholderColor3 = Theme.TextMuted
+ItemInput.TextSize = 12
+Instance.new("UICorner", ItemInput).CornerRadius = UDim.new(0, 5)
+local inputStroke = Instance.new("UIStroke", ItemInput)
+inputStroke.Color = Theme.Stroke
+
+-- Tombol Eksekusi Test
+local TestBtn = Instance.new("TextButton", MainFrame)
+TestBtn.Size = UDim2.new(1, -24, 0, 40)
+TestBtn.Position = UDim2.new(0, 12, 0, 125)
+TestBtn.BackgroundColor3 = Color3.fromRGB(40, 50, 70)
+TestBtn.Font = Enum.Font.GothamBold
+TestBtn.Text = "EXECUTE REMOTE CALL"
+TestBtn.TextColor3 = Theme.TextMain
+TestBtn.TextSize = 12
+Instance.new("UICorner", TestBtn).CornerRadius = UDim.new(0, 5)
+
+-- Fungsi Geser UI
 local function makeDraggable(frame, handle)
     local dragging, dragInput, dragStart, startPos
     handle.InputBegan:Connect(function(input)
@@ -102,126 +132,44 @@ local function makeDraggable(frame, handle)
 end
 makeDraggable(MainFrame, Header)
 
--- ====================================================================
--- SAFE UI CORE LIST BUILDER
--- ====================================================================
-local itemsFoundCount = 0
-
-local function addItemToList(itemName, itemPrice, buyCallback)
-    itemsFoundCount = itemsFoundCount + 1
+-- Logika Pengiriman Parameter ke Server
+TestBtn.MouseButton1Click:Connect(function()
+    if not TargetRemote then 
+        warn("Cannot execute: Remote does not exist.")
+        return 
+    end
     
-    local ItemCard = Instance.new("Frame", Container)
-    ItemCard.Name = "Card_" .. itemName
-    ItemCard.Size = UDim2.new(1, -4, 0, 42)
-    ItemCard.BackgroundColor3 = Theme.CardBg
-    ItemCard.BorderSizePixel = 0
-
-    Instance.new("UICorner", ItemCard).CornerRadius = UDim.new(0, 5)
-    local cardStroke = Instance.new("UIStroke", ItemCard)
-    cardStroke.Color = Theme.Stroke
-
-    local NameLabel = Instance.new("TextLabel", ItemCard)
-    NameLabel.Size = UDim2.new(0.6, 0, 0, 18)
-    NameLabel.Position = UDim2.new(0, 10, 0, 4)
-    NameLabel.Text = itemName
-    NameLabel.Font = Enum.Font.GothamBold
-    NameLabel.TextSize = 11
-    NameLabel.TextColor3 = Theme.TextMain
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NameLabel.BackgroundTransparency = 1
-
-    local PriceLabel = Instance.new("TextLabel", ItemCard)
-    PriceLabel.Size = UDim2.new(0.6, 0, 0, 14)
-    PriceLabel.Position = UDim2.new(0, 10, 0, 22)
-    PriceLabel.Text = "💰 Cost: " .. tostring(itemPrice)
-    PriceLabel.Font = Enum.Font.GothamMedium
-    PriceLabel.TextSize = 9
-    PriceLabel.TextColor3 = Theme.TextMuted
-    PriceLabel.TextXAlignment = Enum.TextXAlignment.Left
-    PriceLabel.BackgroundTransparency = 1
-
-    local BuyBtn = Instance.new("TextButton", ItemCard)
-    BuyBtn.Size = UDim2.new(0, 75, 0, 24)
-    BuyBtn.Position = UDim2.new(1, -85, 0.5, -12)
-    BuyBtn.BackgroundColor3 = Color3.fromRGB(16, 35, 25)
-    BuyBtn.Text = "PURCHASE"
-    BuyBtn.Font = Enum.Font.GothamBold
-    BuyBtn.TextSize = 9
-    BuyBtn.TextColor3 = Theme.Accent
-    Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 4)
-    local btnStroke = Instance.new("UIStroke", BuyBtn)
-    btnStroke.Color = Theme.Accent
-
-    BuyBtn.MouseButton1Click:Connect(function()
-        BuyBtn.Text = "BUYING..."
-        BuyBtn.TextColor3 = Theme.TextMuted
-        pcall(buyCallback)
-        task.wait(0.3)
-        BuyBtn.Text = "PURCHASE"
-        BuyBtn.TextColor3 = Theme.Accent
+    local argumentValue = ItemInput.Text
+    if argumentValue == "" then
+        ItemInput.PlaceholderText = "Please enter a valid item string!"
+        return
+    end
+    
+    TestBtn.Text = "SENDING..."
+    TestBtn.Active = false
+    
+    -- Menyesuaikan secara otomatis apakah objek berupa RemoteEvent atau RemoteFunction
+    local success, err = pcall(function()
+        if TargetRemote:IsA("RemoteEvent") then
+            -- Mengirim argumen berupa string nama item ke server
+            TargetRemote:FireServer(argumentValue)
+            print("Fired RemoteEvent with argument: " .. tostring(argumentValue))
+        elseif TargetRemote:IsA("RemoteFunction") then
+            -- Memanggil server dan menunggu nilai kembalian (return)
+            local response = TargetRemote:InvokeServer(argumentValue)
+            print("Invoked RemoteFunction. Server Response: ", response)
+        else
+            print("Object found but it is not a RemoteEvent or RemoteFunction.")
+        end
     end)
-end
-
--- ====================================================================
--- AGGRESSIVE & WIDE-SCOPE SCANNING LOGIC (Bypass & Non-Detect)
--- ====================================================================
-
--- Deteksi global Remote Event pembelian (Cari di seluruh ReplicatedStorage)
-local GlobalBuyRemote = nil
-for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        local lowerName = string.lower(obj.Name)
-        if string.find(lowerName, "buy") or string.find(lowerName, "purchase") or string.find(lowerName, "shop") or string.find(lowerName, "buyitem") then
-            GlobalBuyRemote = obj
-            break
-        end
+    
+    if not success then
+        print("Error during remote execution: ", err)
     end
-end
+    
+    task.wait(0.5)
+    TestBtn.Text = "EXECUTE REMOTE CALL"
+    TestBtn.Active = true
+end)
 
--- Fungsi scan isi dari suatu kontainer/folder secara mendalam
-local function scanContainer(folder)
-    if not folder then return end
-    for _, item in pairs(folder:GetChildren()) do
-        -- Cek apakah objek ini dicurigai sebagai Item Toko (Punya Value bernama Price, Cost, atau Cash)
-        local priceObj = item:FindFirstChild("Price") or item:FindFirstChild("Cost") or item:FindFirstChild("Value") or item:FindFirstChild("PriceValue")
-        
-        if priceObj and (priceObj:IsA("IntValue") or priceObj:IsA("NumberValue")) then
-            addItemToList(item.Name, priceObj.Value, function()
-                if GlobalBuyRemote then
-                    if GlobalBuyRemote:IsA("RemoteEvent") then
-                        GlobalBuyRemote:FireServer(item.Name)
-                    elseif GlobalBuyRemote:IsA("RemoteFunction") then
-                        GlobalBuyRemote:InvokeServer(item.Name)
-                    end
-                else
-                    -- Jika remote global tidak ada, cari remote internal di dalam item sendiri
-                    local internalRemote = item:FindFirstChildOfClass("RemoteEvent") or item:FindFirstChild("Buy") or item:FindFirstChild("Purchase")
-                    if internalRemote and internalRemote:IsA("RemoteEvent") then
-                        internalRemote:FireServer()
-                    end
-                end
-            end)
-        -- Jika berbentuk struktur Folder/Configuration Toko standar
-        elseif item:IsA("Folder") and (string.find(string.lower(item.Name), "shop") or string.find(string.lower(item.Name), "item")) then
-            scanContainer(item)
-        end
-    end
-end
-
--- Eksekusi Cakupan Scan Lebih Luas ke Lokasi-Lokasi Potensial
-pcall(function() scanContainer(game:GetService("ReplicatedStorage")) end)
-pcall(function() scanContainer(workspace) end)
-
--- JIKA TIDAK TERDETEKSI (Gaperlu ada contoh item tiruan, langsung kasih info kosong)
-if itemsFoundCount == 0 then
-    local NoItemLabel = Instance.new("TextLabel", MainFrame)
-    NoItemLabel.Size = UDim2.new(1, 0, 0, 30)
-    NoItemLabel.Position = UDim2.new(0, 0, 0.5, -15)
-    NoItemLabel.Text = "⚠️ No purchasable shop items detected in this game."
-    NoItemLabel.Font = Enum.Font.GothamMedium
-    NoItemLabel.TextSize = 11
-    NoItemLabel.TextColor3 = Theme.TextMuted
-    NoItemLabel.BackgroundTransparency = 1
-end
-
-print("Delta Safe Lister: Pemindaian selesai. Menemukan " .. tostring(itemsFoundCount) .. " item.")
+print("Spoon Shop Tester Loaded.")
