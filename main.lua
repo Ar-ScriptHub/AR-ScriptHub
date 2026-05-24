@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v7.1 CORE ENGINE (PURE LOCAL KEY VERSION)
+-- AR SCRIPT HUB - v7.1 CORE ENGINE (PURE 24H LOCAL TIMEOUT VERSION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -33,7 +33,7 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
 end
 
 -- ====================================================================
--- CONFIG KEY SYSTEM (LOCAL HARDCODED VERSION)
+-- CONFIG KEY SYSTEM (LOCAL KEY VERIFICATION)
 -- ====================================================================
 local MASTER_KEY = "AR-OWNER-831"
 
@@ -96,8 +96,8 @@ local Config = {
 -- ====================================================================
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Name = "KeyFrame"
-KeyFrame.Size = UDim2.new(0, 420, 0, 240) -- Diatur tingginya karena tombol Discord dihapus
-KeyFrame.Position = UDim2.new(0.5, -210, 0.5, -120)
+KeyFrame.Size = UDim2.new(0, 420, 0, 290)
+KeyFrame.Position = UDim2.new(0.5, -210, 0.5, -145)
 KeyFrame.BackgroundColor3 = Theme.Bg
 KeyFrame.BorderSizePixel = 0
 KeyFrame.ClipsDescendants = true
@@ -140,7 +140,7 @@ SubTitle.Name = "SubTitle"
 SubTitle.Size = UDim2.new(1, 0, 0, 20)
 SubTitle.Position = UDim2.new(0, 0, 0, 58)
 SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "Please enter your exclusive master key below"
+SubTitle.Text = "Please enter your 24-hour product key below"
 SubTitle.Font = Enum.Font.GothamSemibold
 SubTitle.TextSize = 12
 SubTitle.TextColor3 = Theme.TextMuted
@@ -153,7 +153,7 @@ KeyInput.Position = UDim2.new(0.5, -170, 0, 105)
 KeyInput.BackgroundColor3 = Theme.CardBg
 KeyInput.BorderSizePixel = 0
 KeyInput.Text = ""
-KeyInput.PlaceholderText = "Enter your secret key here..."
+KeyInput.PlaceholderText = "Paste your AR-XXXXXX key here..."
 KeyInput.Font = Enum.Font.Gotham
 KeyInput.TextSize = 14
 KeyInput.TextColor3 = Theme.TextMain
@@ -213,9 +213,9 @@ end
 makeKeyDraggable(KeyFrame, TitleHub)
 
 -- Pop Setup Animation
-KeyFrame.Size = UDim2.new(0, 400, 0, 220)
-KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -110)
-TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 240), Position = UDim2.new(0.5, -210, 0.5, -120)}):Play()
+KeyFrame.Size = UDim2.new(0, 400, 0, 270)
+KeyFrame.Position = UDim2.new(0.5, -200, 0.5, -135)
+TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 290), Position = UDim2.new(0.5, -210, 0.5, -145)}):Play()
 
 -- ====================================================================
 -- DI SINI ADALAH FUNGSI UTAMA DASHBOARD ASLI LU (100% PURE COPY)
@@ -642,10 +642,9 @@ local function runLoadingSequence()
 end
 
 -- ====================================================================
--- KEY SYSTEM CONTROLLER CONNECTIONS (INTERAKSI INPUT KEY LOKAL)
+-- KEY SYSTEM CONTROLLER CONNECTIONS (PURE LOCAL VALIDATION)
 -- ====================================================================
 SubmitBtn.MouseButton1Click:Connect(function()
-    -- Bersihkan spasi gaib (trim) secara menyeluruh
     local userKey = string.gsub(KeyInput.Text, "^%s*(.-)%s*$", "%1")
     
     if userKey == "" then 
@@ -655,9 +654,9 @@ SubmitBtn.MouseButton1Click:Connect(function()
     
     SubmitBtn.Text = "VERIFYING..."
     SubmitBtn.Active = false
-    task.wait(0.5) -- Menambahkan delay buatan agar transisi verifikasi terasa mulus
+    task.wait(0.3)
 
-    -- Pengecekan lokal murni ke 1 key khusus
+    -- Pengkondisian mutlak menggunakan Master Key baru tanpa Hugging Face
     if userKey == MASTER_KEY then
         KeyFrame:Destroy() 
         runLoadingSequence() 
@@ -669,7 +668,7 @@ SubmitBtn.MouseButton1Click:Connect(function()
         KeyInput.PlaceholderText = "INVALID OR EXPIRED KEY!" 
         KeyInput.PlaceholderColor3 = Theme.DeleteRed
         
-        -- Efek Guncang (Shake Frame) saat Key Salah
+        -- Efek Guncang (Shake Frame) saat Key Salah bawaan asli file lu
         local originalPos = KeyFrame.Position
         for i = 1, 5 do
             KeyFrame.Position = originalPos + UDim2.new(0, math.random(-6, 6), 0, 0)
