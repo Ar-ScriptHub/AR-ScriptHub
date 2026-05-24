@@ -1,5 +1,5 @@
 -- ====================================================================
--- DYNAMIC SPOON SELECTOR GUI (DEX AUTOMATION SHORTCUT)
+-- AUTOMATIC REAL SPOON NAME DETECTOR & SELECTOR GUI
 -- ====================================================================
 
 local Players = game:GetService("Players")
@@ -8,43 +8,38 @@ local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitFo
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Bersihkan UI lama jika ada agar tidak tumpang tindih
-if SafeGuiTarget:FindFirstChild("SpoonSelectorHub") then
-    SafeGuiTarget.SpoonSelectorHub:Destroy()
+-- Bersihkan UI lama agar tidak tumpang tindih
+if SafeGuiTarget:FindFirstChild("RealSpoonSelector") then
+    SafeGuiTarget.RealSpoonSelector:Destroy()
 end
 
--- Tentukan Path Utama (Menggunakan ID Player Dinamis)
+-- Path IntValue Target (SelectedSpoon)
 local PlayerStatsPath = ReplicatedStorage:WaitForChild("PlayerSaves")
     :WaitForChild("PlayerStats")
     :WaitForChild(tostring(Player.UserId))
 
-local TargetObject = PlayerStatsPath:WaitForChild("SelectedSpoon")
+local SelectedSpoonObject = PlayerStatsPath:WaitForChild("SelectedSpoon")
 
--- ScreenGui Utama
-local SpoonSelectorHub = Instance.new("ScreenGui")
-SpoonSelectorHub.Name = "SpoonSelectorHub"
-SpoonSelectorHub.Parent = SafeGuiTarget
-SpoonSelectorHub.ResetOnSpawn = false
+-- SCREEN GUI UTAMA
+local RealSpoonSelector = Instance.new("ScreenGui")
+RealSpoonSelector.Name = "RealSpoonSelector"
+RealSpoonSelector.Parent = SafeGuiTarget
+RealSpoonSelector.ResetOnSpawn = false
 
--- Tema Warna Modern Gelap
 local Theme = {
     Bg = Color3.fromRGB(15, 15, 22),
     CardBg = Color3.fromRGB(24, 24, 32),
     Stroke = Color3.fromRGB(45, 45, 55),
-    Accent = Color3.fromRGB(140, 100, 255), -- Ungu Neon
+    Accent = Color3.fromRGB(255, 170, 0), -- Oranye Neon
     TextMain = Color3.fromRGB(255, 255, 255),
     TextMuted = Color3.fromRGB(150, 150, 160)
 }
 
--- Main Window Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
+-- Main Window
+local MainFrame = Instance.new("Frame", RealSpoonSelector)
 MainFrame.Size = UDim2.new(0, 320, 0, 360)
 MainFrame.Position = UDim2.new(0.5, -160, 0.5, -180)
 MainFrame.BackgroundColor3 = Theme.Bg
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = SpoonSelectorHub
-
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Thickness = 1.5
@@ -52,14 +47,13 @@ mainStroke.Color = Theme.Stroke
 
 -- Header
 local Header = Instance.new("Frame", MainFrame)
-Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 12, 0, 0)
-Title.Text = "SPOON SELECTOR UTILITY"
+Title.Text = "REAL SPOON SHOP DETECTOR"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
 Title.TextColor3 = Theme.Accent
@@ -74,9 +68,9 @@ CloseBtn.Font = Enum.Font.GothamMedium
 CloseBtn.TextSize = 22
 CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.MouseButton1Click:Connect(function() SpoonSelectorHub:Destroy() end)
+CloseBtn.MouseButton1Click:Connect(function() RealSpoonSelector:Destroy() end)
 
--- Info Indikator Nilai Saat Ini
+-- Indikator Nilai ID Saat Ini
 local CurrentValueLabel = Instance.new("TextLabel", MainFrame)
 CurrentValueLabel.Size = UDim2.new(1, -24, 0, 25)
 CurrentValueLabel.Position = UDim2.new(0, 12, 0, 40)
@@ -86,19 +80,14 @@ CurrentValueLabel.TextColor3 = Theme.TextMuted
 CurrentValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 CurrentValueLabel.BackgroundTransparency = 1
 
--- Fungsi memperbarui teks indikator di UI
-local function updateCurrentStatus()
-    if TargetObject:IsA("ValueBase") then
-        CurrentValueLabel.Text = "Active Spoon: " .. tostring(TargetObject.Value)
-    else
-        CurrentValueLabel.Text = "Target is a container frame."
-    end
+local function updateStatusText()
+    CurrentValueLabel.Text = "Active Spoon ID: " .. tostring(SelectedSpoonObject.Value)
 end
-updateCurrentStatus()
+updateStatusText()
+SelectedSpoonObject.Changed:Connect(updateStatusText)
 
--- Container Tempat Daftar Pilihan (Scrolling Frame)
+-- Container Scroll List
 local Container = Instance.new("ScrollingFrame", MainFrame)
-Container.Name = "Container"
 Container.Size = UDim2.new(1, -24, 1, -80)
 Container.Position = UDim2.new(0, 12, 0, 70)
 Container.BackgroundTransparency = 1
@@ -111,7 +100,7 @@ local listLayout = Instance.new("UIListLayout", Container)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 6)
 
--- Fitur Geser Menu (Draggable)
+-- Dragging Function
 local function makeDraggable(frame, handle)
     local dragging, dragInput, dragStart, startPos
     handle.InputBegan:Connect(function(input)
@@ -130,19 +119,14 @@ local function makeDraggable(frame, handle)
 end
 makeDraggable(MainFrame, Header)
 
--- ====================================================================
--- AUTOMATIC LIST GENERATOR ENGINE
--- ====================================================================
-
--- Fungsi untuk membuat tombol pilihan secara otomatis di dalam UI
-local function createOptionButton(name, executeCallback)
+-- Create Button Function
+local function createOptionButton(displayName, idValue)
     local OptionBtn = Instance.new("TextButton", Container)
-    OptionBtn.Name = "Option_" .. name
     OptionBtn.Size = UDim2.new(1, -4, 0, 36)
     OptionBtn.BackgroundColor3 = Theme.CardBg
     OptionBtn.BorderSizePixel = 0
     OptionBtn.Font = Enum.Font.GothamMedium
-    OptionBtn.Text = "  " .. name
+    OptionBtn.Text = string.format("  [%d] %s", idValue, displayName)
     OptionBtn.TextColor3 = Theme.TextMain
     OptionBtn.TextSize = 11
     OptionBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -152,10 +136,7 @@ local function createOptionButton(name, executeCallback)
     btnStroke.Color = Theme.Stroke
 
     OptionBtn.MouseButton1Click:Connect(function()
-        pcall(executeCallback)
-        updateCurrentStatus()
-        
-        -- Efek visual kilatan warna saat diklik
+        SelectedSpoonObject.Value = idValue
         OptionBtn.BackgroundColor3 = Theme.Accent
         OptionBtn.TextColor3 = Theme.Bg
         task.wait(0.1)
@@ -164,40 +145,31 @@ local function createOptionButton(name, executeCallback)
     end)
 end
 
--- PROSES LOADING PILIHAN
--- Membaca objek target untuk menentukan metode perubahan value yang tepat
-if TargetObject:IsA("ValueBase") then
-    -- KONDISI 1: Jika SelectedSpoon adalah StringValue (Isinya nama sendok)
-    -- Kita buatkan daftar 11 sendok standar atau membaca folder referensi terdekat jika ada
-    local presetSpoons = {
-        "Default Spoon", "Silver Spoon", "Golden Spoon", "Diamond Spoon", 
-        "Ruby Spoon", "Emerald Spoon", "Neon Spoon", "Omega Spoon",
-        "Void Spoon", "Brainrot Spoon", "God Spoon"
-    }
+-- ====================================================================
+-- AUTOMATIC GAME SCANNER ENGINE (MENCARI NAMA SENJATA ASLI)
+-- ====================================================================
+
+-- Skrip akan otomatis mendeteksi folder penyimpanan aset sendok asli di ReplicatedStorage
+local GameSpoonFolder = ReplicatedStorage:FindFirstChild("Spoons") 
+    or ReplicatedStorage:FindFirstChild("SpoonShop") 
+    or ReplicatedStorage:FindFirstChild("Items") 
+    or ReplicatedStorage:FindFirstChild("Weapons")
+
+if GameSpoonFolder then
+    -- KONDISI 1: Folder Aset Ditemukan! Mengambil nama asli dari objek game
+    local spoonList = GameSpoonFolder:GetChildren()
     
-    for _, spoonName in pairs(presetSpoons) do
-        createOptionButton(spoonName, function()
-            TargetObject.Value = spoonName
-        end)
+    for index, obj in pairs(spoonList) do
+        -- Membuat tombol berdasarkan nama asli objek dan urutan indeks angkanya
+        createOptionButton(obj.Name, index)
     end
 else
-    -- KONDISI 2: Jika SelectedSpoon ternyata adalah FOLDER berisi 11 anak objek Value
-    local children = TargetObject:GetChildren()
-    
-    if #children > 0 then
-        for _, child in pairs(children) do
-            createOptionButton(child.Name, function()
-                if child:IsA("BoolValue") then
-                    child.Value = true
-                elseif child:IsA("StringValue") or child:IsA("IntValue") then
-                    -- Ubah sesuai input logika atau ganti statusnya
-                    child.Value = not child.Value
-                end
-            end)
-        end
-    else
-        CurrentValueLabel.Text = "⚠️ Folder is empty or locked by server."
+    -- KONDISI 2: Jika letak folder aset disembunyikan/nama foldernya berbeda jauh,
+    -- Skrip menggunakan loop angka 1 sampai 15 secara aman agar kamu tetap bisa mengganti ID-nya langsung di UI
+    for i = 1, 15 do
+        createOptionButton("Spoon ID Option", i)
     end
+    CurrentValueLabel.Text = "⚠️ Folder aset tidak terdeteksi. Menggunakan mode ID manual."
 end
 
-print("Spoon Selector GUI Berhasil Dijalankan!")
+print("Real Spoon Selector Berhasil Dimuat!")
