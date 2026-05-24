@@ -80,7 +80,8 @@ local function verifyKeyWithServer(targetKey)
     warn("AR HUB DEBUG: Respon Server = '" .. tostring(response) .. "'")
     
     -- Pengecekan Fleksibel: Menggunakan string.find agar tidak gagal karena spasi gaib / baris baru (\n)
-    if success and response and string.find(tostring(response), "VALID") then
+   local clean = tostring(response):gsub("%s+", "")
+if success and clean == "VALID" then
         return true
     else
         return false
