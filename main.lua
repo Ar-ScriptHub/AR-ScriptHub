@@ -39,33 +39,52 @@ local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
 local KeyVerified = true
 local HUGGING_FACE_URL = "https://ar-hub-arhub-bot.hf.space/validate?key=" 
 
-local function verifyKeyWithServer(key)
-    local url = "https://ar-hub-arhub-bot.hf.space/validate?key=" .. HttpService:UrlEncode(key)
+-- Fungsi untuk mengecek validitas key langsung ke server Hugging Face (VERSI BYPASS EXECUTOR DELTA)
+local function verifyKeyWithServer(targetKey)
+    if not targetKey or targetKey == "" then return false end
     
-    -- Menggunakan pcall agar script tidak crash jika executor gagal menembak website
-    local success, response = pcall(function()
-        -- Untuk executor seperti Delta, disarankan menggunakan game:HttpGet jika HttpService dibatasi
-        return game:HttpGet(url)
+    -- Bersihkan spasi gaib (trim) secara menyeluruh
+    local cleanKey = string.gsub(targetKey, "^%s*(.-)%s*$", "%1")
+    local fullUrl = HUGGING_FACE_URL .. tostring(cleanKey)
+    
+    local success, response
+    
+    -- Cara 1: Coba pakai game:HttpGet (Fungsi standar yang paling disukai Executor/Delta)
+    success, response = pcall(function()
+        return game:HttpGet(fullUrl)
     end)
     
-    -- Jika game:HttpGet gagal, coba gunakan HttpService sebagai cadangan
-    if not success then
+    -- Cara 2: Jika gagal, coba pakai request/http_request bawaan exploit tingkat tinggi
+    if not success or not response then
+        local httpRequest = (syn and syn.request) or (http and http.request) or request or http_request
+        if httpRequest then
+            success, response = pcall(function()
+                local res = httpRequest({
+                    Url = fullUrl,
+                    Method = "GET"
+                })
+                return res.Body
+            end)
+        end
+    end
+    
+    -- Cara 3: Cadangan terakhir jika executor kamu sangat ketat
+    if not success or not response then
         success, response = pcall(function()
-            return HttpService:GetAsync(url)
+            return HttpService:GetAsync(fullUrl)
         end)
     end
     
-    -- DEBUGGING UTK DI DELTA (Bisa kamu hapus nanti kalau sudah normal)
-    print("=== DEBUG KEY DELTA ===")
-    print("Koneksi Sukses:", success)
-    print("Respon Server:", tostring(response))
+    -- DEBUG LOG: Untuk melihat isi respon asli di Developer Console (F9) Delta kamu
+    warn("AR HUB DEBUG: Sukses koneksi = " .. tostring(success))
+    warn("AR HUB DEBUG: Respon Server = '" .. tostring(response) .. "'")
     
-    -- Cek secara fleksibel (menggunakan string.find karena kadang respon disisipi spasi oleh executor)
+    -- Pengecekan Fleksibel: Menggunakan string.find agar tidak gagal karena spasi gaib / baris baru (\n)
     if success and response and string.find(tostring(response), "VALID") then
         return true
+    else
+        return false
     end
-    
-    return false
 end
 
 local function loadKeyStatus()
