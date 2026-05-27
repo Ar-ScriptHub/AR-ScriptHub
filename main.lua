@@ -100,7 +100,7 @@ local origClockTime = Lighting.ClockTime
 -- CONFIG KEY SYSTEM (24 JAM BYPASS)
 -- ====================================================================
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local CorrectKey = "....."
+local CorrectKey = "Arr"
 local KeyVerified = false
 
 local function loadKeyStatus()
