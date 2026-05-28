@@ -84,7 +84,7 @@ local Config = {
     TweenTeleport = false,
     TweenSpeed = 350,
     FullBright = false,
-    Freecam = false -- Integrasi state awal fitur Freecam
+    Freecam = false
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -189,10 +189,64 @@ local function handleFlyEngine()
 end
 
 -- ====================================================================
--- FREECAM FUNCTIONAL ENGINE
+-- MOBILE MOBILE FRIENDLY FREECAM ENGINE
 -- ====================================================================
 local FreecamPart
 local FreecamConnection
+local FreecamTouchGui
+
+-- State penampung kontrol tombol mobile virtual
+local MobileMoveInput = Vector3.new(0,0,0)
+
+local function buildMobileFreecamControls()
+    if FreecamTouchGui then FreecamTouchGui:Destroy() end
+    
+    FreecamTouchGui = Instance.new("ScreenGui")
+    FreecamTouchGui.Name = "AR_Freecam_MobileControls"
+    FreecamTouchGui.Parent = SafeGuiTarget
+    FreecamTouchGui.DisplayOrder = 2147483646
+    
+    -- Main container tombol kanan bawah
+    local container = Instance.new("Frame", FreecamTouchGui)
+    container.Size = UDim2.new(0, 200, 0, 160)
+    container.Position = UDim2.new(1, -220, 1, -180)
+    container.BackgroundTransparency = 1
+    
+    local function createMobileBtn(text, size, pos, onPress, onRelease)
+        local btn = Instance.new("TextButton", container)
+        btn.Size = size
+        btn.Position = pos
+        btn.BackgroundColor3 = Theme.CardBg
+        btn.BackgroundTransparency = 0.3
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = text
+        btn.TextColor3 = Theme.Accent
+        btn.TextSize = 14
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        Instance.new("UIStroke", btn).Color = Theme.Stroke
+        
+        btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                onPress()
+            end
+        end)
+        btn.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                onRelease()
+            end
+        end)
+    end
+    
+    -- Tombol Arah Mobile Virtual (D-Pad style)
+    createMobileBtn("▲", UDim2.new(0, 45, 0, 45), UDim2.new(0, 55, 0, 5), function() MobileMoveInput = Vector3.new(MobileMoveInput.X, MobileMoveInput.Y, -1) end, function() MobileMoveInput = Vector3.new(MobileMoveInput.X, MobileMoveInput.Y, 0) end)
+    createMobileBtn("▼", UDim2.new(0, 45, 0, 45), UDim2.new(0, 55, 0, 95), function() MobileMoveInput = Vector3.new(MobileMoveInput.X, MobileMoveInput.Y, 1) end, function() MobileMoveInput = Vector3.new(MobileMoveInput.X, MobileMoveInput.Y, 0) end)
+    createMobileBtn("◀", UDim2.new(0, 45, 0, 45), UDim2.new(0, 5, 0, 50), function() MobileMoveInput = Vector3.new(-1, MobileMoveInput.Y, MobileMoveInput.Z) end, function() MobileMoveInput = Vector3.new(0, MobileMoveInput.Y, MobileMoveInput.Z) end)
+    createMobileBtn("▶", UDim2.new(0, 45, 0, 45), UDim2.new(0, 105, 0, 50), function() MobileMoveInput = Vector3.new(1, MobileMoveInput.Y, MobileMoveInput.Z) end, function() MobileMoveInput = Vector3.new(0, MobileMoveInput.Y, MobileMoveInput.Z) end)
+    
+    -- Tombol Naik / Turun Vertikal Mobile
+    createMobileBtn("HIGH", UDim2.new(0, 45, 0, 65), UDim2.new(0, 155, 0, 5), function() MobileMoveInput = Vector3.new(MobileMoveInput.X, 1, MobileMoveInput.Z) end, function() MobileMoveInput = Vector3.new(MobileMoveInput.X, 0, MobileMoveInput.Z) end)
+    createMobileBtn("LOW", UDim2.new(0, 45, 0, 65), UDim2.new(0, 155, 0, 75), function() MobileMoveInput = Vector3.new(MobileMoveInput.X, -1, MobileMoveInput.Z) end, function() MobileMoveInput = Vector3.new(MobileMoveInput.X, 0, MobileMoveInput.Z) end)
+end
 
 local function handleFreecamEngine(active)
     local camera = workspace.CurrentCamera
@@ -207,17 +261,29 @@ local function handleFreecamEngine(active)
         FreecamPart.CFrame = camera.CFrame
         FreecamPart.Parent = workspace
         
+        -- Bangun UI khusus untuk user layar sentuh / mobile
+        buildMobileFreecamControls()
+        
         FreecamConnection = RunService.RenderStepped:Connect(function()
             if not Config.Freecam then return end
             local speed = Config.FlySpeed * 2.5
             local moveDir = Vector3.new(0, 0, 0)
             
+            -- Pendeteksian PC Keyboard Bawaan Asli
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+            
+            -- Pendeteksian Input Mobile UI Virtual
+            if MobileMoveInput.Z == -1 then moveDir = moveDir + camera.CFrame.LookVector end
+            if MobileMoveInput.Z == 1 then moveDir = moveDir - camera.CFrame.LookVector end
+            if MobileMoveInput.X == -1 then moveDir = moveDir - camera.CFrame.RightVector end
+            if MobileMoveInput.X == 1 then moveDir = moveDir + camera.CFrame.RightVector end
+            if MobileMoveInput.Y == 1 then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if MobileMoveInput.Y == -1 then moveDir = moveDir - Vector3.new(0, 1, 0) end
             
             if moveDir.Magnitude > 0 then
                 FreecamPart.CFrame = FreecamPart.CFrame + (moveDir.Unit * (speed / 10))
@@ -228,6 +294,8 @@ local function handleFreecamEngine(active)
     else
         if FreecamConnection then FreecamConnection:Disconnect() FreecamConnection = nil end
         if FreecamPart then FreecamPart:Destroy() FreecamPart = nil end
+        if FreecamTouchGui then FreecamTouchGui:Destroy() FreecamTouchGui = nil end
+        MobileMoveInput = Vector3.new(0,0,0)
         camera.CameraType = Enum.CameraType.Custom
     end
 end
@@ -361,7 +429,7 @@ local function buildESP(target)
     end)
 end
 
-Players.PlayerAdded:Connect(buildESP)
+[[ Players.PlayerAdded:Connect(buildESP) ]]
 for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
 local function applyGraphicsBoost()
@@ -474,7 +542,7 @@ end
 local playerPage = createMenuPage("Player", true)
 local espPage = createMenuPage("ESP", false)
 local tpPage = createMenuPage("Teleportation", false)
-local utilityPage = createMenuPage("Utility", false) -- Integrasi penampung Tab Utility Baru
+local utilityPage = createMenuPage("Utility", false)
 local serverPage = createMenuPage("Server", false)
 local settingPage = createMenuPage("Setting", false)
 
@@ -495,7 +563,7 @@ end
 local btnPlayer = addTopBarButton("👤 Player", "Player", 1) btnPlayer.TextColor3 = Theme.Accent
 addTopBarButton("👁️ ESP", "ESP", 2)
 addTopBarButton("🌀 Teleport", "Teleportation", 3)
-addTopBarButton("🛠️ Utility", "Utility", 4) -- Tombol Tab Utility Baru
+addTopBarButton("🛠️ Utility", "Utility", 4)
 addTopBarButton("🌐 Server", "Server", 5)
 addTopBarButton("⚙️ Setting", "Setting", 6)
 
@@ -505,7 +573,6 @@ local function addToggle(parent, labelText, order, configKey, callback)
     local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
     local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
-    -- Sync posisi knob awal berdasarkan state Config
     if Config[configKey] then
         knob.Position = UDim2.new(0, 19, 0.5, -5)
         track.BackgroundColor3 = Theme.Accent
@@ -579,7 +646,7 @@ end
 local LeftColumn = createLeftColumn("Player", "LeftColumn") local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn") local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
 local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn") local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
-local utilLeftColumn = createLeftColumn("Utility", "UtilLeftColumn") local utilRightColumn = createShiftedRightColumn("Utility", "UtilRightColumn") -- Kolom Tab Utility Baru
+local utilLeftColumn = createLeftColumn("Utility", "UtilLeftColumn") local utilRightColumn = createShiftedRightColumn("Utility", "UtilRightColumn")
 local serverLeftColumn = createLeftColumn("Server", "ServerLeftColumn") local serverRightColumn = createShiftedRightColumn("Server", "ServerRightColumn")
 local SetLeftColumn = createLeftColumn("Setting", "SetLeftColumn") local SetRightColumn = createShiftedRightColumn("Setting", "SetRightColumn")
 
@@ -712,14 +779,12 @@ task.spawn(function()
     local spawnPos = hrp.Position
     local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
-    -- MEMBUAT BARIS TOMBOL DENGAN MENGUNCI VARIABLE X, Y, Z KAMU SECARA ABSOLUT
     local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
         local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = orderIndex
         local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Validasi ganda tipe data number untuk menangkal bug void
                 local finalX = tonumber(targetX) or 0
                 local finalY = tonumber(targetY) or 0
                 local finalZ = tonumber(targetZ) or 0
@@ -736,7 +801,6 @@ task.spawn(function()
         if not areaTpCard then return end
         for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        -- Default Initial Spawn Point
         local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
         local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 0
         
@@ -751,7 +815,6 @@ task.spawn(function()
         local indexOrder = 1
         for wpName, coord in pairs(currentMapData) do
             if type(coord) == "table" then
-                -- Mengantisipasi pembacaan JSON Array lawas maupun Dictionary baru agar tidak crash
                 local posX = coord.X or coord or 0
                 local posY = coord.Y or coord or 0
                 local posZ = coord.Z or coord or 0
@@ -768,7 +831,6 @@ task.spawn(function()
                 local currentPos = Player.Character.HumanoidRootPart.Position
                 if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
                 
-                -- DICTIONARY EXPLICIT METHOD: Mengunci data koordinat mati menggunakan KEY string "X, Y, Z"
                 AllWaypoints[CurrentPlaceId][name] = {
                     X = math.round(currentPos.X * 100) / 100, 
                     Y = math.round(currentPos.Y * 100) / 100, 
@@ -783,7 +845,7 @@ task.spawn(function()
 end)
 
 -- ====================================================================
--- RENDERING UTILITY PAGE (TAB BARU YANG DI-REQUEST)
+-- RENDERING UTILITY PAGE
 -- ====================================================================
 local camCard = createCard(utilLeftColumn, "Cinematic & Scouting Control", 1)
 addToggle(camCard, "Enable Freecam Mode", 1, "Freecam", handleFreecamEngine)
