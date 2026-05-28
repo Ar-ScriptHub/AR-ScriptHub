@@ -839,3 +839,136 @@ task.spawn(function()
         end
     end)
 end)
+
+
+-- ====================================================================
+-- INDEPENDENT INJECTION SYSTEM: INJECT FREECAM TO FLY CONTROL CARD
+-- ====================================================================
+-- (Baris di bawah ini otomatis berjalan setelah Core Engine lu aktif)
+task.spawn(function()
+    -- Menunggu sampai UI buatan script utama lu selesai ter-render di game
+    local TargetGui = SafeGuiTarget:WaitForChild("AR_Script_Hub", 10)
+    if not TargetGui then return end
+
+    local MainContent = TargetGui:WaitForChild("MainContentFrame", 5)
+    local PPage = MainContent:WaitForChild("PlayerPage", 5)
+    local LColumn = PPage:WaitForChild("LeftColumn", 5)
+
+    -- Scanning card Fly Control secara dinamis tanpa merusak susunan hierarki
+    local targetFlyCard = nil
+    for _, child in pairs(LColumn:GetChildren()) do
+        local label = child:FindFirstChildOfClass("TextLabel")
+        if label and label.Text == "FLY CONTROL" then
+            targetFlyCard = child:FindFirstChildOfClass("Frame")
+            break
+        end
+    end
+
+    if not targetFlyCard then return end
+
+    -- State lokal khusus untuk mesin kamera bebas
+    local FreecamState = { Active = false, Speed = 10 }
+    local cam = workspace.CurrentCamera
+    local renderConnection = nil
+    local previousCameraType = cam.CameraType
+
+    -- Engine Freecam Independen
+    local function processFreecam(state)
+        FreecamState.Active = state
+        if state then
+            previousCameraType = cam.CameraType
+            cam.CameraType = Enum.CameraType.Scriptable
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                Player.Character.HumanoidRootPart.Anchored = true
+            end
+
+            renderConnection = RunService.RenderStepped:Connect(function(dt)
+                if not FreecamState.Active then return end
+                local currentCF = cam.CFrame
+                local moveVector = Vector3.new(0, 0, 0)
+
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + currentCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - currentCF.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - currentCF.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + currentCF.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end
+
+                if moveVector.Magnitude > 0 then
+                    cam.CFrame = currentCF + (moveVector.Unit * FreecamState.Speed * dt * 10)
+                end
+            end)
+        else
+            if renderConnection then renderConnection:Disconnect() renderConnection = nil end
+            cam.CameraType = previousCameraType
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                Player.Character.HumanoidRootPart.Anchored = false
+            end
+        end
+    end
+
+    -- Menambahkan komponen UI Baru (Meniru 100% gaya desain Theme utama lu)
+    local hostToggle = Instance.new("Frame", targetFlyCard)
+    hostToggle.Size = UDim2.new(1, 0, 0, 24) hostToggle.BackgroundTransparency = 1 hostToggle.LayoutOrder = 4
+
+    local textLabel = Instance.new("TextLabel", hostToggle)
+    textLabel.Text = "Freecam Mode" textLabel.Size = UDim2.new(1, -40, 1, 0) textLabel.Font = Enum.Font.GothamMedium textLabel.TextColor3 = Theme.TextMain textLabel.TextSize = 12 textLabel.TextXAlignment = Enum.TextXAlignment.Left textLabel.BackgroundTransparency = 1
+
+    local switchButton = Instance.new("TextButton", hostToggle)
+    switchButton.Size = UDim2.new(0, 32, 0, 16) switchButton.Position = UDim2.new(1, -32, 0.5, -8) switchButton.BackgroundColor3 = Theme.Bg switchButton.Text = "" Instance.new("UICorner", switchButton).CornerRadius = UDim.new(0, 8) local sStroke = Instance.new("UIStroke", switchButton) sStroke.Color = Theme.Stroke
+
+    local switchKnob = Instance.new("Frame", switchButton)
+    switchKnob.Size = UDim2.new(0, 10, 0, 10) switchKnob.Position = UDim2.new(0, 3, 0.5, -5) switchKnob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", switchKnob).CornerRadius = UDim.new(0, 5)
+
+    switchButton.MouseButton1Click:Connect(function()
+        local newState = not FreecamState.Active
+        TweenService:Create(switchKnob, TweenInfo.new(0.08), {Position = UDim2.new(0, newState and 19 or 3, 0.5, -5)}):Play()
+        TweenService:Create(switchButton, TweenInfo.new(0.08), {BackgroundColor3 = newState and Theme.Accent or Theme.Bg}):Play()
+        sStroke.Color = newState and Theme.Accent or Theme.Stroke
+        processFreecam(newState)
+    end)
+
+    local hostSlider = Instance.new("Frame", targetFlyCard)
+    hostSlider.Size = UDim2.new(1, 0, 0, 38) hostSlider.BackgroundTransparency = 1 hostSlider.LayoutOrder = 5
+
+    local sliderLabel = Instance.new("TextLabel", hostSlider)
+    sliderLabel.Text = "Freecam Speed Customization" sliderLabel.Size = UDim2.new(0.65, 0, 0, 14) sliderLabel.Font = Enum.Font.GothamMedium sliderLabel.TextColor3 = Theme.TextMain sliderLabel.TextSize = 11 sliderLabel.TextXAlignment = Enum.TextXAlignment.Left sliderLabel.BackgroundTransparency = 1
+
+    local sliderInput = Instance.new("TextBox", hostSlider)
+    sliderInput.Size = UDim2.new(0, 36, 0, 16) sliderInput.Position = UDim2.new(1, -36, 0, 0) sliderInput.BackgroundColor3 = Theme.Bg sliderInput.Font = Enum.Font.GothamBold sliderInput.Text = tostring(FreecamState.Speed) sliderInput.TextColor3 = Theme.Accent sliderInput.TextSize = 10 Instance.new("UICorner", sliderInput).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", sliderInput).Color = Theme.Stroke
+
+    local sliderTrack = Instance.new("Frame", hostSlider)
+    sliderTrack.Size = UDim2.new(1, 0, 0, 4) sliderTrack.Position = UDim2.new(0, 0, 1, -4) sliderTrack.BackgroundColor3 = Theme.Stroke Instance.new("UICorner", sliderTrack).CornerRadius = UDim.new(0, 2)
+
+    local sliderFill = Instance.new("Frame", sliderTrack)
+    local minVal, maxVal = 1, 50
+    local initPerc = math.clamp((FreecamState.Speed - minVal) / (maxVal - minVal), 0, 1)
+    sliderFill.Size = UDim2.new(initPerc, 0, 1, 0) sliderFill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(0, 2)
+
+    local sliderKnob = Instance.new("Frame", sliderTrack)
+    sliderKnob.Size = UDim2.new(0, 10, 0, 10) sliderKnob.Position = UDim2.new(initPerc, -5, 0.5, -5) sliderKnob.BackgroundColor3 = Theme.TextMain Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(1, 0)
+
+    local sliderTrigger = Instance.new("ImageButton", sliderKnob)
+    sliderTrigger.Size = UDim2.new(2, 0, 2, 0) sliderTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) sliderTrigger.BackgroundTransparency = 1
+
+    local function updateSlider(value)
+        local clampVal = math.clamp(value, minVal, maxVal)
+        FreecamState.Speed = clampVal
+        local perc = (clampVal - minVal) / (maxVal - minVal)
+        sliderFill.Size = UDim2.new(perc, 0, 1, 0)
+        sliderKnob.Position = UDim2.new(perc, -5, 0.5, -5)
+        sliderInput.Text = tostring(clampVal)
+    end
+
+    local isSliding = false
+    sliderTrigger.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = true end end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = false end end)
+    UserInputService.InputChanged:Connect(function(input)
+        if isSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local relX = input.Position.X - sliderTrack.AbsolutePosition.X
+            local perc = math.clamp(relX / sliderTrack.AbsoluteSize.X, 0, 1)
+            updateSlider(math.round(minVal + (perc * (maxVal - minVal))))
+        end
+    end)
+    sliderInput.FocusLost:Connect(function() updateSlider(tonumber(sliderInput.Text) or minVal) end)
+end)
