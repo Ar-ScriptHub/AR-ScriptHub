@@ -1,175 +1,222 @@
 -- ====================================================================
--- AUTOMATIC REAL SPOON NAME DETECTOR & SELECTOR GUI
+-- AR SCRIPT HUB - FREECAM EXTENSION (ADD-ON SYSTEM)
 -- ====================================================================
-
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
--- Bersihkan UI lama agar tidak tumpang tindih
-if SafeGuiTarget:FindFirstChild("RealSpoonSelector") then
-    SafeGuiTarget.RealSpoonSelector:Destroy()
+-- 1. CARI PORT UI DARI SCRIPT UTAMA
+local MainGui = SafeGuiTarget:FindFirstChild("AR_Script_Hub")
+if not MainGui then
+    warn("AR Script Hub utama tidak ditemukan! Jalankan script utama terlebih dahulu.")
+    return
 end
 
--- Path IntValue Target (SelectedSpoon)
-local PlayerStatsPath = ReplicatedStorage:WaitForChild("PlayerSaves")
-    :WaitForChild("PlayerStats")
-    :WaitForChild(tostring(Player.UserId))
+local MainContentFrame = MainGui:FindFirstChild("MainContentFrame", true)
+local PlayerPage = MainContentFrame and MainContentFrame:FindFirstChild("PlayerPage")
+local LeftColumn = PlayerPage and PlayerPage:FindFirstChild("LeftColumn")
 
-local SelectedSpoonObject = PlayerStatsPath:WaitForChild("SelectedSpoon")
+-- Cari Card Fly Control (Card nomor 1 di Left Column)
+local flyCard = nil
+if LeftColumn then
+    for _, child in pairs(LeftColumn:GetChildren()) do
+        local ttl = child:FindFirstChildOfClass("TextLabel")
+        if ttl and ttl.Text == "FLY CONTROL" then
+            flyCard = child:FindFirstChildOfClass("Frame") -- Ini container ui layoutnya
+            break
+        end
+    end
+end
 
--- SCREEN GUI UTAMA
-local RealSpoonSelector = Instance.new("ScreenGui")
-RealSpoonSelector.Name = "RealSpoonSelector"
-RealSpoonSelector.Parent = SafeGuiTarget
-RealSpoonSelector.ResetOnSpawn = false
+if not flyCard then
+    warn("Card Fly Control tidak ditemukan!")
+    return
+end
 
-local Theme = {
-    Bg = Color3.fromRGB(15, 15, 22),
-    CardBg = Color3.fromRGB(24, 24, 32),
-    Stroke = Color3.fromRGB(45, 45, 55),
-    Accent = Color3.fromRGB(255, 170, 0), -- Oranye Neon
-    TextMain = Color3.fromRGB(255, 255, 255),
-    TextMuted = Color3.fromRGB(150, 150, 160)
+-- 2. CONFIG & STATE MANAGEMENT UNTUK FREECAM
+local FreecamConfig = {
+    Active = false,
+    Speed = 10
 }
 
--- Main Window
-local MainFrame = Instance.new("Frame", RealSpoonSelector)
-MainFrame.Size = UDim2.new(0, 320, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -180)
-MainFrame.BackgroundColor3 = Theme.Bg
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-local mainStroke = Instance.new("UIStroke", MainFrame)
-mainStroke.Thickness = 1.5
-mainStroke.Color = Theme.Stroke
+local camera = workspace.CurrentCamera
+local freecamRenderConn = nil
+local savedCameraType = camera.CameraType
 
--- Header
-local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 40)
-Header.BackgroundTransparency = 1
-
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.Text = "REAL SPOON SHOP DETECTOR"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 12
-Title.TextColor3 = Theme.Accent
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
-
-local CloseBtn = Instance.new("TextButton", Header)
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -38, 0, 2)
-CloseBtn.Text = "×"
-CloseBtn.Font = Enum.Font.GothamMedium
-CloseBtn.TextSize = 22
-CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.MouseButton1Click:Connect(function() RealSpoonSelector:Destroy() end)
-
--- Indikator Nilai ID Saat Ini
-local CurrentValueLabel = Instance.new("TextLabel", MainFrame)
-CurrentValueLabel.Size = UDim2.new(1, -24, 0, 25)
-CurrentValueLabel.Position = UDim2.new(0, 12, 0, 40)
-CurrentValueLabel.Font = Enum.Font.GothamMedium
-CurrentValueLabel.TextSize = 11
-CurrentValueLabel.TextColor3 = Theme.TextMuted
-CurrentValueLabel.TextXAlignment = Enum.TextXAlignment.Left
-CurrentValueLabel.BackgroundTransparency = 1
-
-local function updateStatusText()
-    CurrentValueLabel.Text = "Active Spoon ID: " .. tostring(SelectedSpoonObject.Value)
-end
-updateStatusText()
-SelectedSpoonObject.Changed:Connect(updateStatusText)
-
--- Container Scroll List
-local Container = Instance.new("ScrollingFrame", MainFrame)
-Container.Size = UDim2.new(1, -24, 1, -80)
-Container.Position = UDim2.new(0, 12, 0, 70)
-Container.BackgroundTransparency = 1
-Container.ScrollBarThickness = 2
-Container.ScrollBarImageColor3 = Theme.Accent
-Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local listLayout = Instance.new("UIListLayout", Container)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 6)
-
--- Dragging Function
-local function makeDraggable(frame, handle)
-    local dragging, dragInput, dragStart, startPos
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true dragStart = input.Position startPos = frame.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    handle.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-makeDraggable(MainFrame, Header)
-
--- Create Button Function
-local function createOptionButton(displayName, idValue)
-    local OptionBtn = Instance.new("TextButton", Container)
-    OptionBtn.Size = UDim2.new(1, -4, 0, 36)
-    OptionBtn.BackgroundColor3 = Theme.CardBg
-    OptionBtn.BorderSizePixel = 0
-    OptionBtn.Font = Enum.Font.GothamMedium
-    OptionBtn.Text = string.format("  [%d] %s", idValue, displayName)
-    OptionBtn.TextColor3 = Theme.TextMain
-    OptionBtn.TextSize = 11
-    OptionBtn.TextXAlignment = Enum.TextXAlignment.Left
-
-    Instance.new("UICorner", OptionBtn).CornerRadius = UDim.new(0, 5)
-    local btnStroke = Instance.new("UIStroke", OptionBtn)
-    btnStroke.Color = Theme.Stroke
-
-    OptionBtn.MouseButton1Click:Connect(function()
-        SelectedSpoonObject.Value = idValue
-        OptionBtn.BackgroundColor3 = Theme.Accent
-        OptionBtn.TextColor3 = Theme.Bg
-        task.wait(0.1)
-        OptionBtn.BackgroundColor3 = Theme.CardBg
-        OptionBtn.TextColor3 = Theme.TextMain
-    end)
-end
-
--- ====================================================================
--- AUTOMATIC GAME SCANNER ENGINE (MENCARI NAMA SENJATA ASLI)
--- ====================================================================
-
--- Skrip akan otomatis mendeteksi folder penyimpanan aset sendok asli di ReplicatedStorage
-local GameSpoonFolder = ReplicatedStorage:FindFirstChild("Spoons") 
-    or ReplicatedStorage:FindFirstChild("SpoonShop") 
-    or ReplicatedStorage:FindFirstChild("Items") 
-    or ReplicatedStorage:FindFirstChild("Weapons")
-
-if GameSpoonFolder then
-    -- KONDISI 1: Folder Aset Ditemukan! Mengambil nama asli dari objek game
-    local spoonList = GameSpoonFolder:GetChildren()
+-- 3. FREECAM ENGINE CORE
+local function handleFreecamEngine(active)
+    FreecamConfig.Active = active
     
-    for index, obj in pairs(spoonList) do
-        -- Membuat tombol berdasarkan nama asli objek dan urutan indeks angkanya
-        createOptionButton(obj.Name, index)
+    if active then
+        -- Simpan tipe kamera awal & kunci karakter
+        savedCameraType = camera.CameraType
+        camera.CameraType = Enum.CameraType.Scriptable
+        
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            Player.Character.HumanoidRootPart.Anchored = true
+        end
+        
+        -- Loop Pergerakan Kamera (RenderStepped)
+        freecamRenderConn = RunService.RenderStepped:Connect(function(dt)
+            if not FreecamConfig.Active then return end
+            
+            local camCF = camera.CFrame
+            local moveVector = Vector3.new(0, 0, 0)
+            
+            -- Deteksi Input Keyboard
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end
+            
+            if moveVector.Magnitude > 0 then
+                camera.CFrame = camCF + (moveVector.Unit * FreecamConfig.Speed * dt * 10)
+            end
+        end)
+    else
+        -- Matikan Freecam & Kembalikan Karakter
+        if freecamRenderConn then
+            freecamRenderConn:Disconnect()
+            freecamRenderConn = nil
+        end
+        
+        camera.CameraType = savedCameraType
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            Player.Character.HumanoidRootPart.Anchored = false
+        end
     end
-else
-    -- KONDISI 2: Jika letak folder aset disembunyikan/nama foldernya berbeda jauh,
-    -- Skrip menggunakan loop angka 1 sampai 15 secara aman agar kamu tetap bisa mengganti ID-nya langsung di UI
-    for i = 1, 15 do
-        createOptionButton("Spoon ID Option", i)
-    end
-    CurrentValueLabel.Text = "⚠️ Folder aset tidak terdeteksi. Menggunakan mode ID manual."
 end
 
-print("Real Spoon Selector Berhasil Dimuat!")
+-- 4. INJECT COMPONENT BARU KE UI ASLI LU (MENIRU DESIGN LANGUAGE LU)
+-- Mengambil tema warna dari asset asli (pcall aman)
+local Theme = {
+    Bg = Color3.fromRGB(12, 10, 24),
+    Stroke = Color3.fromRGB(56, 52, 92),
+    Accent = Color3.fromRGB(115, 170, 255),
+    TextMain = Color3.fromRGB(245, 245, 255),
+    TextMuted = Color3.fromRGB(140, 145, 175)
+}
+
+-- Buat Toggle Freecam
+local holderToggle = Instance.new("Frame", flyCard)
+holderToggle.Size = UDim2.new(1, 0, 0, 24)
+holderToggle.BackgroundTransparency = 1
+holderToggle.LayoutOrder = 4 -- Ditaruh di paling bawah Fly Control
+
+local lblToggle = Instance.new("TextLabel", holderToggle)
+lblToggle.Text = "Freecam Mode"
+lblToggle.Size = UDim2.new(1, -40, 1, 0)
+lblToggle.Font = Enum.Font.GothamMedium
+lblToggle.TextColor3 = Theme.TextMain
+lblToggle.TextSize = 12
+lblToggle.TextXAlignment = Enum.TextXAlignment.Left
+lblToggle.BackgroundTransparency = 1
+
+local trackToggle = Instance.new("TextButton", holderToggle)
+trackToggle.Size = UDim2.new(0, 32, 0, 16)
+trackToggle.Position = UDim2.new(1, -32, 0.5, -8)
+trackToggle.BackgroundColor3 = Theme.Bg
+trackToggle.Text = ""
+Instance.new("UICorner", trackToggle).CornerRadius = UDim.new(0, 8)
+local tStr = Instance.new("UIStroke", trackToggle)
+tStr.Color = Theme.Stroke
+
+local knobToggle = Instance.new("Frame", trackToggle)
+knobToggle.Size = UDim2.new(0, 10, 0, 10)
+knobToggle.Position = UDim2.new(0, 3, 0.5, -5)
+knobToggle.BackgroundColor3 = Theme.TextMuted
+Instance.new("UICorner", knobToggle).CornerRadius = UDim.new(0, 5)
+
+trackToggle.MouseButton1Click:Connect(function()
+    local nextState = not FreecamConfig.Active
+    TweenService:Create(knobToggle, TweenInfo.new(0.08), {Position = UDim2.new(0, nextState and 19 or 3, 0.5, -5)}):Play()
+    TweenService:Create(trackToggle, TweenInfo.new(0.08), {BackgroundColor3 = nextState and Theme.Accent or Theme.Bg}):Play()
+    tStr.Color = nextState and Theme.Accent or Theme.Stroke
+    handleFreecamEngine(nextState)
+end)
+
+-- Buat Slider Kecepatan Freecam
+local holderSlider = Instance.new("Frame", flyCard)
+holderSlider.Size = UDim2.new(1, 0, 0, 38)
+holderSlider.BackgroundTransparency = 1
+holderSlider.LayoutOrder = 5
+
+local lblSlider = Instance.new("TextLabel", holderSlider)
+lblSlider.Text = "Freecam Speed Costumization"
+lblSlider.Size = UDim2.new(0.65, 0, 0, 14)
+lblSlider.Font = Enum.Font.GothamMedium
+lblSlider.TextColor3 = Theme.TextMain
+lblSlider.TextSize = 11
+lblSlider.TextXAlignment = Enum.TextXAlignment.Left
+lblSlider.BackgroundTransparency = 1
+
+local inputBox = Instance.new("TextBox", holderSlider)
+inputBox.Size = UDim2.new(0, 36, 0, 16)
+inputBox.Position = UDim2.new(1, -36, 0, 0)
+inputBox.BackgroundColor3 = Theme.Bg
+inputBox.Font = Enum.Font.GothamBold
+inputBox.Text = tostring(FreecamConfig.Speed)
+inputBox.TextColor3 = Theme.Accent
+inputBox.TextSize = 10
+Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4)
+local bStr = Instance.new("UIStroke", inputBox)
+bStr.Color = Theme.Stroke
+
+local trackSlider = Instance.new("Frame", holderSlider)
+trackSlider.Size = UDim2.new(1, 0, 0, 4)
+trackSlider.Position = UDim2.new(0, 0, 1, -4)
+trackSlider.BackgroundColor3 = Theme.Stroke
+Instance.new("UICorner", trackSlider).CornerRadius = UDim.new(0, 2)
+
+local fillSlider = Instance.new("Frame", trackSlider)
+local min, max = 1, 50
+local startPerc = math.clamp((FreecamConfig.Speed - min) / (max - min), 0, 1)
+fillSlider.Size = UDim2.new(startPerc, 0, 1, 0)
+fillSlider.BackgroundColor3 = Theme.Accent
+Instance.new("UICorner", fillSlider).CornerRadius = UDim.new(0, 2)
+
+local knobSlider = Instance.new("Frame", trackSlider)
+knobSlider.Size = UDim2.new(0, 10, 0, 10)
+knobSlider.Position = UDim2.new(startPerc, -5, 0.5, -5)
+knobSlider.BackgroundColor3 = Theme.TextMain
+Instance.new("UICorner", knobSlider).CornerRadius = UDim.new(1, 0)
+
+local dragTrigger = Instance.new("ImageButton", knobSlider)
+dragTrigger.Size = UDim2.new(2, 0, 2, 0)
+dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0)
+dragTrigger.BackgroundTransparency = 1
+
+local function refreshSlider(value)
+    local clamped = math.clamp(value, min, max)
+    FreecamConfig.Speed = clamped
+    local perc = (clamped - min) / (max - min)
+    fillSlider.Size = UDim2.new(perc, 0, 1, 0)
+    knobSlider.Position = UDim2.new(perc, -5, 0.5, -5)
+    inputBox.Text = tostring(clamped)
+end
+
+local sliding = false
+dragTrigger.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local relX = input.Position.X - trackSlider.AbsolutePosition.X
+        local perc = math.clamp(relX / trackSlider.AbsoluteSize.X, 0, 1)
+        refreshSlider(math.round(min + (perc * (max - min))))
+    end
+end)
+inputBox.FocusLost:Connect(function()
+    local num = tonumber(inputBox.Text)
+    refreshSlider(num or min)
+end)
+
+print("AR Hub Extension: Fitur Freecam berhasil disuntikkan!")
