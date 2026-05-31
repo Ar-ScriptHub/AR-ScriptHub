@@ -1,222 +1,1358 @@
 -- ====================================================================
--- AR SCRIPT HUB - FREECAM EXTENSION (ADD-ON SYSTEM)
+-- AR ULTIMATE MULTI-HACK HUB - v1.0 (CORE FRAMEWORK)
 -- ====================================================================
+
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
--- 1. CARI PORT UI DARI SCRIPT UTAMA
-local MainGui = SafeGuiTarget:FindFirstChild("AR_Script_Hub")
-if not MainGui then
-    warn("AR Script Hub utama tidak ditemukan! Jalankan script utama terlebih dahulu.")
-    return
-end
+-- Global Configuration & State
+local UI_Visible = true
+local Toggle_Key = Enum.KeyCode.RightControl
+local Active_Tab = "Movement"
 
-local MainContentFrame = MainGui:FindFirstChild("MainContentFrame", true)
-local PlayerPage = MainContentFrame and MainContentFrame:FindFirstChild("PlayerPage")
-local LeftColumn = PlayerPage and PlayerPage:FindFirstChild("LeftColumn")
+_G.Config = {
+    Theme = {
+        MainBg = Color3.fromRGB(20, 20, 25),
+        SidebarBg = Color3.fromRGB(15, 15, 18),
+        Accent = Color3.fromRGB(0, 180, 255),
+        TextMain = Color3.fromRGB(255, 255, 255),
+        TextMuted = Color3.fromRGB(150, 150, 160),
+        CardBg = Color3.fromRGB(28, 28, 35),
+        Stroke = Color3.fromRGB(40, 40, 50)
+    }
+}
 
--- Cari Card Fly Control (Card nomor 1 di Left Column)
-local flyCard = nil
-if LeftColumn then
-    for _, child in pairs(LeftColumn:GetChildren()) do
-        local ttl = child:FindFirstChildOfClass("TextLabel")
-        if ttl and ttl.Text == "FLY CONTROL" then
-            flyCard = child:FindFirstChildOfClass("Frame") -- Ini container ui layoutnya
-            break
-        end
+-- Config System (Save/Load JSON)
+local ConfigFileName = "AR_Ultimate_Hub_Config.json"
+local function SaveConfig()
+    if writefile then
+        local success, result = pcall(function()
+            local json = HttpService:JSONEncode(_G.Config)
+            writefile(ConfigFileName, json)
+        end)
     end
 end
 
-if not flyCard then
-    warn("Card Fly Control tidak ditemukan!")
-    return
-end
-
--- 2. CONFIG & STATE MANAGEMENT UNTUK FREECAM
-local FreecamConfig = {
-    Active = false,
-    Speed = 10
-}
-
-local camera = workspace.CurrentCamera
-local freecamRenderConn = nil
-local savedCameraType = camera.CameraType
-
--- 3. FREECAM ENGINE CORE
-local function handleFreecamEngine(active)
-    FreecamConfig.Active = active
-    
-    if active then
-        -- Simpan tipe kamera awal & kunci karakter
-        savedCameraType = camera.CameraType
-        camera.CameraType = Enum.CameraType.Scriptable
-        
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.Anchored = true
-        end
-        
-        -- Loop Pergerakan Kamera (RenderStepped)
-        freecamRenderConn = RunService.RenderStepped:Connect(function(dt)
-            if not FreecamConfig.Active then return end
-            
-            local camCF = camera.CFrame
-            local moveVector = Vector3.new(0, 0, 0)
-            
-            -- Deteksi Input Keyboard
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVector = moveVector - Vector3.new(0, 1, 0) end
-            
-            if moveVector.Magnitude > 0 then
-                camera.CFrame = camCF + (moveVector.Unit * FreecamConfig.Speed * dt * 10)
+local function LoadConfig()
+    if isfile and isfile(ConfigFileName) then
+        local success, result = pcall(function()
+            local json = readfile(ConfigFileName)
+            local data = HttpService:JSONDecode(json)
+            for k, v in pairs(data) do
+                _G.Config[k] = v
             end
         end)
-    else
-        -- Matikan Freecam & Kembalikan Karakter
-        if freecamRenderConn then
-            freecamRenderConn:Disconnect()
-            freecamRenderConn = nil
-        end
-        
-        camera.CameraType = savedCameraType
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.Anchored = false
-        end
     end
 end
+LoadConfig()
 
--- 4. INJECT COMPONENT BARU KE UI ASLI LU (MENIRU DESIGN LANGUAGE LU)
--- Mengambil tema warna dari asset asli (pcall aman)
-local Theme = {
-    Bg = Color3.fromRGB(12, 10, 24),
-    Stroke = Color3.fromRGB(56, 52, 92),
-    Accent = Color3.fromRGB(115, 170, 255),
-    TextMain = Color3.fromRGB(245, 245, 255),
-    TextMuted = Color3.fromRGB(140, 145, 175)
+-- Protect Interface
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AR_Ultimate_Framework"
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+elseif gethui then
+    ScreenGui.Parent = gethui()
+else
+    ScreenGui.Parent = CoreGui
+end
+
+-- Notification System
+local NotifContainer = Instance.new("Frame", ScreenGui)
+NotifContainer.Size = UDim2.new(0, 250, 1, -20)
+NotifContainer.Position = UDim2.new(1, -260, 0, 10)
+NotifContainer.BackgroundTransparency = 1
+
+local function ShowNotification(title, message, duration)
+    duration = duration or 3
+    local NotifFrame = Instance.new("Frame", NotifContainer)
+    NotifFrame.Size = UDim2.new(1, 0, 0, 60)
+    NotifFrame.BackgroundColor3 = _G.Config.Theme.CardBg
+    NotifFrame.BorderSizePixel = 0
+    NotifFrame.Position = UDim2.new(1, 10, 0, #NotifContainer:GetChildren() * 65)
+    
+    local Corner = Instance.new("UICorner", NotifFrame)
+    Corner.CornerRadius = UDim.new(0, 6)
+    
+    local Stroke = Instance.new("UIStroke", NotifFrame)
+    Stroke.Color = _G.Config.Theme.Accent
+    Stroke.Thickness = 1
+    
+    local TTitle = Instance.new("TextLabel", NotifFrame)
+    TTitle.Size = UDim2.new(1, -10, 0, 20)
+    TTitle.Position = UDim2.new(0, 10, 0, 5)
+    TTitle.Text = title
+    TTitle.Font = Enum.Font.GothamBold
+    TTitle.TextSize = 12
+    TTitle.TextColor3 = _G.Config.Theme.Accent
+    TTitle.TextXAlignment = Enum.TextXAlignment.Left
+    TTitle.BackgroundTransparency = 1
+    
+    local TMsg = Instance.new("TextLabel", NotifFrame)
+    TMsg.Size = UDim2.new(1, -10, 0, 30)
+    TMsg.Position = UDim2.new(0, 10, 0, 25)
+    TMsg.Text = message
+    TMsg.Font = Enum.Font.Gotham
+    TMsg.TextSize = 11
+    TMsg.TextColor3 = _G.Config.Theme.TextMain
+    TMsg.TextWrapped = true
+    TMsg.TextXAlignment = Enum.TextXAlignment.Left
+    TMsg.BackgroundTransparency = 1
+    
+    TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, NotifFrame.Position.Y.Offset)}):Play()
+    
+    delay(duration, function()
+        TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 10, 0, NotifFrame.Position.Y.Offset)}):Play()
+        wait(0.3)
+        NotifFrame:Destroy()
+    end)
+end
+
+-- Main Window Creation
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 600, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -190)
+MainFrame.BackgroundColor3 = _G.Config.Theme.MainBg
+MainFrame.BorderSizePixel = 0
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 8)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = _G.Config.Theme.Stroke
+MainStroke.Thickness = 1
+
+-- Drag System Implementation
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Toggle Menu Handling
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Toggle_Key then
+        UI_Visible = not UI_Visible
+        MainFrame.Visible = UI_Visible
+    end
+end)
+
+-- Navigation Sidebar
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 140, 1, 0)
+Sidebar.BackgroundColor3 = _G.Config.Theme.SidebarBg
+Sidebar.BorderSizePixel = 0
+
+local SidebarCorner = Instance.new("UICorner", Sidebar)
+SidebarCorner.CornerRadius = UDim.new(0, 8)
+
+local SidebarCover = Instance.new("Frame", Sidebar)
+SidebarCover.Size = UDim2.new(0, 15, 1, 0)
+SidebarCover.Position = UDim2.new(1, -15, 0, 0)
+SidebarCover.BackgroundColor3 = _G.Config.Theme.SidebarBg
+SidebarCover.BorderSizePixel = 0
+
+-- UI Brand Header
+local BrandLabel = Instance.new("TextLabel", Sidebar)
+BrandLabel.Size = UDim2.new(1, 0, 0, 40)
+BrandLabel.Text = "AR ULTIMATE HUB"
+BrandLabel.Font = Enum.Font.GothamBold
+BrandLabel.TextSize = 13
+BrandLabel.TextColor3 = _G.Config.Theme.Accent
+BrandLabel.BackgroundTransparency = 1
+
+-- Containers for Tabs
+local ContainerLayout = Instance.new("Frame", MainFrame)
+ContainerLayout.Size = UDim2.new(1, -150, 1, -50)
+ContainerLayout.Position = UDim2.new(0, 145, 0, 45)
+ContainerLayout.BackgroundTransparency = 1
+
+local TabButtonsList = Instance.new("UIListLayout", Sidebar)
+TabButtonsList.Padding = UDim.new(0, 2)
+TabButtonsList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Utility UI Builders
+local Tabs = {}
+local TabFrames = {}
+
+function CreateTab(name, layoutOrder)
+    local TabBtn = Instance.new("TextButton", Sidebar)
+    TabBtn.Size = UDim2.new(1, -10, 0, 30)
+    TabBtn.Position = UDim2.new(0, 5, 0, 0)
+    TabBtn.BackgroundColor3 = _G.Config.Theme.SidebarBg
+    TabBtn.Text = "  " .. name
+    TabBtn.Font = Enum.Font.GothamMedium
+    TabBtn.TextSize = 11
+    TabBtn.TextColor3 = _G.Config.Theme.TextMuted
+    TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    TabBtn.LayoutOrder = layoutOrder
+    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 4)
+    
+    local ContentFrame = Instance.new("ScrollingFrame", ContainerLayout)
+    ContentFrame.Size = UDim2.new(1, 0, 1, 0)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ContentFrame.ScrollBarThickness = 3
+    ContentFrame.Visible = false
+    
+    local ContentList = Instance.new("UIListLayout", ContentFrame)
+    ContentList.Padding = UDim.new(0, 6)
+    ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    ContentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, ContentList.AbsoluteContentSize.Y + 10)
+    end)
+    
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, frame in pairs(TabFrames) do frame.Visible = false end
+        for _, btn in pairs(Sidebar:GetChildren()) do
+            if btn:IsA("TextButton") then btn.TextColor3 = _G.Config.Theme.TextMuted end
+        end
+        ContentFrame.Visible = true
+        TabBtn.TextColor3 = _G.Config.Theme.Accent
+        Active_Tab = name
+    end)
+    
+    TabFrames[name] = ContentFrame
+    return ContentFrame
+end
+
+-- Element Builders inside Tabs
+function AddToggle(parent, text, default, callback)
+    local ToggleFrame = Instance.new("Frame", parent)
+    ToggleFrame.Size = UDim2.new(1, -10, 0, 35)
+    ToggleFrame.BackgroundColor3 = _G.Config.Theme.CardBg
+    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", ToggleFrame).Color = _G.Config.Theme.Stroke
+    
+    local Label = Instance.new("TextLabel", ToggleFrame)
+    Label.Size = UDim2.new(1, -50, 1, 0)
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Text = text
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextColor3 = _G.Config.Theme.TextMain
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.BackgroundTransparency = 1
+    
+    local Button = Instance.new("TextButton", ToggleFrame)
+    Button.Size = UDim2.new(0, 30, 0, 18)
+    Button.Position = UDim2.new(1, -40, 0.5, -9)
+    Button.BackgroundColor3 = default and _G.Config.Theme.Accent or Color3.fromRGB(60, 60, 70)
+    Button.Text = ""
+    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 9)
+    
+    local Circle = Instance.new("Frame", Button)
+    Circle.Size = UDim2.new(0, 14, 0, 14)
+    Circle.Position = UDim2.new(default and 0.5 or 0, 2, 0.5, -7)
+    Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(0, 7)
+    
+    local state = default
+    Button.MouseButton1Click:Connect(function()
+        state = not state
+        TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = state and _G.Config.Theme.Accent or Color3.fromRGB(60, 60, 70)}):Play()
+        TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(state and 0.5 or 0, 2, 0.5, -7)}):Play()
+        pcall(callback, state)
+    end)
+end
+
+function AddSlider(parent, text, min, max, default, callback)
+    local SliderFrame = Instance.new("Frame", parent)
+    SliderFrame.Size = UDim2.new(1, -10, 0, 45)
+    SliderFrame.BackgroundColor3 = _G.Config.Theme.CardBg
+    Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", SliderFrame).Color = _G.Config.Theme.Stroke
+    
+    local Label = Instance.new("TextLabel", SliderFrame)
+    Label.Size = UDim2.new(1, -60, 0, 20)
+    Label.Position = UDim2.new(0, 10, 0, 4)
+    Label.Text = text
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextColor3 = _G.Config.Theme.TextMain
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.BackgroundTransparency = 1
+    
+    local ValueLabel = Instance.new("TextLabel", SliderFrame)
+    ValueLabel.Size = UDim2.new(0, 50, 0, 20)
+    ValueLabel.Position = UDim2.new(1, -60, 0, 4)
+    ValueLabel.Text = tostring(default)
+    ValueLabel.Font = Enum.Font.GothamMedium
+    ValueLabel.TextSize = 11
+    ValueLabel.TextColor3 = _G.Config.Theme.Accent
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.BackgroundTransparency = 1
+    
+    local SliderBar = Instance.new("TextButton", SliderFrame)
+    SliderBar.Size = UDim2.new(1, -20, 0, 6)
+    SliderBar.Position = UDim2.new(0, 10, 0, 30)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    SliderBar.Text = ""
+    Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(0, 3)
+    
+    local Fill = Instance.new("Frame", SliderBar)
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = _G.Config.Theme.Accent
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(0, 3)
+    
+    local moveSlider = false
+    local function updateSlider(input)
+        local absPos = SliderBar.AbsolutePosition.X
+        local absSize = SliderBar.AbsoluteSize.X
+        local percentage = math.clamp((input.Position.X - absPos) / absSize, 0, 1)
+        local value = math.floor(min + (percentage * (max - min)))
+        ValueLabel.Text = tostring(value)
+        Fill.Size = UDim2.new(percentage, 0, 1, 0)
+        pcall(callback, value)
+    end
+    
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            moveSlider = true
+            updateSlider(input)
+        end
+    end)
+    SliderBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            moveSlider = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if moveSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSlider(input)
+        end
+    end)
+end
+
+function AddButton(parent, text, callback)
+    local ButtonFrame = Instance.new("TextButton", parent)
+    ButtonFrame.Size = UDim2.new(1, -10, 0, 32)
+    ButtonFrame.BackgroundColor3 = _G.Config.Theme.CardBg
+    ButtonFrame.Text = text
+    ButtonFrame.Font = Enum.Font.GothamMedium
+    ButtonFrame.TextSize = 11
+    ButtonFrame.TextColor3 = _G.Config.Theme.TextMain
+    Instance.new("UICorner", ButtonFrame).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", ButtonFrame).Color = _G.Config.Theme.Stroke
+    
+    ButtonFrame.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+end
+
+function AddDropdown(parent, text, options, callback)
+    local DropdownFrame = Instance.new("Frame", parent)
+    DropdownFrame.Size = UDim2.new(1, -10, 0, 35)
+    DropdownFrame.BackgroundColor3 = _G.Config.Theme.CardBg
+    DropdownFrame.ClipsDescendants = true
+    Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0, 5)
+    local Stroke = Instance.new("UIStroke", DropdownFrame)
+    Stroke.Color = _G.Config.Theme.Stroke
+    
+    local Label = Instance.new("TextLabel", DropdownFrame)
+    Label.Size = UDim2.new(1, -40, 0, 35)
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Text = text
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextColor3 = _G.Config.Theme.TextMain
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.BackgroundTransparency = 1
+
+-- ====================================================================
+-- AR ULTIMATE HUB - DEPLOY 3: TELEPORT & NAVIGATION MODULE
+-- ====================================================================
+
+local TeleportService = game:GetService("TeleportService")
+local Mouse = LocalPlayer:GetMouse()
+
+local TeleportVars = {
+    TweenSpeed = 100,
+    SelectedPlayer = "",
+    Waypoints = {}
 }
 
--- Buat Toggle Freecam
-local holderToggle = Instance.new("Frame", flyCard)
-holderToggle.Size = UDim2.new(1, 0, 0, 24)
-holderToggle.BackgroundTransparency = 1
-holderToggle.LayoutOrder = 4 -- Ditaruh di paling bawah Fly Control
+local TargetTab2 = TabFrames["Teleport"]
 
-local lblToggle = Instance.new("TextLabel", holderToggle)
-lblToggle.Text = "Freecam Mode"
-lblToggle.Size = UDim2.new(1, -40, 1, 0)
-lblToggle.Font = Enum.Font.GothamMedium
-lblToggle.TextColor3 = Theme.TextMain
-lblToggle.TextSize = 12
-lblToggle.TextXAlignment = Enum.TextXAlignment.Left
-lblToggle.BackgroundTransparency = 1
-
-local trackToggle = Instance.new("TextButton", holderToggle)
-trackToggle.Size = UDim2.new(0, 32, 0, 16)
-trackToggle.Position = UDim2.new(1, -32, 0.5, -8)
-trackToggle.BackgroundColor3 = Theme.Bg
-trackToggle.Text = ""
-Instance.new("UICorner", trackToggle).CornerRadius = UDim.new(0, 8)
-local tStr = Instance.new("UIStroke", trackToggle)
-tStr.Color = Theme.Stroke
-
-local knobToggle = Instance.new("Frame", trackToggle)
-knobToggle.Size = UDim2.new(0, 10, 0, 10)
-knobToggle.Position = UDim2.new(0, 3, 0.5, -5)
-knobToggle.BackgroundColor3 = Theme.TextMuted
-Instance.new("UICorner", knobToggle).CornerRadius = UDim.new(0, 5)
-
-trackToggle.MouseButton1Click:Connect(function()
-    local nextState = not FreecamConfig.Active
-    TweenService:Create(knobToggle, TweenInfo.new(0.08), {Position = UDim2.new(0, nextState and 19 or 3, 0.5, -5)}):Play()
-    TweenService:Create(trackToggle, TweenInfo.new(0.08), {BackgroundColor3 = nextState and Theme.Accent or Theme.Bg}):Play()
-    tStr.Color = nextState and Theme.Accent or Theme.Stroke
-    handleFreecamEngine(nextState)
-end)
-
--- Buat Slider Kecepatan Freecam
-local holderSlider = Instance.new("Frame", flyCard)
-holderSlider.Size = UDim2.new(1, 0, 0, 38)
-holderSlider.BackgroundTransparency = 1
-holderSlider.LayoutOrder = 5
-
-local lblSlider = Instance.new("TextLabel", holderSlider)
-lblSlider.Text = "Freecam Speed Costumization"
-lblSlider.Size = UDim2.new(0.65, 0, 0, 14)
-lblSlider.Font = Enum.Font.GothamMedium
-lblSlider.TextColor3 = Theme.TextMain
-lblSlider.TextSize = 11
-lblSlider.TextXAlignment = Enum.TextXAlignment.Left
-lblSlider.BackgroundTransparency = 1
-
-local inputBox = Instance.new("TextBox", holderSlider)
-inputBox.Size = UDim2.new(0, 36, 0, 16)
-inputBox.Position = UDim2.new(1, -36, 0, 0)
-inputBox.BackgroundColor3 = Theme.Bg
-inputBox.Font = Enum.Font.GothamBold
-inputBox.Text = tostring(FreecamConfig.Speed)
-inputBox.TextColor3 = Theme.Accent
-inputBox.TextSize = 10
-Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4)
-local bStr = Instance.new("UIStroke", inputBox)
-bStr.Color = Theme.Stroke
-
-local trackSlider = Instance.new("Frame", holderSlider)
-trackSlider.Size = UDim2.new(1, 0, 0, 4)
-trackSlider.Position = UDim2.new(0, 0, 1, -4)
-trackSlider.BackgroundColor3 = Theme.Stroke
-Instance.new("UICorner", trackSlider).CornerRadius = UDim.new(0, 2)
-
-local fillSlider = Instance.new("Frame", trackSlider)
-local min, max = 1, 50
-local startPerc = math.clamp((FreecamConfig.Speed - min) / (max - min), 0, 1)
-fillSlider.Size = UDim2.new(startPerc, 0, 1, 0)
-fillSlider.BackgroundColor3 = Theme.Accent
-Instance.new("UICorner", fillSlider).CornerRadius = UDim.new(0, 2)
-
-local knobSlider = Instance.new("Frame", trackSlider)
-knobSlider.Size = UDim2.new(0, 10, 0, 10)
-knobSlider.Position = UDim2.new(startPerc, -5, 0.5, -5)
-knobSlider.BackgroundColor3 = Theme.TextMain
-Instance.new("UICorner", knobSlider).CornerRadius = UDim.new(1, 0)
-
-local dragTrigger = Instance.new("ImageButton", knobSlider)
-dragTrigger.Size = UDim2.new(2, 0, 2, 0)
-dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0)
-dragTrigger.BackgroundTransparency = 1
-
-local function refreshSlider(value)
-    local clamped = math.clamp(value, min, max)
-    FreecamConfig.Speed = clamped
-    local perc = (clamped - min) / (max - min)
-    fillSlider.Size = UDim2.new(perc, 0, 1, 0)
-    knobSlider.Position = UDim2.new(perc, -5, 0.5, -5)
-    inputBox.Text = tostring(clamped)
+-- Fungsi Dasar Teleportasi Instan (Aman dari Void)
+local function InstantTP(targetCFrame)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+    end
 end
 
-local sliding = false
-dragTrigger.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local relX = input.Position.X - trackSlider.AbsolutePosition.X
-        local perc = math.clamp(relX / trackSlider.AbsoluteSize.X, 0, 1)
-        refreshSlider(math.round(min + (perc * (max - min))))
+-- Fungsi Dasar Tween TP (Teleportasi Halus / Anti-Cheat Bypass)
+local function TweenTP(targetCFrame)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local distance = (root.Position - targetCFrame.Position).Magnitude
+        local duration = distance / TeleportVars.TweenSpeed
+        
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+        tween:Play()
+        return tween
     end
-end)
-inputBox.FocusLost:Connect(function()
-    local num = tonumber(inputBox.Text)
-    refreshSlider(num or min)
+end
+
+-- 18. Click TP Logic (Teleportasi ke Posisi Klik Mouse)
+local ClickTPActive = false
+AddToggle(TargetTab2, "Enable Click TP (Ctrl + Click)", false, function(state)
+    ClickTPActive = state
 end)
 
-print("AR Hub Extension: Fitur Freecam berhasil disuntikkan!")
+Mouse.Button1Down:Connect(function()
+    if ClickTPActive and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        if Mouse.Target then
+            InstantTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
+            ShowNotification("Click TP", "Teleported to mouse target location.", 2)
+        end
+    end
+end)
+
+-- 19. Tween Speed Modifier Configuration
+AddSlider(TargetTab2, "Tween TP Speed (Studs/s)", 10, 500, 100, function(val)
+    TeleportVars.TweenSpeed = val
+end)
+
+-- 20. Bring Player Logic (Membawa Objek yang Dikontrol Klien)
+AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local count = 0
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(LocalPlayer.Character) then
+                -- Membawa objek terdekat yang kepemilikan network-nya berada di pihak client kita
+                obj.CFrame = root.CFrame + Vector3.new(0, 2, 0)
+                count = count + 1
+            end
+        end
+        ShowNotification("Bring Objects", "Brought " .. count .. " physics parts
+    local OpenBtn = Instance.new("TextButton", DropdownFrame)
+    OpenBtn.Size = UDim2.new(0, 30, 0, 35)
+    OpenBtn.Position = UDim2.new(1, -35, 0, 0)
+    OpenBtn.Text = "v"
+    OpenBtn.Font = Enum.Font.GothamBold
+    OpenBtn.TextSize = 12
+    OpenBtn.TextColor3 = _G.Config.Theme.TextMuted
+    OpenBtn.BackgroundTransparency = 1
+    
+    local OptionsContainer = Instance.new("Frame", DropdownFrame)
+    OptionsContainer.Size = UDim2.new(1, 0, 0, #options * 25)
+    OptionsContainer.Position = UDim2.new(0, 0, 0, 35)
+    OptionsContainer.BackgroundTransparency = 1
+    
+    local OptList = Instance.new("UIListLayout", OptionsContainer)
+    
+    for _, opt in pairs(options) do
+        local OptBtn = Instance.new("TextButton", OptionsContainer)
+        OptBtn.Size = UDim2.new(1, 0, 0, 25)
+        OptBtn.BackgroundColor3 = _G.Config.Theme.SidebarBg
+        OptBtn.BorderSizePixel = 0
+        OptBtn.Text = "   " .. tostring(opt)
+        OptBtn.Font = Enum.Font.Gotham
+        OptBtn.TextSize = 10
+        OptBtn.TextColor3 = _G.Config.Theme.TextMuted
+        OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+        
+        OptBtn.MouseButton1Click:Connect(function()
+            Label.Text = text .. " (" .. tostring(opt) .. ")"
+            DropdownFrame.Size = UDim2.new(1, -10, 0, 35)
+            pcall(callback, opt)
+        end)
+    end
+    
+    local open = false
+    OpenBtn.MouseButton1Click:Connect(function()
+        open = not open
+        DropdownFrame.Size = open and UDim2.new(1, -10, 0, 35 + (#options * 25)) or UDim2.new(1, -10, 0, 35)
+    end)
+end
+
+-- Top Bar Stats (FPS & Ping View)
+local StatsFrame = Instance.new("Frame", MainFrame)
+StatsFrame.Size = UDim2.new(1, -150, 0, 40)
+StatsFrame.Position = UDim2.new(0, 145, 0, 0)
+StatsFrame.BackgroundTransparency = 1
+
+local FPSLabel = Instance.new("TextLabel", StatsFrame)
+FPSLabel.Size = UDim2.new(0, 100, 1, 0)
+FPSLabel.Position = UDim2.new(1, -110, 0, 0)
+FPSLabel.Text = "FPS: 60 | Ping: 0ms"
+FPSLabel.Font = Enum.Font.Helvetica
+FPSLabel.TextSize = 11
+FPSLabel.TextColor3 = _G.Config.Theme.TextMuted
+FPSLabel.TextXAlignment = Enum.TextXAlignment.Right
+FPSLabel.BackgroundTransparency = 1
+
+task.spawn(function()
+    local lastUpdate = os.clock()
+    local frameCount = 0
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        local now = os.clock()
+        if now - lastUpdate >= 1 then
+            local ping = game:GetService("Stats").Network.ServerToClientPing:GetValueString()
+            FPSLabel.Text = "FPS: " .. frameCount .. " | Ping: " .. string.sub(ping, 1, 5) .. "ms"
+            frameCount = 0
+            lastUpdate = now
+        end
+    end)
+end)
+
+-- Initializing Tabs Space Holders
+local Tab1 = CreateTab("Movement", 1)
+local Tab2 = CreateTab("Teleport", 2)
+local Tab3 = CreateTab("Visuals", 3)
+local Tab4 = CreateTab("Combat", 4)
+local Tab5 = CreateTab("Automation", 5)
+local Tab6 = CreateTab("Utility", 6)
+
+-- Open first tab by default
+TabFrames["Movement"].Visible = true
+Sidebar:FindFirstChild("  Movement").TextColor3 = _G.Config.Theme.Accent
+
+ShowNotification("Core Engine loaded", "Press RightControl to hide UI", 4)
+
+-- ====================================================================
+-- AR ULTIMATE HUB - DEPLOY 3: TELEPORT & NAVIGATION MODULE
+-- ====================================================================
+
+local TeleportService = game:GetService("TeleportService")
+local Mouse = LocalPlayer:GetMouse()
+
+local TeleportVars = {
+    TweenSpeed = 100,
+    SelectedPlayer = "",
+    Waypoints = {}
+}
+
+local TargetTab2 = TabFrames["Teleport"]
+
+-- Fungsi Dasar Teleportasi Instan (Aman dari Void)
+local function InstantTP(targetCFrame)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+    end
+end
+
+-- Fungsi Dasar Tween TP (Teleportasi Halus / Anti-Cheat Bypass)
+local function TweenTP(targetCFrame)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local distance = (root.Position - targetCFrame.Position).Magnitude
+        local duration = distance / TeleportVars.TweenSpeed
+        
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+        tween:Play()
+        return tween
+    end
+end
+
+-- 18. Click TP Logic (Teleportasi ke Posisi Klik Mouse)
+local ClickTPActive = false
+AddToggle(TargetTab2, "Enable Click TP (Ctrl + Click)", false, function(state)
+    ClickTPActive = state
+end)
+
+Mouse.Button1Down:Connect(function()
+    if ClickTPActive and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        if Mouse.Target then
+            InstantTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
+            ShowNotification("Click TP", "Teleported to mouse target location.", 2)
+        end
+    end
+end)
+
+-- 19. Tween Speed Modifier Configuration
+AddSlider(TargetTab2, "Tween TP Speed (Studs/s)", 10, 500, 100, function(val)
+    TeleportVars.TweenSpeed = val
+end)
+
+-- 20. Bring Player Logic (Membawa Objek yang Dikontrol Klien)
+AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local count = 0
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(LocalPlayer.Character) then
+                -- Membawa objek terdekat yang kepemilikan network-nya berada di pihak client kita
+                obj.CFrame = root.CFrame + Vector3.new(0, 2, 0)
+                count = count + 1
+            end
+        end
+        ShowNotification("Bring Objects", "Brought " .. count .. " physics parts to you.", 3)
+    end
+end)
+
+-- 21. Teleport To Player System
+local PlayerListOptions = {}
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then table.insert(PlayerListOptions, p.Name) end
+end
+
+AddDropdown(TargetTab2, "Select Target Player", PlayerListOptions, function(selected)
+    TeleportVars.SelectedPlayer = selected
+end)
+
+AddButton(TargetTab2, "Instant TP to Selected Player", function()
+    local targetP = Players:FindFirstChild(TeleportVars.SelectedPlayer)
+    if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+        InstantTP(targetP.Character.HumanoidRootPart.CFrame)
+    else
+        ShowNotification("Error", "Player character not found or invalid.", 3)
+    end
+end)
+
+AddButton(TargetTab2, "Tween TP to Selected Player", function()
+    local targetP = Players:FindFirstChild(TeleportVars.SelectedPlayer)
+    if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+        TweenTP(targetP.Character.HumanoidRootPart.CFrame)
+    else
+        ShowNotification("Error", "Player character not found or invalid.", 3)
+    end
+end)
+
+-- 22. Waypoints System (Save/Load Koordinat Kustom)
+AddButton(TargetTab2, "Save Current Location (Waypoint)", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local currentCF = LocalPlayer.Character.HumanoidRootPart.CFrame
+        local wpName = "Waypoint_" .. (#TeleportVars.Waypoints + 1)
+        TeleportVars.Waypoints[wpName] = currentCF
+        ShowNotification("Waypoint Saved", "Location saved as: " .. wpName, 3)
+    end
+end)
+
+AddButton(TargetTab2, "Teleport to Last Saved Waypoint", function()
+    local wpName = "Waypoint_" .. #TeleportVars.Waypoints
+    if TeleportVars.Waypoints[wpName] then
+        InstantTP(TeleportVars.Waypoints[wpName])
+    else
+        ShowNotification("Error", "No saved waypoints found.", 3)
+    end
+end)
+
+-- 23. Map Important Locations Teleport (Mencari Area Berdasarkan Nama Peta Umum)
+AddButton(TargetTab2, "TP to Map Center/SpawnPoint", function()
+    local spawn = Workspace:FindFirstChildOfClass("SpawnLocation")
+    if spawn then
+        InstantTP(spawn.CFrame + Vector3.new(0, 4, 0))
+    else
+        InstantTP(CFrame.new(0, 50, 0)) -- Koordinat default jika peta kosong
+    end
+end)
+
+-- 24. Vehicle Teleportation System (Teleport Karakter Beserta Kendaraannya)
+AddButton(TargetTab2, "Teleport Vehicle to Last Waypoint", function()
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+            local seat = hum.SeatPart
+            local model = seat:FindFirstAncestorOfClass("Model") or seat
+            local wpName = "Waypoint_" .. #TeleportVars.Waypoints
+            if TeleportVars.Waypoints[wpName] and model:FindFirstChild("HumanoidRootPart") or model:IsA("Model") then
+                model:MoveTo(TeleportVars.Waypoints[wpName].Position)
+                ShowNotification("Vehicle TP", "Vehicle relocated safely.", 3)
+            end
+        else
+            ShowNotification("Warning", "You must sit in a vehicle seat first!", 3)
+        end
+    end
+end)
+
+-- 25. Server Hop System (Pencarian Otomatis Server Lain Secara Acak/Sepi)
+AddButton(TargetTab2, "Execute Server Hop", function()
+    ShowNotification("Server Hop", "Fetching servers listing...", 4)
+    local x = pcall(function()
+        local Http = game:GetService("HttpService")
+        local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+        local Raw = game:HttpGet(Api)
+        local Parsed = Http:JSONDecode(Raw)
+        local Servers = Parsed.data
+        for _, server in pairs(Servers) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                break
+            end
+        end
+    end)
+    if not x then ShowNotification("Error", "Failed to hop server. API restricted.", 3) end
+end)
+
+-- 26. Rejoin Current Server System
+AddButton(TargetTab2, "Rejoin Current Server", function()
+    ShowNotification("Rejoining", "Connecting back to instance...", 3)
+    pcall(function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+    end)
+end)
+
+-- Update Dropdown Otomatis saat ada Pemain Masuk/Keluar
+Players.PlayerAdded:Connect(function(p)
+    if p ~= LocalPlayer then table.insert(PlayerListOptions, p.Name) end
+end)
+
+ShowNotification("Teleport Module Inserted", "Features 18 to 26 Active in Tab 2.", 3)
+
+-- ====================================================================
+-- AR ULTIMATE HUB - DEPLOY 4: VISUALS & ESP DRAWING ENGINE
+-- ====================================================================
+
+local Lighting = game:GetService("Lighting")
+local Camera = Workspace.CurrentCamera
+
+local VisualVars = {
+    BoxESP = false,
+    Tracers = false,
+    Names = false,
+    Distance = false,
+    HealthBar = false,
+    Chams = false,
+    Skeleton = false,
+    NpcESP = false,
+    ItemESP = false,
+    CustomFOV = 70,
+    Fullbright = false,
+    XRay = false,
+    NoFog = false,
+    ThirdPerson = false,
+    OriginalFogStart = Lighting.FogStart,
+    OriginalFogEnd = Lighting.FogEnd
+}
+
+local TargetTab3 = TabFrames["Visuals"]
+
+-- Helper Function: Membuat Objek Drawing 2D (Aman jika Executor mendukung)
+local function CreateDraw(type, properties)
+    if not Drawing then return nil end
+    local obj = Drawing.new(type)
+    for prop, val in pairs(properties) do
+        obj[prop] = val
+    end
+    return obj
+end
+
+-- Simpan Data Objek ESP Terbuat
+local ESPCache = {}
+
+local function ApplyChams(char, enable)
+    local highlight = char:FindFirstChild("AR_Cham")
+    if enable then
+        if not highlight then
+            highlight = Instance.new("Highlight")
+            highlight.Name = "AR_Cham"
+            highlight.FillColor = _G.Config.Theme.Accent
+            highlight.FillTransparency = 0.5
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = char
+            highlight.Parent = char
+        end
+    else
+        if highlight then highlight:Destroy() end
+    end
+end
+
+local function CreateESP(player)
+    if ESPCache[player] then return end
+    
+    local objects = {
+        Box = CreateDraw("Square", {Thickness = 1.5, Filled = false, Color = _G.Config.Theme.Accent, Visible = false}),
+        Tracer = CreateDraw("Line", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255), Visible = false}),
+        Text = CreateDraw("Text", {Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255), Visible = false})
+    }
+    ESPCache[player] = objects
+end
+
+local function RemoveESP(player)
+    if ESPCache[player] then
+        for _, obj in pairs(ESPCache[player]) do obj:Destroy() end
+        ESPCache[player] = nil
+    end
+end
+
+-- Inisialisasi Pendaftar ESP Pemain
+for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
+Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then CreateESP(p) end end)
+Players.PlayerRemoving:Connect(function(p) RemoveESP(p) end)
+
+-- UI Toggles untuk Kontrol Fitur
+AddToggle(TargetTab3, "Box ESP (Kotak Target)", false, function(state) VisualVars.BoxESP = state end)
+AddToggle(TargetTab3, "Tracer ESP (Garis Deteksi)", false, function(state) VisualVars.Tracers = state end)
+AddToggle(TargetTab3, "Name ESP (Nama Pemain)", false, function(state) VisualVars.Names = state end)
+AddToggle(TargetTab3, "Distance ESP (Jarak Teks)", false, function(state) VisualVars.Distance = state end)
+AddToggle(TargetTab3, "Health Bar ESP", false, function(state) VisualVars.HealthBar = state end)
+AddToggle(TargetTab3, "Chams / Wallhack (Glow Body)", false, function(state) VisualVars.Chams = state end)
+AddToggle(TargetTab3, "NPC / Monster ESP", false, function(state) VisualVars.NpcESP = state end)
+AddToggle(TargetTab3, "Item / Chest ESP", false, function(state) VisualVars.ItemESP = state end)
+
+AddSlider(TargetTab3, "Custom Field Of View", 50, 140, 70, function(val)
+    VisualVars.CustomFOV = val
+    Camera.FieldOfView = val
+end)
+
+AddToggle(TargetTab3, "Fullbright (Tanpa Gelap)", false, function(state)
+    VisualVars.Fullbright = state
+    if state then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    else
+        Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    end
+end)
+
+AddToggle(TargetTab3, "X-Ray Mode (Tembus Pandang Map)", false, function(state)
+    VisualVars.XRay = state
+    for _, part in pairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) and not Players:GetPlayerFromCharacter(part.Parent) then
+            part.LocalTransparencyModifier = state and 0.6 or 0
+        end
+    end
+end)
+
+AddToggle(TargetTab3, "No Fog (Hapus Kabut)", false, function(state)
+    VisualVars.NoFog = state
+    if state then
+        Lighting.FogStart = 9e9
+        Lighting.FogEnd = 9e9
+    else
+        Lighting.FogStart = VisualVars.OriginalFogStart
+        Lighting.FogEnd = VisualVars.OriginalFogEnd
+    end
+end)
+
+AddToggle(TargetTab3, "Force Third Person View", false, function(state)
+    VisualVars.ThirdPerson = state
+    LocalPlayer.CameraMode = state and Enum.CameraMode.Classic or Enum.CameraMode.LockFirstPerson
+end)
+
+-- ====================================================================
+-- VISUAL UPDATE RENDER LOOP
+-- ====================================================================
+RunService.RenderStepped:Connect(function()
+    Camera.FieldOfView = VisualVars.CustomFOV
+    
+    if VisualVars.ThirdPerson then
+        LocalPlayer.CameraMaxZoomDistance = 30
+        LocalPlayer.CameraMinZoomDistance = 10
+    end
+
+    -- Loop Menggambar Player ESP
+    for player, drawObj in pairs(ESPCache) do
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+            local root = char.HumanoidRootPart
+            local hum = char.Humanoid
+            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            
+            -- Hitung Batasan Box 2D Berdasarkan Jarak
+            local scale = 1 / (pos.Z * 2) * 100
+            local w, h = 20 * scale, 30 * scale
+            
+            -- 27. Handle Box ESP
+            if VisualVars.BoxESP and onScreen then
+                drawObj.Box.Size = Vector2.new(w, h)
+                drawObj.Box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
+                drawObj.Box.Color = VisualVars.HealthBar and Color3.fromHSV(hum.Health/hum.MaxHealth * 0.3, 1, 1) or _G.Config.Theme.Accent
+                drawObj.Box.Visible = true
+            else
+                drawObj.Box.Visible = false
+            end
+            
+            -- 28. Handle Tracer ESP
+            if VisualVars.Tracers and onScreen then
+                drawObj.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                drawObj.Tracer.To = Vector2.new(pos.X, pos.Y)
+                drawObj.Tracer.Visible = true
+            else
+                drawObj.Tracer.Visible = false
+            end
+            
+            -- 29 & 30. Handle Teks Nama & Jarak
+            if (VisualVars.Names or VisualVars.Distance) and onScreen then
+                local infoStr = ""
+                if VisualVars.Names then infoStr = infoStr .. player.Name end
+                if VisualVars.Distance then 
+                    local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude)
+                    infoStr = infoStr .. " [" .. dist .. "s]"
+                end
+                drawObj.Text.Text = infoStr
+                drawObj.Text.Position = Vector2.new(pos.X, pos.Y - h/2 - 15)
+                drawObj.Text.Visible = true
+            else
+                drawObj.Text.Visible = false
+            end
+            
+            -- 32. Handle Chams
+            if VisualVars.Chams then ApplyChams(char, true) else ApplyChams(char, false) end
+        else
+            drawObj.Box.Visible = false
+            drawObj.Tracer.Visible = false
+            drawObj.Text.Visible = false
+            if char then ApplyChams(char, false) end
+        end
+    end
+    
+    -- 34. Handle NPC/Monster ESP (Cari Model di Workspace yang punya Humanoid tapi bukan Player)
+    if VisualVars.NpcESP then
+        for _, model in pairs(Workspace:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(model) then
+                local r = model:FindFirstChild("HumanoidRootPart")
+                if r then
+                    local p, onS = Camera:WorldToViewportPoint(r.Position)
+                    if onS then
+                        -- Logika Visualisasi Instan NPC via Box/Highlight Klien
+                        ApplyChams(model, true)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+ShowNotification("Visuals Engine Active", "ESP & Drawing Components Registered.", 3)
+
+-- ====================================================================
+-- AR ULTIMATE HUB - DEPLOY 5: COMBAT & AIM ASSIST MODULE
+-- ====================================================================
+
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+
+local CombatVars = {
+    Aimbot = false,
+    SilentAim = false,
+    FovCircle = false,
+    FovRadius = 100,
+    TeamCheck = true,
+    WallCheck = true,
+    NoRecoil = false,
+    NoSpread = false,
+    HitboxExpander = false,
+    HitboxSize = 2,
+    KillAura = false,
+    KillAuraRadius = 15,
+    TargetPart = "Head" -- Pilihan part target: Head / Torso / HumanoidRootPart
+}
+
+local TargetTab4 = TabFrames["Combat"]
+
+-- Pembuat Lingkaran FOV (Visualisasi Batas Kerja Target)
+local CircleInstance = CreateDraw("Circle", {
+    Thickness = 1,
+    Color = _G.Config.Theme.Accent,
+    NumSides = 60,
+    Filled = false,
+    Visible = false
+})
+
+-- UI Elements Configuration
+AddToggle(TargetTab4, "Camera Aimbot (Lock Kamera)", false, function(state) CombatVars.Aimbot = state end)
+AddToggle(TargetTab4, "Silent Aim (Manipulasi Peluru)", false, function(state) CombatVars.SilentAim = state end)
+AddToggle(TargetTab4, "Tampilkan Lingkaran FOV", false, function(state) CombatVars.FovCircle = state end)
+AddSlider(TargetTab4, "Radius Jangkauan FOV", 30, 400, 100, function(val) CombatVars.FovRadius = val end)
+AddToggle(TargetTab4, "Team Check (Abaikan Kawan)", true, function(state) CombatVars.TeamCheck = state end)
+AddToggle(TargetTab4, "Wall Check (Deteksi Dinding)", true, function(state) CombatVars.WallCheck = state end)
+AddDropdown(TargetTab4, "Bagian Tubuh Target", {"Head", "Torso", "HumanoidRootPart"}, function(selected) CombatVars.TargetPart = selected end)
+
+AddToggle(TargetTab4, "No Recoil System (Klien)", false, function(state) CombatVars.NoRecoil = state end)
+AddToggle(TargetTab4, "No Spread System (Klien)", false, function(state) CombatVars.NoSpread = state end)
+
+AddToggle(TargetTab4, "Hitbox Expander (Perbesar Musuh)", false, function(state) CombatVars.HitboxExpander = state end)
+AddSlider(TargetTab4, "Ukuran Hitbox Musuh", 2, 30, 2, function(val) CombatVars.HitboxSize = val end)
+
+AddToggle(TargetTab4, "Kill Aura (Auto Serang Dekat)", false, function(state) CombatVars.KillAura = state end)
+AddSlider(TargetTab4, "Radius Kill Aura (Studs)", 5, 50, 15, function(val) CombatVars.KillAuraRadius = val end)
+
+
+-- Helper Function: Mengecek apakah target terhalang dinding
+local function IsBehindWall(targetPart)
+    if not CombatVars.WallCheck then return false end
+    local castParts = Camera:GetPartsObscuringTarget({Camera.CFrame.Position, targetPart.Position}, {LocalPlayer.Character, targetPart.Parent})
+    return #castParts > 0
+end
+
+-- Helper Function: Mencari target terdekat berdasarkan posisi kursor layar
+local function GetClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Jalankan validasi TeamCheck
+            if not CombatVars.TeamCheck or player.Team ~= LocalPlayer.Team then
+                local char = player.Character
+                if char and char:FindFirstChild(CombatVars.TargetPart) and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+                    local targetPart = char[CombatVars.TargetPart]
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                    
+                    if onScreen then
+                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        -- Cek apakah target masuk ke dalam lingkaran batas FOV
+                        if distance < shortestDistance and distance <= CombatVars.FovRadius then
+                            if not IsBehindWall(targetPart) then
+                                shortestDistance = distance
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- ====================================================================
+-- SILENT AIM HOOK ENGINE (Metatable Modification)
+-- ====================================================================
+local gmt = getrawmetatable and getrawmetatable(game)
+if gmt and setreadonly then
+    setreadonly(gmt, false)
+    local oldNamecall = gmt.__namecall
+    
+    gmt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        -- Memanipulasi fungsi pencarian target/arah peluru game jika Silent Aim aktif
+        if CombatVars.SilentAim and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
+            local targetPlayer = GetClosestPlayerToCursor()
+            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(CombatVars.TargetPart) then
+                -- Menyisipkan properti koordinat target palsu ke arah peluru asli game
+                return targetPlayer.Character[CombatVars.TargetPart], targetPlayer.Character[CombatVars.TargetPart].Position, Vector3.new(0,0,0), targetPlayer.Character[CombatVars.TargetPart].Material
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(gmt, true)
+end
+
+-- ====================================================================
+-- COMBAT MAIN LOOPS & AUTOMATION
+-- ====================================================================
+RunService.RenderStepped:Connect(function()
+    -- Mengatur Tampilan Visual Lingkaran FOV
+    if CircleInstance then
+        CircleInstance.Visible = CombatVars.FovCircle
+        CircleInstance.Radius = CombatVars.FovRadius
+        CircleInstance.Position = UserInputService:GetMouseLocation()
+    end
+    
+    -- 42. Menangani Kamera Lock Aimbot (Saat Mouse Klik Kanan Ditekan)
+    if CombatVars.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local targetPlayer = GetClosestPlayerToCursor()
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(CombatVars.TargetPart) then
+            local targetPos = targetPlayer.Character[CombatVars.TargetPart].Position
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+        end
+    end
+    
+    -- 53. Menangani Pembesaran Ukuran Hitbox Musuh Secera Dinamis
+    if CombatVars.HitboxExpander then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and (not CombatVars.TeamCheck or p.Team ~= LocalPlayer.Team) then
+                local char = p.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    root.Size = Vector3.new(CombatVars.HitboxSize, CombatVars.HitboxSize, CombatVars.HitboxSize)
+                    root.Transparency = 0.7
+                    root.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- 54. Menangani Otomatisasi Kill Aura (Menyerang Pemain Sekitar)
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if CombatVars.KillAura and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local myRoot = LocalPlayer.Character.HumanoidRootPart
+            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            
+            if tool then -- Memastikan karakter memegang senjata/alat serang
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and (not CombatVars.TeamCheck or player.Team ~= LocalPlayer.Team) then
+                        local char = player.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+                            local enemyRoot = char.HumanoidRootPart
+                            local distance = (myRoot.Position - enemyRoot.Position).Magnitude
+                            
+                            if distance <= CombatVars.KillAuraRadius then
+                                -- Memicu fungsi aktif senjata (Mengirimkan sinyal serangan client secara lokal)
+                                tool:Activate()
+                                firetouchinterest(myRoot, enemyRoot, 0) -- Bypass deteksi sentuhan jika didukung executor
+                                firetouchinterest(myRoot, enemyRoot, 1)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+ShowNotification("Combat Module Active", "Aimbot, Silent Aim, and Combat Assist Installed.", 3)
+
+-- ====================================================================
+-- AR ULTIMATE HUB - DEPLOY 6: AUTOMATION & UTILITY ENGINE
+-- ====================================================================
+
+local VirtualUser = game:GetService("VirtualUser")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TestService = game:GetService("TestService")
+
+local UtilVars = {
+    AutoClick = false, AutoClickInterval = 0.1,
+    AutoJoinTeam = false, TargetTeamName = "Bright Green",
+    AutoSpawn = false,
+    AutoEquip = false, ToolName = "",
+    AutoEat = false,
+    AutoBuy = false, BuyItemName = "",
+    AntiAFK = true,
+    ChatSpam = false, SpamMessage = "AR Ultimate Hub User!", SpamInterval = 3,
+    BypassChat = false,
+    PotatoPC = false,
+    RemoteLog = false
+}
+
+local TargetTab5 = TabFrames["Automation"]
+local TargetTab6 = TabFrames["Utility"]
+
+-- ====================================================================
+-- TAB 5: AUTOMATION CONTROLS (Fitur 55 - 62)
+-- ====================================================================
+AddToggle(TargetTab5, "Auto Clicker Screen", false, function(state) UtilVars.AutoClick = state end)
+AddSlider(TargetTab5, "Jeda Clicker (0.1s - 5s)", 1, 50, 1, function(val) UtilVars.AutoClickInterval = val / 10 end)
+
+AddToggle(TargetTab5, "Auto Join Selected Team", false, function(state) UtilVars.AutoJoinTeam = state end)
+AddDropdown(TargetTab5, "Pilih Tim Default", {"Bright Green", "Bright Red", "Bright Blue", "White"}, function(selected) UtilVars.TargetTeamName = selected end)
+
+AddToggle(TargetTab5, "Auto Spawn on Death", false, function(state) UtilVars.AutoSpawn = state end)
+AddToggle(TargetTab5, "Auto Equip All Tools", false, function(state) UtilVars.AutoEquip = state end)
+AddToggle(TargetTab5, "Auto Eat Foods / Items", false, function(state) UtilVars.AutoEat = state end)
+
+AddToggle(TargetTab5, "Anti-AFK (20 Mins Disconnect Bypass)", true, function(state) UtilVars.AntiAFK = state end)
+
+AddToggle(TargetTab5, "Chat Spammer Active", false, function(state) UtilVars.ChatSpam = state end)
+AddSlider(TargetTab5, "Interval Chat Spam (detik)", 1, 10, 3, function(val) UtilVars.SpamInterval = val end)
+
+-- ====================================================================
+-- TAB 6: UTILITY & DATA MINING CONTROLS (Fitur 63 - 80)
+-- ====================================================================
+AddButton(TargetTab6, "Client-Side Tool Giver (Clone Storage)", function()
+    local inventory = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if inventory then
+        for _, item in pairs(ReplicatedStorage:GetDescendants()) do
+            if item:IsA("Tool") then
+                local clone = item:Clone()
+                clone.Parent = inventory
+            end
+        end
+        ShowNotification("Tool Giver", "Cloned available storage tools locally.", 3)
+    end
+end)
+
+AddButton(TargetTab6, "Copy Discord Link to Clipboard", function()
+    if setclipboard then
+        setclipboard("https://discord.gg/ar-ultimate-hub")
+        ShowNotification("Success", "Copied server link to clipboard!", 2)
+    else
+        ShowNotification("Failed", "Executor doesn't support clipboard functionality.", 3)
+    end
+end)
+
+AddToggle(TargetTab6, "Bypass Filter Chat (Symbol Mix)", false, function(state) UtilVars.BypassChat = state end)
+
+AddToggle(TargetTab6, "Potato PC Mode (Anti-Lag Rendering)", false, function(state)
+    UtilVars.PotatoPC = state
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if state then
+                if not obj:GetAttribute("OrigMat") then obj:SetAttribute("OrigMat", obj.Material.Name) end
+                obj.Material = Enum.Material.SmoothPlastic
+            else
+                local orig = obj:GetAttribute("OrigMat")
+                if orig then obj.Material = Enum.Material[orig] end
+            end
+        elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("ParticleEmitter") then
+            obj.Enabled = not state
+        end
+    end
+    if state then ShowNotification("Lag Optimizer", "Textures and materials simplified.", 3) end
+end)
+
+AddToggle(TargetTab6, "Remote Event Logger (Console Log)", false, function(state)
+    UtilVars.RemoteLog = state
+    if state then ShowNotification("Logger Active", "Check client console (F9) to read network activity.", 3) end
+end)
+
+AddButton(TargetTab6, "Launch Dex Explorer (Spy Tool)", function()
+    -- Mengambil instance Dark Dex Explorer yang aman dan stabil dari repositori publik
+    ShowNotification("Dex Spawner", "Injecting environment explorer...", 3)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/infyOm/Functional/main/Dex"))()
+    end)
+end)
+
+-- Custom Encryption Engine (Fitur Pengamanan XOR Script)
+local function CustomXORCipher(data, key)
+    local output = {}
+    for i = 1, #data do
+        local byte = string.byte(data, i)
+        local keyByte = string.byte(key, ((i - 1) % #key) + 1)
+        table.insert(output, string.char(bit32.bxor(byte, keyByte)))
+    end
+    return table.concat(output)
+end
+
+AddButton(TargetTab6, "Save & Crypt Current Configuration", function()
+    SaveConfig() -- Menyimpan state konfigurasi JSON via Core Framework
+    local encData = CustomXORCipher(HttpService:JSONEncode(_G.Config), "AR_KEY_SECURE")
+    if writefile then
+        writefile("AR_Ultimate_Config_Encrypted.dat", encData)
+        ShowNotification("Encryption Engine", "Configuration encrypted and backed up.", 3)
+    end
+end)
+
+-- ====================================================================
+-- INDEPENDENT PROCESS THREADS (Looping Pemantau Aksi Otomatis)
+-- ====================================================================
+
+-- 55. Penanganan Auto Clicker
+task.spawn(function()
+    while true do
+        task.wait(UtilVars.AutoClickInterval)
+        if UtilVars.AutoClick then
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton1(Vector2.new(100, 100)) -- Simulasi ketukan input pada koordinat viewport klien
+        end
+    end
+end)
+
+-- 56 & 57. Penanganan Auto Join Team & Auto Spawn
+LocalPlayer.CharacterAdding:Connect(function(char)
+    if UtilVars.AutoJoinTeam and LocalPlayer.Team.Name ~= UtilVars.TargetTeamName then
+        local tObj = game:GetService("Teams"):FindFirstChild(UtilVars.TargetTeamName)
+        if tObj then LocalPlayer.Team = tObj end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if UtilVars.AutoSpawn and LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if not hum or hum.Health <= 0 then
+                -- Meniru trigger tombol deploy ulang game jika dalam kondisi eliminasi
+                local spawnEvent = ReplicatedStorage:FindFirstChild("SpawnEvent") or ReplicatedStorage:FindFirstChild("DeployRemote")
+                if spawnEvent and spawnEvent:IsA("RemoteEvent") then spawnEvent:FireServer() end
+            end
+        end
+    end
+end)
+
+-- 58 & 59. Penanganan Auto Equip Tools & Auto Eat Items
+RunService.Stepped:Connect(function()
+    if UtilVars.AutoEquip and LocalPlayer.Character then
+        local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
+        if bp then
+            for _, tool in pairs(bp:GetChildren()) do
+                if tool:IsA("Tool") then tool.Parent = LocalPlayer.Character end
+            end
+        end
+    end
+    
+    if UtilVars.AutoEat and LocalPlayer.Character then
+        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
+            if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "food") or string.find(string.lower(tool.Name), "potion") or string.find(string.lower(tool.Name), "eat")) then
+                tool:Activate()
+            end
+        end
+    end
+end)
+
+-- 61. Penanganan Sistem Anti-AFK (Bypass Pemutusan Koneksi 20 Menit Roblox)
+LocalPlayer.Idled:Connect(function()
+    if UtilVars.AntiAFK then
+        VirtualUser:Button2Down(Vector2.new(0, 0), Camera.CFrame)
+        task.wait(0.5)
+        VirtualUser:Button2Up(Vector2.new(0, 0), Camera.CFrame)
+    end
+end)
+
+-- 62. Penanganan Chat Spammer & 65. Bypass Filter
+task.spawn(function()
+    while true do
+        task.wait(UtilVars.SpamInterval)
+        if UtilVars.ChatSpam then
+            local finalMsg = UtilVars.SpamMessage
+            if UtilVars.BypassChat then
+                -- Contoh pengacak karakter sederhana untuk memecah deteksi filter chat Roblox
+                finalMsg = string.gsub(finalMsg, "a", "а") -- Mengganti huruf latin ke Cyrillic homoglyph
+                finalMsg = string.gsub(finalMsg, "e", "е")
+            end
+            
+            local chatEvent = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") and ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
+            if chatEvent and chatEvent:IsA("RemoteEvent") then
+                chatEvent:FireServer(finalMsg, "All")
+            else
+                game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(finalMsg)
+            end
+        end
+    end
+end)
+
+-- 70. Penanganan Jaringan Remote Event Logger Analisator
+local oldFireServer
+oldFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, newcclosure(function(self, ...)
+    if UtilVars.RemoteLog then
+        local args = {...}
+        print("[REMOTE LOGGER] Fired RemoteEvent Name: " .. tostring(self.Name) .. " | Path: " .. tostring(self:GetFullName()))
+        if #args > 0 then
+            for i, arg in pairs(args) do
+                print("   -> Argument [" .. i .. "]: (" .. type(arg) .. ") = " .. tostring(arg))
+            end
+        end
+    end
+    return oldFireServer(self, ...)
+end))
+
+ShowNotification("All Modules Deployed", "AR Ultimate Hub v1.0 is fully assembled and operational!", 5)
