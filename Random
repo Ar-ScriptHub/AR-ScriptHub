@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR ULTIMATE MULTI-HACK HUB - v1.0 (FULL UNIFIED EDITION)
+-- AR ULTIMATE MULTI-HACK HUB - v1.0
 -- ====================================================================
 
 local Players = game:GetService("Players")
@@ -840,3 +840,11 @@ task.spawn(function()
 end)
 
 ShowNotification("Engine Ready", "All 80 Elements loaded successfully!", 4)
+
+-- PAKSA MUNCULKAN UI (BYPASS KEY SYSTEM)
+if MainFrame and ToggleButton then
+    MainFrame.Visible = true
+    ToggleButton.Visible = false
+    -- Mengatur ukuran default frame utama agar tidak bug
+    MainFrame.Size = UDim2.new(0, 560, 0, 340) -- 
+end
