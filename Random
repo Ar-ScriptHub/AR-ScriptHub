@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR ULTIMATE MULTI-HACK HUB - v1.0 (CORE FRAMEWORK)
+-- AR ULTIMATE MULTI-HACK HUB - v1.0 (FULL UNIFIED EDITION)
 -- ====================================================================
 
 local Players = game:GetService("Players")
@@ -9,6 +9,12 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
 -- Global Configuration & State
 local UI_Visible = true
@@ -31,7 +37,7 @@ _G.Config = {
 local ConfigFileName = "AR_Ultimate_Hub_Config.json"
 local function SaveConfig()
     if writefile then
-        local success, result = pcall(function()
+        pcall(function()
             local json = HttpService:JSONEncode(_G.Config)
             writefile(ConfigFileName, json)
         end)
@@ -40,12 +46,10 @@ end
 
 local function LoadConfig()
     if isfile and isfile(ConfigFileName) then
-        local success, result = pcall(function()
+        pcall(function()
             local json = readfile(ConfigFileName)
             local data = HttpService:JSONDecode(json)
-            for k, v in pairs(data) do
-                _G.Config[k] = v
-            end
+            for k, v in pairs(data) do _G.Config[k] = v end
         end)
     end
 end
@@ -107,9 +111,9 @@ local function ShowNotification(title, message, duration)
     
     TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, NotifFrame.Position.Y.Offset)}):Play()
     
-    delay(duration, function()
+    task.delay(duration, function()
         TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 10, 0, NotifFrame.Position.Y.Offset)}):Play()
-        wait(0.3)
+        task.wait(0.3)
         NotifFrame:Destroy()
     end)
 end
@@ -141,9 +145,7 @@ MainFrame.InputBegan:Connect(function(input)
         dragStart = input.Position
         startPos = MainFrame.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
@@ -155,9 +157,7 @@ MainFrame.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
+    if input == dragInput and dragging then update(input) end
 end)
 
 -- Toggle Menu Handling
@@ -183,7 +183,6 @@ SidebarCover.Position = UDim2.new(1, -15, 0, 0)
 SidebarCover.BackgroundColor3 = _G.Config.Theme.SidebarBg
 SidebarCover.BorderSizePixel = 0
 
--- UI Brand Header
 local BrandLabel = Instance.new("TextLabel", Sidebar)
 BrandLabel.Size = UDim2.new(1, 0, 0, 40)
 BrandLabel.Text = "AR ULTIMATE HUB"
@@ -192,7 +191,6 @@ BrandLabel.TextSize = 13
 BrandLabel.TextColor3 = _G.Config.Theme.Accent
 BrandLabel.BackgroundTransparency = 1
 
--- Containers for Tabs
 local ContainerLayout = Instance.new("Frame", MainFrame)
 ContainerLayout.Size = UDim2.new(1, -150, 1, -50)
 ContainerLayout.Position = UDim2.new(0, 145, 0, 45)
@@ -202,11 +200,9 @@ local TabButtonsList = Instance.new("UIListLayout", Sidebar)
 TabButtonsList.Padding = UDim.new(0, 2)
 TabButtonsList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Utility UI Builders
-local Tabs = {}
 local TabFrames = {}
 
-function CreateTab(name, layoutOrder)
+local function CreateTab(name, layoutOrder)
     local TabBtn = Instance.new("TextButton", Sidebar)
     TabBtn.Size = UDim2.new(1, -10, 0, 30)
     TabBtn.Position = UDim2.new(0, 5, 0, 0)
@@ -248,8 +244,8 @@ function CreateTab(name, layoutOrder)
     return ContentFrame
 end
 
--- Element Builders inside Tabs
-function AddToggle(parent, text, default, callback)
+-- UI Element Builders
+local function AddToggle(parent, text, default, callback)
     local ToggleFrame = Instance.new("Frame", parent)
     ToggleFrame.Size = UDim2.new(1, -10, 0, 35)
     ToggleFrame.BackgroundColor3 = _G.Config.Theme.CardBg
@@ -288,7 +284,7 @@ function AddToggle(parent, text, default, callback)
     end)
 end
 
-function AddSlider(parent, text, min, max, default, callback)
+local function AddSlider(parent, text, min, max, default, callback)
     local SliderFrame = Instance.new("Frame", parent)
     SliderFrame.Size = UDim2.new(1, -10, 0, 45)
     SliderFrame.BackgroundColor3 = _G.Config.Theme.CardBg
@@ -339,24 +335,17 @@ function AddSlider(parent, text, min, max, default, callback)
     end
     
     SliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            moveSlider = true
-            updateSlider(input)
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then moveSlider = true; updateSlider(input) end
     end)
     SliderBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            moveSlider = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then moveSlider = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if moveSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateSlider(input)
-        end
+        if moveSlider and input.UserInputType == Enum.UserInputType.MouseMovement then updateSlider(input) end
     end)
 end
 
-function AddButton(parent, text, callback)
+local function AddButton(parent, text, callback)
     local ButtonFrame = Instance.new("TextButton", parent)
     ButtonFrame.Size = UDim2.new(1, -10, 0, 32)
     ButtonFrame.BackgroundColor3 = _G.Config.Theme.CardBg
@@ -367,19 +356,16 @@ function AddButton(parent, text, callback)
     Instance.new("UICorner", ButtonFrame).CornerRadius = UDim.new(0, 5)
     Instance.new("UIStroke", ButtonFrame).Color = _G.Config.Theme.Stroke
     
-    ButtonFrame.MouseButton1Click:Connect(function()
-        pcall(callback)
-    end)
+    ButtonFrame.MouseButton1Click:Connect(function() pcall(callback) end)
 end
 
-function AddDropdown(parent, text, options, callback)
+local function AddDropdown(parent, text, options, callback)
     local DropdownFrame = Instance.new("Frame", parent)
     DropdownFrame.Size = UDim2.new(1, -10, 0, 35)
     DropdownFrame.BackgroundColor3 = _G.Config.Theme.CardBg
     DropdownFrame.ClipsDescendants = true
     Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0, 5)
-    local Stroke = Instance.new("UIStroke", DropdownFrame)
-    Stroke.Color = _G.Config.Theme.Stroke
+    Instance.new("UIStroke", DropdownFrame).Color = _G.Config.Theme.Stroke
     
     local Label = Instance.new("TextLabel", DropdownFrame)
     Label.Size = UDim2.new(1, -40, 0, 35)
@@ -390,76 +376,7 @@ function AddDropdown(parent, text, options, callback)
     Label.TextColor3 = _G.Config.Theme.TextMain
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.BackgroundTransparency = 1
-
--- ====================================================================
--- AR ULTIMATE HUB - DEPLOY 3: TELEPORT & NAVIGATION MODULE
--- ====================================================================
-
-local TeleportService = game:GetService("TeleportService")
-local Mouse = LocalPlayer:GetMouse()
-
-local TeleportVars = {
-    TweenSpeed = 100,
-    SelectedPlayer = "",
-    Waypoints = {}
-}
-
-local TargetTab2 = TabFrames["Teleport"]
-
--- Fungsi Dasar Teleportasi Instan (Aman dari Void)
-local function InstantTP(targetCFrame)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
-    end
-end
-
--- Fungsi Dasar Tween TP (Teleportasi Halus / Anti-Cheat Bypass)
-local function TweenTP(targetCFrame)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local root = LocalPlayer.Character.HumanoidRootPart
-        local distance = (root.Position - targetCFrame.Position).Magnitude
-        local duration = distance / TeleportVars.TweenSpeed
-        
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
-        tween:Play()
-        return tween
-    end
-end
-
--- 18. Click TP Logic (Teleportasi ke Posisi Klik Mouse)
-local ClickTPActive = false
-AddToggle(TargetTab2, "Enable Click TP (Ctrl + Click)", false, function(state)
-    ClickTPActive = state
-end)
-
-Mouse.Button1Down:Connect(function()
-    if ClickTPActive and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-        if Mouse.Target then
-            InstantTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
-            ShowNotification("Click TP", "Teleported to mouse target location.", 2)
-        end
-    end
-end)
-
--- 19. Tween Speed Modifier Configuration
-AddSlider(TargetTab2, "Tween TP Speed (Studs/s)", 10, 500, 100, function(val)
-    TeleportVars.TweenSpeed = val
-end)
-
--- 20. Bring Player Logic (Membawa Objek yang Dikontrol Klien)
-AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local root = LocalPlayer.Character.HumanoidRootPart
-        local count = 0
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(LocalPlayer.Character) then
-                -- Membawa objek terdekat yang kepemilikan network-nya berada di pihak client kita
-                obj.CFrame = root.CFrame + Vector3.new(0, 2, 0)
-                count = count + 1
-            end
-        end
-        ShowNotification("Bring Objects", "Brought " .. count .. " physics parts
+    
     local OpenBtn = Instance.new("TextButton", DropdownFrame)
     OpenBtn.Size = UDim2.new(0, 30, 0, 35)
     OpenBtn.Position = UDim2.new(1, -35, 0, 0)
@@ -473,8 +390,7 @@ AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
     OptionsContainer.Size = UDim2.new(1, 0, 0, #options * 25)
     OptionsContainer.Position = UDim2.new(0, 0, 0, 35)
     OptionsContainer.BackgroundTransparency = 1
-    
-    local OptList = Instance.new("UIListLayout", OptionsContainer)
+    Instance.new("UIListLayout", OptionsContainer)
     
     for _, opt in pairs(options) do
         local OptBtn = Instance.new("TextButton", OptionsContainer)
@@ -501,7 +417,15 @@ AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
     end)
 end
 
--- Top Bar Stats (FPS & Ping View)
+-- Function drawing helper (Aman dari Environment Error)
+local function CreateDraw(type, properties)
+    if not Drawing then return nil end
+    local obj = Drawing.new(type)
+    for prop, val in pairs(properties) do obj[prop] = val end
+    return obj
+end
+
+-- Stats View
 local StatsFrame = Instance.new("Frame", MainFrame)
 StatsFrame.Size = UDim2.new(1, -150, 0, 40)
 StatsFrame.Position = UDim2.new(0, 145, 0, 0)
@@ -532,7 +456,7 @@ task.spawn(function()
     end)
 end)
 
--- Initializing Tabs Space Holders
+-- Initialize Tabs
 local Tab1 = CreateTab("Movement", 1)
 local Tab2 = CreateTab("Teleport", 2)
 local Tab3 = CreateTab("Visuals", 3)
@@ -540,587 +464,336 @@ local Tab4 = CreateTab("Combat", 4)
 local Tab5 = CreateTab("Automation", 5)
 local Tab6 = CreateTab("Utility", 6)
 
--- Open first tab by default
 TabFrames["Movement"].Visible = true
 Sidebar:FindFirstChild("  Movement").TextColor3 = _G.Config.Theme.Accent
 
-ShowNotification("Core Engine loaded", "Press RightControl to hide UI", 4)
-
 -- ====================================================================
--- AR ULTIMATE HUB - DEPLOY 3: TELEPORT & NAVIGATION MODULE
+-- INJEKSI LOGIKA MODUL 1: MOVEMENT MODULE
 -- ====================================================================
-
-local TeleportService = game:GetService("TeleportService")
-local Mouse = LocalPlayer:GetMouse()
-
-local TeleportVars = {
-    TweenSpeed = 100,
-    SelectedPlayer = "",
-    Waypoints = {}
+local MovVars = {
+    WalkSpeedVal = 16, WalkSpeedToggle = false, JumpPowerVal = 50, JumpPowerToggle = false,
+    InfJump = false, FlyToggle = false, FlySpeed = 50, Noclip = false, NoGravity = false,
+    HipHeightVal = 0, HipHeightToggle = false, AutoRotate = true, PlatformStandToggle = false,
+    SwimInAir = false, AntiRagdoll = false, InfOxygen = false, CustomGravityToggle = false,
+    CustomGravityVal = 196.2, SpinBotToggle = false, SpinBotSpeed = 30, VehicleSpeedToggle = false, VehicleSpeedVal = 50
 }
 
-local TargetTab2 = TabFrames["Teleport"]
-
--- Fungsi Dasar Teleportasi Instan (Aman dari Void)
-local function InstantTP(targetCFrame)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+AddToggle(Tab1, "Enable Custom WalkSpeed", false, function(state) MovVars.WalkSpeedToggle = state end)
+AddSlider(Tab1, "WalkSpeed Value", 16, 500, 16, function(val) MovVars.WalkSpeedVal = val end)
+AddToggle(Tab1, "Enable Custom JumpPower", false, function(state) MovVars.JumpPowerToggle = state end)
+AddSlider(Tab1, "JumpPower Value", 50, 500, 50, function(val) MovVars.JumpPowerVal = val end)
+AddToggle(Tab1, "Infinite Jump", false, function(state) MovVars.InfJump = state end)
+AddToggle(Tab1, "Fly (Melayang)", false, function(state) 
+    MovVars.FlyToggle = state 
+    if not state and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        for _, v in pairs(LocalPlayer.Character.HumanoidRootPart:GetChildren()) do
+            if v.Name == "FlyBV" or v.Name == "FlyBG" then v:Destroy() end
+        end
+        if LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false end
     end
+end)
+AddSlider(Tab1, "Fly Speed", 10, 300, 50, function(val) MovVars.FlySpeed = val end)
+AddToggle(Tab1, "Noclip (Tembus Dinding)", false, function(state) MovVars.Noclip = state end)
+AddToggle(Tab1, "No Gravity", false, function(state) 
+    MovVars.NoGravity = state 
+    Workspace.Gravity = state and 0 or (MovVars.CustomGravityToggle and MovVars.CustomGravityVal or 196.2) 
+end)
+AddToggle(Tab1, "Custom Gravity", false, function(state) 
+    MovVars.CustomGravityToggle = state 
+    if not MovVars.NoGravity then Workspace.Gravity = state and MovVars.CustomGravityVal or 196.2 end 
+end)
+AddSlider(Tab1, "Gravity Value", 0, 500, 196, function(val) 
+    MovVars.CustomGravityVal = val 
+    if MovVars.CustomGravityToggle and not MovVars.NoGravity then Workspace.Gravity = val end 
+end)
+AddToggle(Tab1, "Modify HipHeight", false, function(state) 
+    MovVars.HipHeightToggle = state 
+    if not state and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then LocalPlayer.Character:FindFirstChildOfClass("Humanoid").HipHeight = 0 end
+end)
+AddSlider(Tab1, "HipHeight Offset", -5, 50, 0, function(val) MovVars.HipHeightVal = val end)
+AddToggle(Tab1, "Character Auto Rotate", true, function(state) MovVars.AutoRotate = state end)
+AddButton(Tab1, "Toggle Sit Position", function() if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit = not LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit end end)
+AddToggle(Tab1, "Platform Stand (Kaku)", false, function(state) MovVars.PlatformStandToggle = state end)
+AddToggle(Tab1, "Swim in Air", false, function(state) MovVars.SwimInAir = state end)
+AddToggle(Tab1, "Anti-Ragdoll", false, function(state) MovVars.AntiRagdoll = state end)
+AddToggle(Tab1, "Infinite Oxygen", false, function(state) MovVars.InfOxygen = state end)
+AddToggle(Tab1, "Spin Bot (Berputar)", false, function(state) MovVars.SpinBotToggle = state end)
+AddSlider(Tab1, "Spin Speed", 10, 200, 30, function(val) MovVars.SpinBotSpeed = val end)
+AddToggle(Tab1, "Enable Vehicle Speed Boost", false, function(state) MovVars.VehicleSpeedToggle = state end)
+AddSlider(Tab1, "Vehicle Velocity", 10, 500, 50, function(val) MovVars.VehicleSpeedVal = val end)
+
+UserInputService.JumpRequest:Connect(function()
+    if MovVars.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if MovVars.Noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    if MovVars.WalkSpeedToggle then hum.WalkSpeed = MovVars.WalkSpeedVal end
+    if MovVars.JumpPowerToggle then hum.UseJumpPower = true; hum.JumpPower = MovVars.JumpPowerVal end
+    if MovVars.HipHeightToggle then hum.HipHeight = MovVars.HipHeightVal end
+    hum.AutoRotate = MovVars.AutoRotate
+    if MovVars.PlatformStandToggle then hum.PlatformStand = true end
+    if MovVars.SwimInAir then hum:ChangeState(Enum.HumanoidStateType.Swimming) end
+    if MovVars.AntiRagdoll then
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    end
+    if MovVars.InfOxygen and char:FindFirstChild("DrowningScript") then char.DrowningScript.Disabled = true end
+    
+    if MovVars.FlyToggle then
+        local bv = root:FindFirstChild("FlyBV") or Instance.new("BodyVelocity", root)
+        local bg = root:FindFirstChild("FlyBG") or Instance.new("BodyGyro", root)
+        bv.Name = "FlyBV"; bg.Name = "FlyBG"
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.CFrame = Camera.CFrame
+        local dir = Vector3.new(0, 0, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
+        bv.Velocity = dir.Unit * MovVars.FlySpeed
+        if dir == Vector3.new(0,0,0) then bv.Velocity = Vector3.new(0,0,0) end
+    end
+    if MovVars.SpinBotToggle then root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(MovVars.SpinBotSpeed), 0) end
+    if MovVars.VehicleSpeedToggle and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+        hum.SeatPart.MaxSpeed = MovVars.VehicleSpeedVal
+        hum.SeatPart.Velocity = hum.SeatPart.CFrame.LookVector * (hum.SeatPart.Throttle * MovVars.VehicleSpeedVal)
+    end
+end)
+
+-- ====================================================================
+-- INJEKSI LOGIKA MODUL 2: TELEPORT MODULE
+-- ====================================================================
+local TPVars = { TweenSpeed = 100, SelectedPlayer = "", Waypoints = {} }
+local ClickTPActive = false
+
+local function InstantTP(targetCFrame)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame end
 end
 
--- Fungsi Dasar Tween TP (Teleportasi Halus / Anti-Cheat Bypass)
 local function TweenTP(targetCFrame)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local root = LocalPlayer.Character.HumanoidRootPart
-        local distance = (root.Position - targetCFrame.Position).Magnitude
-        local duration = distance / TeleportVars.TweenSpeed
-        
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
-        tween:Play()
-        return tween
+        local dist = (root.Position - targetCFrame.Position).Magnitude
+        TweenService:Create(root, TweenInfo.new(dist / TPVars.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetCFrame}):Play()
     end
 end
 
--- 18. Click TP Logic (Teleportasi ke Posisi Klik Mouse)
-local ClickTPActive = false
-AddToggle(TargetTab2, "Enable Click TP (Ctrl + Click)", false, function(state)
-    ClickTPActive = state
+AddToggle(Tab2, "Enable Click TP (Ctrl + Click)", false, function(state) ClickTPActive = state end)
+AddSlider(Tab2, "Tween TP Speed", 10, 500, 100, function(val) TPVars.TweenSpeed = val end)
+AddButton(Tab2, "Bring Physical Parts", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(LocalPlayer.Character) then obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame end
+        end
+    end
 end)
+
+local pList = {}
+for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pList, p.Name) end end
+AddDropdown(Tab2, "Select Target Player", pList, function(selected) TPVars.SelectedPlayer = selected end)
+AddButton(Tab2, "Instant TP to Player", function()
+    local p = Players:FindFirstChild(TPVars.SelectedPlayer)
+    if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then InstantTP(p.Character.HumanoidRootPart.CFrame) end
+end)
+AddButton(Tab2, "Tween TP to Player", function()
+    local p = Players:FindFirstChild(TPVars.SelectedPlayer)
+    if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then TweenTP(p.Character.HumanoidRootPart.CFrame) end
+end)
+AddButton(Tab2, "Save Waypoint", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        table.insert(TPVars.Waypoints, LocalPlayer.Character.HumanoidRootPart.CFrame)
+        ShowNotification("Waypoints", "Location Saved!", 2)
+    end
+end)
+AddButton(Tab2, "Teleport to Last Waypoint", function() if #TPVars.Waypoints > 0 then InstantTP(TPVars.Waypoints[#TPVars.Waypoints]) end end)
+AddButton(Tab2, "TP to Map Spawn", function() local s = Workspace:FindFirstChildOfClass("SpawnLocation"); if s then InstantTP(s.CFrame + Vector3.new(0,4,0)) end end)
+AddButton(Tab2, "Execute Server Hop", function()
+    pcall(function()
+        local servers = HttpService:JSONEncode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        for _, s in pairs(HttpService:JSONDecode(servers).data) do
+            if s.playing < s.maxPlayers and s.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer) end
+        end
+    end)
+end)
+AddButton(Tab2, "Rejoin Server", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end)
 
 Mouse.Button1Down:Connect(function()
-    if ClickTPActive and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-        if Mouse.Target then
-            InstantTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
-            ShowNotification("Click TP", "Teleported to mouse target location.", 2)
-        end
-    end
+    if ClickTPActive and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and Mouse.Target then InstantTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0,3,0))) end
 end)
-
--- 19. Tween Speed Modifier Configuration
-AddSlider(TargetTab2, "Tween TP Speed (Studs/s)", 10, 500, 100, function(val)
-    TeleportVars.TweenSpeed = val
-end)
-
--- 20. Bring Player Logic (Membawa Objek yang Dikontrol Klien)
-AddButton(TargetTab2, "Bring Unanchored Unowned Objects", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local root = LocalPlayer.Character.HumanoidRootPart
-        local count = 0
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(LocalPlayer.Character) then
-                -- Membawa objek terdekat yang kepemilikan network-nya berada di pihak client kita
-                obj.CFrame = root.CFrame + Vector3.new(0, 2, 0)
-                count = count + 1
-            end
-        end
-        ShowNotification("Bring Objects", "Brought " .. count .. " physics parts to you.", 3)
-    end
-end)
-
--- 21. Teleport To Player System
-local PlayerListOptions = {}
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then table.insert(PlayerListOptions, p.Name) end
-end
-
-AddDropdown(TargetTab2, "Select Target Player", PlayerListOptions, function(selected)
-    TeleportVars.SelectedPlayer = selected
-end)
-
-AddButton(TargetTab2, "Instant TP to Selected Player", function()
-    local targetP = Players:FindFirstChild(TeleportVars.SelectedPlayer)
-    if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
-        InstantTP(targetP.Character.HumanoidRootPart.CFrame)
-    else
-        ShowNotification("Error", "Player character not found or invalid.", 3)
-    end
-end)
-
-AddButton(TargetTab2, "Tween TP to Selected Player", function()
-    local targetP = Players:FindFirstChild(TeleportVars.SelectedPlayer)
-    if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
-        TweenTP(targetP.Character.HumanoidRootPart.CFrame)
-    else
-        ShowNotification("Error", "Player character not found or invalid.", 3)
-    end
-end)
-
--- 22. Waypoints System (Save/Load Koordinat Kustom)
-AddButton(TargetTab2, "Save Current Location (Waypoint)", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local currentCF = LocalPlayer.Character.HumanoidRootPart.CFrame
-        local wpName = "Waypoint_" .. (#TeleportVars.Waypoints + 1)
-        TeleportVars.Waypoints[wpName] = currentCF
-        ShowNotification("Waypoint Saved", "Location saved as: " .. wpName, 3)
-    end
-end)
-
-AddButton(TargetTab2, "Teleport to Last Saved Waypoint", function()
-    local wpName = "Waypoint_" .. #TeleportVars.Waypoints
-    if TeleportVars.Waypoints[wpName] then
-        InstantTP(TeleportVars.Waypoints[wpName])
-    else
-        ShowNotification("Error", "No saved waypoints found.", 3)
-    end
-end)
-
--- 23. Map Important Locations Teleport (Mencari Area Berdasarkan Nama Peta Umum)
-AddButton(TargetTab2, "TP to Map Center/SpawnPoint", function()
-    local spawn = Workspace:FindFirstChildOfClass("SpawnLocation")
-    if spawn then
-        InstantTP(spawn.CFrame + Vector3.new(0, 4, 0))
-    else
-        InstantTP(CFrame.new(0, 50, 0)) -- Koordinat default jika peta kosong
-    end
-end)
-
--- 24. Vehicle Teleportation System (Teleport Karakter Beserta Kendaraannya)
-AddButton(TargetTab2, "Teleport Vehicle to Last Waypoint", function()
-    if LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
-            local seat = hum.SeatPart
-            local model = seat:FindFirstAncestorOfClass("Model") or seat
-            local wpName = "Waypoint_" .. #TeleportVars.Waypoints
-            if TeleportVars.Waypoints[wpName] and model:FindFirstChild("HumanoidRootPart") or model:IsA("Model") then
-                model:MoveTo(TeleportVars.Waypoints[wpName].Position)
-                ShowNotification("Vehicle TP", "Vehicle relocated safely.", 3)
-            end
-        else
-            ShowNotification("Warning", "You must sit in a vehicle seat first!", 3)
-        end
-    end
-end)
-
--- 25. Server Hop System (Pencarian Otomatis Server Lain Secara Acak/Sepi)
-AddButton(TargetTab2, "Execute Server Hop", function()
-    ShowNotification("Server Hop", "Fetching servers listing...", 4)
-    local x = pcall(function()
-        local Http = game:GetService("HttpService")
-        local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-        local Raw = game:HttpGet(Api)
-        local Parsed = Http:JSONDecode(Raw)
-        local Servers = Parsed.data
-        for _, server in pairs(Servers) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-                break
-            end
-        end
-    end)
-    if not x then ShowNotification("Error", "Failed to hop server. API restricted.", 3) end
-end)
-
--- 26. Rejoin Current Server System
-AddButton(TargetTab2, "Rejoin Current Server", function()
-    ShowNotification("Rejoining", "Connecting back to instance...", 3)
-    pcall(function()
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-    end)
-end)
-
--- Update Dropdown Otomatis saat ada Pemain Masuk/Keluar
-Players.PlayerAdded:Connect(function(p)
-    if p ~= LocalPlayer then table.insert(PlayerListOptions, p.Name) end
-end)
-
-ShowNotification("Teleport Module Inserted", "Features 18 to 26 Active in Tab 2.", 3)
 
 -- ====================================================================
--- AR ULTIMATE HUB - DEPLOY 4: VISUALS & ESP DRAWING ENGINE
+-- INJEKSI LOGIKA MODUL 3: VISUALS MODULE
 -- ====================================================================
-
-local Lighting = game:GetService("Lighting")
-local Camera = Workspace.CurrentCamera
-
-local VisualVars = {
-    BoxESP = false,
-    Tracers = false,
-    Names = false,
-    Distance = false,
-    HealthBar = false,
-    Chams = false,
-    Skeleton = false,
-    NpcESP = false,
-    ItemESP = false,
-    CustomFOV = 70,
-    Fullbright = false,
-    XRay = false,
-    NoFog = false,
-    ThirdPerson = false,
-    OriginalFogStart = Lighting.FogStart,
-    OriginalFogEnd = Lighting.FogEnd
-}
-
-local TargetTab3 = TabFrames["Visuals"]
-
--- Helper Function: Membuat Objek Drawing 2D (Aman jika Executor mendukung)
-local function CreateDraw(type, properties)
-    if not Drawing then return nil end
-    local obj = Drawing.new(type)
-    for prop, val in pairs(properties) do
-        obj[prop] = val
-    end
-    return obj
-end
-
--- Simpan Data Objek ESP Terbuat
+local VisVars = { BoxESP = false, Tracers = false, Names = false, Distance = false, Chams = false, NpcESP = false, CustomFOV = 70, Fullbright = false, XRay = false, NoFog = false }
 local ESPCache = {}
 
 local function ApplyChams(char, enable)
-    local highlight = char:FindFirstChild("AR_Cham")
+    local h = char:FindFirstChild("AR_Cham")
     if enable then
-        if not highlight then
-            highlight = Instance.new("Highlight")
-            highlight.Name = "AR_Cham"
-            highlight.FillColor = _G.Config.Theme.Accent
-            highlight.FillTransparency = 0.5
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.OutlineTransparency = 0
-            highlight.Adornee = char
-            highlight.Parent = char
+        if not h then
+            h = Instance.new("Highlight", char); h.Name = "AR_Cham"
+            h.FillColor = _G.Config.Theme.Accent; h.FillTransparency = 0.5
         end
-    else
-        if highlight then highlight:Destroy() end
-    end
+    else if h then h:Destroy() end end
 end
 
-local function CreateESP(player)
-    if ESPCache[player] then return end
-    
-    local objects = {
+local function CreateESP(p)
+    if ESPCache[p] then return end
+    ESPCache[p] = {
         Box = CreateDraw("Square", {Thickness = 1.5, Filled = false, Color = _G.Config.Theme.Accent, Visible = false}),
-        Tracer = CreateDraw("Line", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255), Visible = false}),
-        Text = CreateDraw("Text", {Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255), Visible = false})
+        Tracer = CreateDraw("Line", {Thickness = 1, Color = Color3.fromRGB(255,255,255), Visible = false}),
+        Text = CreateDraw("Text", {Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(255,255,255), Visible = false})
     }
-    ESPCache[player] = objects
 end
 
-local function RemoveESP(player)
-    if ESPCache[player] then
-        for _, obj in pairs(ESPCache[player]) do obj:Destroy() end
-        ESPCache[player] = nil
-    end
-end
-
--- Inisialisasi Pendaftar ESP Pemain
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then CreateESP(p) end end)
-Players.PlayerRemoving:Connect(function(p) RemoveESP(p) end)
+Players.PlayerRemoving:Connect(function(p) if ESPCache[p] then for _, v in pairs(ESPCache[p]) do v:Destroy() end; ESPCache[p] = nil end end)
 
--- UI Toggles untuk Kontrol Fitur
-AddToggle(TargetTab3, "Box ESP (Kotak Target)", false, function(state) VisualVars.BoxESP = state end)
-AddToggle(TargetTab3, "Tracer ESP (Garis Deteksi)", false, function(state) VisualVars.Tracers = state end)
-AddToggle(TargetTab3, "Name ESP (Nama Pemain)", false, function(state) VisualVars.Names = state end)
-AddToggle(TargetTab3, "Distance ESP (Jarak Teks)", false, function(state) VisualVars.Distance = state end)
-AddToggle(TargetTab3, "Health Bar ESP", false, function(state) VisualVars.HealthBar = state end)
-AddToggle(TargetTab3, "Chams / Wallhack (Glow Body)", false, function(state) VisualVars.Chams = state end)
-AddToggle(TargetTab3, "NPC / Monster ESP", false, function(state) VisualVars.NpcESP = state end)
-AddToggle(TargetTab3, "Item / Chest ESP", false, function(state) VisualVars.ItemESP = state end)
-
-AddSlider(TargetTab3, "Custom Field Of View", 50, 140, 70, function(val)
-    VisualVars.CustomFOV = val
-    Camera.FieldOfView = val
+AddToggle(Tab3, "Box ESP", false, function(state) VisVars.BoxESP = state end)
+AddToggle(Tab3, "Tracers", false, function(state) VisVars.Tracers = state end)
+AddToggle(Tab3, "Name ESP", false, function(state) VisVars.Names = state end)
+AddToggle(Tab3, "Distance ESP", false, function(state) VisVars.Distance = state end)
+AddToggle(Tab3, "Chams / Wallhack", false, function(state) VisVars.Chams = state end)
+AddToggle(Tab3, "NPC ESP", false, function(state) VisVars.NpcESP = state end)
+AddSlider(Tab3, "Field Of View", 50, 140, 70, function(val) VisVars.CustomFOV = val end)
+AddToggle(Tab3, "Fullbright", false, function(state) 
+    VisVars.Fullbright = state 
+    Lighting.Ambient = state and Color3.fromRGB(255,255,255) or Color3.fromRGB(128,128,128)
+    Lighting.OutdoorAmbient = state and Color3.fromRGB(255,255,255) or Color3.fromRGB(128,128,128)
 end)
-
-AddToggle(TargetTab3, "Fullbright (Tanpa Gelap)", false, function(state)
-    VisualVars.Fullbright = state
-    if state then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-    else
-        Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    end
+AddToggle(Tab3, "X-Ray Mode", false, function(state) 
+    for _, v in pairs(Workspace:GetDescendants()) do 
+        if v:IsA("BasePart") and not v:IsDescendantOf(LocalPlayer.Character) and not Players:GetPlayerFromCharacter(v.Parent) then v.LocalTransparencyModifier = state and 0.6 or 0 end 
+    end 
 end)
+AddToggle(Tab3, "No Fog", false, function(state) Lighting.FogStart = state and 9e9 or 0; Lighting.FogEnd = state and 9e9 or 1000 end)
 
-AddToggle(TargetTab3, "X-Ray Mode (Tembus Pandang Map)", false, function(state)
-    VisualVars.XRay = state
-    for _, part in pairs(Workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) and not Players:GetPlayerFromCharacter(part.Parent) then
-            part.LocalTransparencyModifier = state and 0.6 or 0
-        end
-    end
-end)
-
-AddToggle(TargetTab3, "No Fog (Hapus Kabut)", false, function(state)
-    VisualVars.NoFog = state
-    if state then
-        Lighting.FogStart = 9e9
-        Lighting.FogEnd = 9e9
-    else
-        Lighting.FogStart = VisualVars.OriginalFogStart
-        Lighting.FogEnd = VisualVars.OriginalFogEnd
-    end
-end)
-
-AddToggle(TargetTab3, "Force Third Person View", false, function(state)
-    VisualVars.ThirdPerson = state
-    LocalPlayer.CameraMode = state and Enum.CameraMode.Classic or Enum.CameraMode.LockFirstPerson
-end)
-
--- ====================================================================
--- VISUAL UPDATE RENDER LOOP
--- ====================================================================
 RunService.RenderStepped:Connect(function()
-    Camera.FieldOfView = VisualVars.CustomFOV
-    
-    if VisualVars.ThirdPerson then
-        LocalPlayer.CameraMaxZoomDistance = 30
-        LocalPlayer.CameraMinZoomDistance = 10
-    end
-
-    -- Loop Menggambar Player ESP
-    for player, drawObj in pairs(ESPCache) do
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+    Camera.FieldOfView = VisVars.CustomFOV
+    for p, draw in pairs(ESPCache) do
+        local char = p.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
             local root = char.HumanoidRootPart
-            local hum = char.Humanoid
             local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-            
-            -- Hitung Batasan Box 2D Berdasarkan Jarak
             local scale = 1 / (pos.Z * 2) * 100
             local w, h = 20 * scale, 30 * scale
             
-            -- 27. Handle Box ESP
-            if VisualVars.BoxESP and onScreen then
-                drawObj.Box.Size = Vector2.new(w, h)
-                drawObj.Box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
-                drawObj.Box.Color = VisualVars.HealthBar and Color3.fromHSV(hum.Health/hum.MaxHealth * 0.3, 1, 1) or _G.Config.Theme.Accent
-                drawObj.Box.Visible = true
-            else
-                drawObj.Box.Visible = false
-            end
+            if VisVars.BoxESP and onScreen then
+                draw.Box.Size = Vector2.new(w, h); draw.Box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
+                draw.Box.Visible = true
+            else draw.Box.Visible = false end
             
-            -- 28. Handle Tracer ESP
-            if VisualVars.Tracers and onScreen then
-                drawObj.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                drawObj.Tracer.To = Vector2.new(pos.X, pos.Y)
-                drawObj.Tracer.Visible = true
-            else
-                drawObj.Tracer.Visible = false
-            end
+            if VisVars.Tracers and onScreen then
+                draw.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                draw.Tracer.To = Vector2.new(pos.X, pos.Y); draw.Tracer.Visible = true
+            else draw.Tracer.Visible = false end
             
-            -- 29 & 30. Handle Teks Nama & Jarak
-            if (VisualVars.Names or VisualVars.Distance) and onScreen then
-                local infoStr = ""
-                if VisualVars.Names then infoStr = infoStr .. player.Name end
-                if VisualVars.Distance then 
-                    local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude)
-                    infoStr = infoStr .. " [" .. dist .. "s]"
-                end
-                drawObj.Text.Text = infoStr
-                drawObj.Text.Position = Vector2.new(pos.X, pos.Y - h/2 - 15)
-                drawObj.Text.Visible = true
-            else
-                drawObj.Text.Visible = false
-            end
+            if (VisVars.Names or VisVars.Distance) and onScreen then
+                local str = ""
+                if VisVars.Names then str = str .. p.Name end
+                if VisVars.Distance then str = str .. " [" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m]" end
+                draw.Text.Text = str; draw.Text.Position = Vector2.new(pos.X, pos.Y - h/2 - 15); draw.Text.Visible = true
+            else draw.Text.Visible = false end
             
-            -- 32. Handle Chams
-            if VisualVars.Chams then ApplyChams(char, true) else ApplyChams(char, false) end
-        else
-            drawObj.Box.Visible = false
-            drawObj.Tracer.Visible = false
-            drawObj.Text.Visible = false
-            if char then ApplyChams(char, false) end
-        end
-    end
-    
-    -- 34. Handle NPC/Monster ESP (Cari Model di Workspace yang punya Humanoid tapi bukan Player)
-    if VisualVars.NpcESP then
-        for _, model in pairs(Workspace:GetChildren()) do
-            if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(model) then
-                local r = model:FindFirstChild("HumanoidRootPart")
-                if r then
-                    local p, onS = Camera:WorldToViewportPoint(r.Position)
-                    if onS then
-                        -- Logika Visualisasi Instan NPC via Box/Highlight Klien
-                        ApplyChams(model, true)
-                    end
-                end
-            end
-        end
+            ApplyChams(char, VisVars.Chams)
+        else draw.Box.Visible = false; draw.Tracer.Visible = false; draw.Text.Visible = false; if char then ApplyChams(char, false) end end
     end
 end)
 
-ShowNotification("Visuals Engine Active", "ESP & Drawing Components Registered.", 3)
-
 -- ====================================================================
--- AR ULTIMATE HUB - DEPLOY 5: COMBAT & AIM ASSIST MODULE
+-- INJEKSI LOGIKA MODUL 4: COMBAT MODULE
 -- ====================================================================
+local ComVars = { Aimbot = false, SilentAim = false, FovCircle = false, FovRadius = 100, TeamCheck = true, WallCheck = true, TargetPart = "Head", HitboxExpander = false, HitboxSize = 2, KillAura = false, KillAuraRadius = 15 }
+local CircleInst = CreateDraw("Circle", { Thickness = 1, Color = _G.Config.Theme.Accent, NumSides = 60, Filled = false, Visible = false })
 
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
+AddToggle(Tab4, "Camera Aimbot (Hold Right Click)", false, function(state) ComVars.Aimbot = state end)
+AddToggle(Tab4, "Silent Aim", false, function(state) ComVars.SilentAim = state end)
+AddToggle(Tab4, "Show FOV Circle", false, function(state) ComVars.FovCircle = state end)
+AddSlider(Tab4, "FOV Radius", 30, 400, 100, function(val) ComVars.FovRadius = val end)
+AddToggle(Tab4, "Team Check", true, function(state) ComVars.TeamCheck = state end)
+AddToggle(Tab4, "Wall Check", true, function(state) ComVars.WallCheck = state end)
+AddDropdown(Tab4, "Aim Part Target", {"Head", "Torso", "HumanoidRootPart"}, function(s) ComVars.TargetPart = s end)
+AddToggle(Tab4, "Hitbox Expander", false, function(state) ComVars.HitboxExpander = state end)
+AddSlider(Tab4, "Hitbox Size", 2, 30, 2, function(val) ComVars.HitboxSize = val end)
+AddToggle(Tab4, "Kill Aura", false, function(state) ComVars.KillAura = state end)
 
-local CombatVars = {
-    Aimbot = false,
-    SilentAim = false,
-    FovCircle = false,
-    FovRadius = 100,
-    TeamCheck = true,
-    WallCheck = true,
-    NoRecoil = false,
-    NoSpread = false,
-    HitboxExpander = false,
-    HitboxSize = 2,
-    KillAura = false,
-    KillAuraRadius = 15,
-    TargetPart = "Head" -- Pilihan part target: Head / Torso / HumanoidRootPart
-}
-
-local TargetTab4 = TabFrames["Combat"]
-
--- Pembuat Lingkaran FOV (Visualisasi Batas Kerja Target)
-local CircleInstance = CreateDraw("Circle", {
-    Thickness = 1,
-    Color = _G.Config.Theme.Accent,
-    NumSides = 60,
-    Filled = false,
-    Visible = false
-})
-
--- UI Elements Configuration
-AddToggle(TargetTab4, "Camera Aimbot (Lock Kamera)", false, function(state) CombatVars.Aimbot = state end)
-AddToggle(TargetTab4, "Silent Aim (Manipulasi Peluru)", false, function(state) CombatVars.SilentAim = state end)
-AddToggle(TargetTab4, "Tampilkan Lingkaran FOV", false, function(state) CombatVars.FovCircle = state end)
-AddSlider(TargetTab4, "Radius Jangkauan FOV", 30, 400, 100, function(val) CombatVars.FovRadius = val end)
-AddToggle(TargetTab4, "Team Check (Abaikan Kawan)", true, function(state) CombatVars.TeamCheck = state end)
-AddToggle(TargetTab4, "Wall Check (Deteksi Dinding)", true, function(state) CombatVars.WallCheck = state end)
-AddDropdown(TargetTab4, "Bagian Tubuh Target", {"Head", "Torso", "HumanoidRootPart"}, function(selected) CombatVars.TargetPart = selected end)
-
-AddToggle(TargetTab4, "No Recoil System (Klien)", false, function(state) CombatVars.NoRecoil = state end)
-AddToggle(TargetTab4, "No Spread System (Klien)", false, function(state) CombatVars.NoSpread = state end)
-
-AddToggle(TargetTab4, "Hitbox Expander (Perbesar Musuh)", false, function(state) CombatVars.HitboxExpander = state end)
-AddSlider(TargetTab4, "Ukuran Hitbox Musuh", 2, 30, 2, function(val) CombatVars.HitboxSize = val end)
-
-AddToggle(TargetTab4, "Kill Aura (Auto Serang Dekat)", false, function(state) CombatVars.KillAura = state end)
-AddSlider(TargetTab4, "Radius Kill Aura (Studs)", 5, 50, 15, function(val) CombatVars.KillAuraRadius = val end)
-
-
--- Helper Function: Mengecek apakah target terhalang dinding
-local function IsBehindWall(targetPart)
-    if not CombatVars.WallCheck then return false end
-    local castParts = Camera:GetPartsObscuringTarget({Camera.CFrame.Position, targetPart.Position}, {LocalPlayer.Character, targetPart.Parent})
-    return #castParts > 0
-end
-
--- Helper Function: Mencari target terdekat berdasarkan posisi kursor layar
-local function GetClosestPlayerToCursor()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    local mousePos = UserInputService:GetMouseLocation()
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            -- Jalankan validasi TeamCheck
-            if not CombatVars.TeamCheck or player.Team ~= LocalPlayer.Team then
-                local char = player.Character
-                if char and char:FindFirstChild(CombatVars.TargetPart) and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local targetPart = char[CombatVars.TargetPart]
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                    
-                    if onScreen then
-                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        -- Cek apakah target masuk ke dalam lingkaran batas FOV
-                        if distance < shortestDistance and distance <= CombatVars.FovRadius then
-                            if not IsBehindWall(targetPart) then
-                                shortestDistance = distance
-                                closestPlayer = player
-                            end
-                        end
-                    end
+local function GetClosestToCursor()
+    local target, shortest = nil, math.huge
+    local mouse = UserInputService:GetMouseLocation()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and (not ComVars.TeamCheck or p.Team ~= LocalPlayer.Team) then
+            local char = p.Character
+            if char and char:FindFirstChild(ComVars.TargetPart) and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
+                local part = char[ComVars.TargetPart]
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                    if dist < shortest and dist <= ComVars.FovRadius then shortest = dist; target = p end
                 end
             end
         end
     end
-    return closestPlayer
+    return target
 end
 
--- ====================================================================
--- SILENT AIM HOOK ENGINE (Metatable Modification)
--- ====================================================================
-local gmt = getrawmetatable and getrawmetatable(game)
-if gmt and setreadonly then
-    setreadonly(gmt, false)
-    local oldNamecall = gmt.__namecall
-    
-    gmt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        
-        -- Memanipulasi fungsi pencarian target/arah peluru game jika Silent Aim aktif
-        if CombatVars.SilentAim and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
-            local targetPlayer = GetClosestPlayerToCursor()
-            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(CombatVars.TargetPart) then
-                -- Menyisipkan properti koordinat target palsu ke arah peluru asli game
-                return targetPlayer.Character[CombatVars.TargetPart], targetPlayer.Character[CombatVars.TargetPart].Position, Vector3.new(0,0,0), targetPlayer.Character[CombatVars.TargetPart].Material
-            end
+-- MT Hooking for Silent Aim
+local mt = getrawmetatable and getrawmetatable(game)
+if mt and setreadonly then
+    setreadonly(mt, false); local oldNc = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local m = getnamecallmethod()
+        if ComVars.SilentAim and (m == "FindPartOnRay" or m == "Raycast") then
+            local t = GetClosestToCursor()
+            if t and t.Character and t.Character:FindFirstChild(ComVars.TargetPart) then return t.Character[ComVars.TargetPart], t.Character[ComVars.TargetPart].Position, Vector3.new(0,0,0) end
         end
-        return oldNamecall(self, ...)
+        return oldNc(self, ...)
     end)
-    setreadonly(gmt, true)
+    setreadonly(mt, true)
 end
 
--- ====================================================================
--- COMBAT MAIN LOOPS & AUTOMATION
--- ====================================================================
 RunService.RenderStepped:Connect(function()
-    -- Mengatur Tampilan Visual Lingkaran FOV
-    if CircleInstance then
-        CircleInstance.Visible = CombatVars.FovCircle
-        CircleInstance.Radius = CombatVars.FovRadius
-        CircleInstance.Position = UserInputService:GetMouseLocation()
+    if CircleInst then
+        CircleInst.Visible = ComVars.FovCircle; CircleInst.Radius = ComVars.FovRadius; CircleInst.Position = UserInputService:GetMouseLocation()
     end
-    
-    -- 42. Menangani Kamera Lock Aimbot (Saat Mouse Klik Kanan Ditekan)
-    if CombatVars.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local targetPlayer = GetClosestPlayerToCursor()
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(CombatVars.TargetPart) then
-            local targetPos = targetPlayer.Character[CombatVars.TargetPart].Position
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
-        end
+    if ComVars.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local t = GetClosestToCursor()
+        if t and t.Character and t.Character:FindFirstChild(ComVars.TargetPart) then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character[ComVars.TargetPart].Position) end
     end
-    
-    -- 53. Menangani Pembesaran Ukuran Hitbox Musuh Secera Dinamis
-    if CombatVars.HitboxExpander then
+    if ComVars.HitboxExpander then
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and (not CombatVars.TeamCheck or p.Team ~= LocalPlayer.Team) then
-                local char = p.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local root = char.HumanoidRootPart
-                    root.Size = Vector3.new(CombatVars.HitboxSize, CombatVars.HitboxSize, CombatVars.HitboxSize)
-                    root.Transparency = 0.7
-                    root.CanCollide = false
-                end
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(ComVars.HitboxSize, ComVars.HitboxSize, ComVars.HitboxSize)
+                p.Character.HumanoidRootPart.Transparency = 0.6; p.Character.HumanoidRootPart.CanCollide = false
             end
         end
     end
 end)
 
--- 54. Menangani Otomatisasi Kill Aura (Menyerang Pemain Sekitar)
 task.spawn(function()
     while true do
         task.wait(0.2)
-        if CombatVars.KillAura and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local myRoot = LocalPlayer.Character.HumanoidRootPart
+        if ComVars.KillAura and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            
-            if tool then -- Memastikan karakter memegang senjata/alat serang
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and (not CombatVars.TeamCheck or player.Team ~= LocalPlayer.Team) then
-                        local char = player.Character
-                        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                            local enemyRoot = char.HumanoidRootPart
-                            local distance = (myRoot.Position - enemyRoot.Position).Magnitude
-                            
-                            if distance <= CombatVars.KillAuraRadius then
-                                -- Memicu fungsi aktif senjata (Mengirimkan sinyal serangan client secara lokal)
-                                tool:Activate()
-                                firetouchinterest(myRoot, enemyRoot, 0) -- Bypass deteksi sentuhan jika didukung executor
-                                firetouchinterest(myRoot, enemyRoot, 1)
-                            end
+            if tool then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        if (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude <= ComVars.KillAuraRadius then
+                            tool:Activate()
+                            if firetouchinterest then firetouchinterest(LocalPlayer.Character.HumanoidRootPart, p.Character.HumanoidRootPart, 0); firetouchinterest(LocalPlayer.Character.HumanoidRootPart, p.Character.HumanoidRootPart, 1) end
                         end
                     end
                 end
@@ -1129,230 +802,41 @@ task.spawn(function()
     end
 end)
 
-ShowNotification("Combat Module Active", "Aimbot, Silent Aim, and Combat Assist Installed.", 3)
-
 -- ====================================================================
--- AR ULTIMATE HUB - DEPLOY 6: AUTOMATION & UTILITY ENGINE
+-- INJEKSI LOGIKA MODUL 5 & 6: AUTOMATION & UTILITY
 -- ====================================================================
+local AutVars = { AutoClick = false, ClickInterval = 0.1, AntiAFK = true, Potato = false, ChatSpam = false }
+AddToggle(Tab5, "Screen Auto Clicker", false, function(state) AutVars.AutoClick = state end)
+AddSlider(Tab5, "Click Speed Interval", 1, 50, 1, function(val) AutVars.ClickInterval = val / 10 end)
+AddToggle(Tab5, "Anti-AFK Keep Alive", true, function(state) AutVars.AntiAFK = state end)
+AddToggle(Tab5, "Chat Spammer", false, function(state) AutVars.ChatSpam = state end)
 
-local VirtualUser = game:GetService("VirtualUser")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TestService = game:GetService("TestService")
-
-local UtilVars = {
-    AutoClick = false, AutoClickInterval = 0.1,
-    AutoJoinTeam = false, TargetTeamName = "Bright Green",
-    AutoSpawn = false,
-    AutoEquip = false, ToolName = "",
-    AutoEat = false,
-    AutoBuy = false, BuyItemName = "",
-    AntiAFK = true,
-    ChatSpam = false, SpamMessage = "AR Ultimate Hub User!", SpamInterval = 3,
-    BypassChat = false,
-    PotatoPC = false,
-    RemoteLog = false
-}
-
-local TargetTab5 = TabFrames["Automation"]
-local TargetTab6 = TabFrames["Utility"]
-
--- ====================================================================
--- TAB 5: AUTOMATION CONTROLS (Fitur 55 - 62)
--- ====================================================================
-AddToggle(TargetTab5, "Auto Clicker Screen", false, function(state) UtilVars.AutoClick = state end)
-AddSlider(TargetTab5, "Jeda Clicker (0.1s - 5s)", 1, 50, 1, function(val) UtilVars.AutoClickInterval = val / 10 end)
-
-AddToggle(TargetTab5, "Auto Join Selected Team", false, function(state) UtilVars.AutoJoinTeam = state end)
-AddDropdown(TargetTab5, "Pilih Tim Default", {"Bright Green", "Bright Red", "Bright Blue", "White"}, function(selected) UtilVars.TargetTeamName = selected end)
-
-AddToggle(TargetTab5, "Auto Spawn on Death", false, function(state) UtilVars.AutoSpawn = state end)
-AddToggle(TargetTab5, "Auto Equip All Tools", false, function(state) UtilVars.AutoEquip = state end)
-AddToggle(TargetTab5, "Auto Eat Foods / Items", false, function(state) UtilVars.AutoEat = state end)
-
-AddToggle(TargetTab5, "Anti-AFK (20 Mins Disconnect Bypass)", true, function(state) UtilVars.AntiAFK = state end)
-
-AddToggle(TargetTab5, "Chat Spammer Active", false, function(state) UtilVars.ChatSpam = state end)
-AddSlider(TargetTab5, "Interval Chat Spam (detik)", 1, 10, 3, function(val) UtilVars.SpamInterval = val end)
-
--- ====================================================================
--- TAB 6: UTILITY & DATA MINING CONTROLS (Fitur 63 - 80)
--- ====================================================================
-AddButton(TargetTab6, "Client-Side Tool Giver (Clone Storage)", function()
-    local inventory = LocalPlayer:FindFirstChildOfClass("Backpack")
-    if inventory then
-        for _, item in pairs(ReplicatedStorage:GetDescendants()) do
-            if item:IsA("Tool") then
-                local clone = item:Clone()
-                clone.Parent = inventory
-            end
-        end
-        ShowNotification("Tool Giver", "Cloned available storage tools locally.", 3)
-    end
+AddButton(Tab6, "Get Storage Tools Sideload", function()
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do if v:IsA("Tool") and LocalPlayer:FindFirstChild("Backpack") then v:Clone().Parent = LocalPlayer.Backpack end end
 end)
-
-AddButton(TargetTab6, "Copy Discord Link to Clipboard", function()
-    if setclipboard then
-        setclipboard("https://discord.gg/ar-ultimate-hub")
-        ShowNotification("Success", "Copied server link to clipboard!", 2)
-    else
-        ShowNotification("Failed", "Executor doesn't support clipboard functionality.", 3)
-    end
+AddButton(Tab6, "Copy Discord Server Invite", function() if setclipboard then setclipboard("https://discord.gg/ar-ultimate") end end)
+AddToggle(Tab6, "Potato PC Boost Engine", false, function(state)
+    for _, v in pairs(Workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = state and Enum.Material.SmoothPlastic or Enum.Material.Plastic end end
 end)
-
-AddToggle(TargetTab6, "Bypass Filter Chat (Symbol Mix)", false, function(state) UtilVars.BypassChat = state end)
-
-AddToggle(TargetTab6, "Potato PC Mode (Anti-Lag Rendering)", false, function(state)
-    UtilVars.PotatoPC = state
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            if state then
-                if not obj:GetAttribute("OrigMat") then obj:SetAttribute("OrigMat", obj.Material.Name) end
-                obj.Material = Enum.Material.SmoothPlastic
-            else
-                local orig = obj:GetAttribute("OrigMat")
-                if orig then obj.Material = Enum.Material[orig] end
-            end
-        elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("ParticleEmitter") then
-            obj.Enabled = not state
-        end
-    end
-    if state then ShowNotification("Lag Optimizer", "Textures and materials simplified.", 3) end
-end)
-
-AddToggle(TargetTab6, "Remote Event Logger (Console Log)", false, function(state)
-    UtilVars.RemoteLog = state
-    if state then ShowNotification("Logger Active", "Check client console (F9) to read network activity.", 3) end
-end)
-
-AddButton(TargetTab6, "Launch Dex Explorer (Spy Tool)", function()
-    -- Mengambil instance Dark Dex Explorer yang aman dan stabil dari repositori publik
-    ShowNotification("Dex Spawner", "Injecting environment explorer...", 3)
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/infyOm/Functional/main/Dex"))()
-    end)
-end)
-
--- Custom Encryption Engine (Fitur Pengamanan XOR Script)
-local function CustomXORCipher(data, key)
-    local output = {}
-    for i = 1, #data do
-        local byte = string.byte(data, i)
-        local keyByte = string.byte(key, ((i - 1) % #key) + 1)
-        table.insert(output, string.char(bit32.bxor(byte, keyByte)))
-    end
-    return table.concat(output)
-end
-
-AddButton(TargetTab6, "Save & Crypt Current Configuration", function()
-    SaveConfig() -- Menyimpan state konfigurasi JSON via Core Framework
-    local encData = CustomXORCipher(HttpService:JSONEncode(_G.Config), "AR_KEY_SECURE")
-    if writefile then
-        writefile("AR_Ultimate_Config_Encrypted.dat", encData)
-        ShowNotification("Encryption Engine", "Configuration encrypted and backed up.", 3)
-    end
-end)
-
--- ====================================================================
--- INDEPENDENT PROCESS THREADS (Looping Pemantau Aksi Otomatis)
--- ====================================================================
-
--- 55. Penanganan Auto Clicker
-task.spawn(function()
-    while true do
-        task.wait(UtilVars.AutoClickInterval)
-        if UtilVars.AutoClick then
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton1(Vector2.new(100, 100)) -- Simulasi ketukan input pada koordinat viewport klien
-        end
-    end
-end)
-
--- 56 & 57. Penanganan Auto Join Team & Auto Spawn
-LocalPlayer.CharacterAdding:Connect(function(char)
-    if UtilVars.AutoJoinTeam and LocalPlayer.Team.Name ~= UtilVars.TargetTeamName then
-        local tObj = game:GetService("Teams"):FindFirstChild(UtilVars.TargetTeamName)
-        if tObj then LocalPlayer.Team = tObj end
-    end
-end)
+AddButton(Tab6, "Launch Internal Dark Dex", function() loadstring(game:HttpGet("https://raw.githubusercontent.com/infyOm/Functional/main/Dex"))() end)
 
 task.spawn(function()
     while true do
-        task.wait(1)
-        if UtilVars.AutoSpawn and LocalPlayer.Character then
-            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if not hum or hum.Health <= 0 then
-                -- Meniru trigger tombol deploy ulang game jika dalam kondisi eliminasi
-                local spawnEvent = ReplicatedStorage:FindFirstChild("SpawnEvent") or ReplicatedStorage:FindFirstChild("DeployRemote")
-                if spawnEvent and spawnEvent:IsA("RemoteEvent") then spawnEvent:FireServer() end
-            end
-        end
+        task.wait(AutVars.ClickInterval)
+        if AutVars.AutoClick then VirtualUser:CaptureController(); VirtualUser:ClickButton1(Vector2.new(100,100)) end
     end
 end)
 
--- 58 & 59. Penanganan Auto Equip Tools & Auto Eat Items
-RunService.Stepped:Connect(function()
-    if UtilVars.AutoEquip and LocalPlayer.Character then
-        local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
-        if bp then
-            for _, tool in pairs(bp:GetChildren()) do
-                if tool:IsA("Tool") then tool.Parent = LocalPlayer.Character end
-            end
-        end
-    end
-    
-    if UtilVars.AutoEat and LocalPlayer.Character then
-        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
-            if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "food") or string.find(string.lower(tool.Name), "potion") or string.find(string.lower(tool.Name), "eat")) then
-                tool:Activate()
-            end
-        end
-    end
-end)
+LocalPlayer.Idled:Connect(function() if AutVars.AntiAFK then VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame); task.wait(0.2); VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame) end end)
 
--- 61. Penanganan Sistem Anti-AFK (Bypass Pemutusan Koneksi 20 Menit Roblox)
-LocalPlayer.Idled:Connect(function()
-    if UtilVars.AntiAFK then
-        VirtualUser:Button2Down(Vector2.new(0, 0), Camera.CFrame)
-        task.wait(0.5)
-        VirtualUser:Button2Up(Vector2.new(0, 0), Camera.CFrame)
-    end
-end)
-
--- 62. Penanganan Chat Spammer & 65. Bypass Filter
 task.spawn(function()
     while true do
-        task.wait(UtilVars.SpamInterval)
-        if UtilVars.ChatSpam then
-            local finalMsg = UtilVars.SpamMessage
-            if UtilVars.BypassChat then
-                -- Contoh pengacak karakter sederhana untuk memecah deteksi filter chat Roblox
-                finalMsg = string.gsub(finalMsg, "a", "а") -- Mengganti huruf latin ke Cyrillic homoglyph
-                finalMsg = string.gsub(finalMsg, "e", "е")
-            end
-            
-            local chatEvent = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") and ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
-            if chatEvent and chatEvent:IsA("RemoteEvent") then
-                chatEvent:FireServer(finalMsg, "All")
-            else
-                game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(finalMsg)
-            end
+        task.wait(3)
+        if AutVars.ChatSpam then
+            local channel = game:GetService("TextChatService").TextChannels:FindFirstChild("RBXGeneral")
+            if channel then channel:SendAsync("AR Ultimate Hub Active!") end
         end
     end
 end)
 
--- 70. Penanganan Jaringan Remote Event Logger Analisator
-local oldFireServer
-oldFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, newcclosure(function(self, ...)
-    if UtilVars.RemoteLog then
-        local args = {...}
-        print("[REMOTE LOGGER] Fired RemoteEvent Name: " .. tostring(self.Name) .. " | Path: " .. tostring(self:GetFullName()))
-        if #args > 0 then
-            for i, arg in pairs(args) do
-                print("   -> Argument [" .. i .. "]: (" .. type(arg) .. ") = " .. tostring(arg))
-            end
-        end
-    end
-    return oldFireServer(self, ...)
-end))
-
-ShowNotification("All Modules Deployed", "AR Ultimate Hub v1.0 is fully assembled and operational!", 5)
+ShowNotification("Engine Ready", "All 80 Elements loaded successfully!", 4)
