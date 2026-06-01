@@ -160,41 +160,61 @@ local function handleFlyEngine()
     local torso = char.HumanoidRootPart
     local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
     
-    flyBg = Instance.new("BodyGyro", torso) flyBg.P = 9e4 flyBg.maxTorque = Vector3.new(9e9, 9e9, 9e9) flyBg.cframe = torso.CFrame
-    flyBv = Instance.new("BodyVelocity", torso) flyBv.velocity = Vector3.new(0, 0, 0) flyBv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    flyBg = Instance.new("BodyGyro", torso) 
+    flyBg.P = 9e4 
+    flyBg.maxTorque = Vector3.new(9e9, 9e9, 9e9) 
+    flyBg.cframe = torso.CFrame
+    
+    flyBv = Instance.new("BodyVelocity", torso) 
+    flyBv.velocity = Vector3.new(0, 0, 0) 
+    flyBv.maxForce = Vector3.new(9e9, 9e9, 9e9)
     
     task.spawn(function()
         local camera = workspace.CurrentCamera
         while Config.FlyMode and Player.Character and torso and flyBv and flyBg do
             hum:ChangeState(Enum.HumanoidStateType.Physics)
             local speed = Config.FlySpeed * 10
-            local moveDir = hum.MoveDirection
             local camCF = camera.CFrame
-            local direction = Vector3.new(0, 0, 0)
             
-            if moveDir.Magnitude > 0 then
-                local lookVector = camCF.LookVector
-                local rightVector = camCF.RightVector
-                local forwardInput = moveDir:Dot(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
-                local sideInput = moveDir:Dot(Vector3.new(rightVector.X, 0, rightVector.Z).Unit)
-                direction = (lookVector * forwardInput) + (rightVector * sideInput)
+            -- FIX: Membaca input keyboard secara langsung untuk kebebasan arah kamera
+            local forward = 0
+            local side = 0
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then forward = 1 end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then forward = -1 end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then side = -1 end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then side = 1 end
+            
+            -- Kalkulasi arah pergerakan mutlak mengikuti arah pandang kamera (Follow Cam)
+            local direction = (camCF.LookVector * forward) + (camCF.RightVector * side)
+            
+            local finalVelocity = Vector3.new(0, 0, 0)
+            if direction.Magnitude > 0 then
+                finalVelocity = direction.Unit * speed
             end
             
-            local finalVelocity = (direction.Magnitude > 0) and (direction.Unit * speed) or Vector3.new(0, 0, 0)
+            -- Kontrol naik turun (Space = Naik, LeftShift = Turun)
             local verticalSpeed = 0
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then verticalSpeed = speed
-            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then verticalSpeed = -speed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
+                verticalSpeed = speed
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then 
+                verticalSpeed = -speed 
+            end
             
-            if verticalSpeed ~= 0 then flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
-            else flyBv.velocity = finalVelocity end
+            -- Gabungkan kecepatan horizontal dan vertikal
+            if verticalSpeed ~= 0 then 
+                flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
+            else 
+                flyBv.velocity = finalVelocity 
+            end
             
+            -- Memaksa sumbu rotasi karakter selalu mengarah persis seperti kamera
             flyBg.cframe = camCF
             task.wait()
         end
         stopFlying()
     end)
 end
-
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
