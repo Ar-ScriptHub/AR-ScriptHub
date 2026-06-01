@@ -1494,22 +1494,23 @@ end)
 -- INJECTOR FITUR FREECAM CINEMATIC MODE (TAMBAHAN DI PALING BAWAH)
 -- ====================================================================
 task.spawn(function()
-    -- Tunggu sampai LeftColumn (UI Player) benar-benar ter-render
-    repeat task.wait(0.5) until LeftColumn and MainGui and Theme
+    -- Tunggu sampai LeftColumn (UI Player) benar-benar ter-render oleh sistem utama
+    repeat task.wait(0.5) until LeftColumn and MainGui and Theme and flyCard
 
-    -- 1. TAMBAHKAN STATE BARU KE CONFIG
+    -- 1. ADAPTASI STATE BARU KE CONFIG UTAMA
     Config.FreecamMode = false
     Config.FreecamSpeed = 5
     Config.FreecamSmoothing = 5
     Config.FreecamFOV = 70
-    Config.FreecamCinematic = false -- false = Standard, true = Orbit/Pan
+    Config.FreecamCinematic = false  -- false = Standard WASD, true = Orbit/Pan
+    Config.FreecamCharFollow = false -- false = Karakter Diam, true = Karakter Ikut Bergerak (🏃)
 
-    -- 2. MEMBUAT GUI KHUSUS FREECAM (CONTROL BAR MINIMALIS)
+    -- 2. MEMBUAT GUI KHUSUS FREECAM BAR (TERPISAH & MINIMALIS)
     local FreecamGuiFrame = Instance.new("Frame")
     FreecamGuiFrame.Name = "FreecamGuiFrame"
     FreecamGuiFrame.Parent = MainGui
-    FreecamGuiFrame.Size = UDim2.new(0, 240, 0, 260)
-    FreecamGuiFrame.Position = UDim2.new(1, -260, 0.5, -130) -- Pojok kanan layar
+    FreecamGuiFrame.Size = UDim2.new(0, 240, 0, 290)
+    FreecamGuiFrame.Position = UDim2.new(1, -260, 0.5, -145) -- Pojok kanan layar
     FreecamGuiFrame.BackgroundColor3 = Theme.Bg
     FreecamGuiFrame.BackgroundTransparency = 0.2
     FreecamGuiFrame.Visible = false
@@ -1518,7 +1519,7 @@ task.spawn(function()
     fcStroke.Color = Theme.AccentPurple
     fcStroke.Thickness = 1.5
 
-    -- Membuat Freecam Bar bisa digeser (Draggable)
+    -- Aktifkan sistem drag agar panel khusus bisa digeser di layar
     makeDraggable(FreecamGuiFrame, FreecamGuiFrame)
 
     local fcTitle = Instance.new("TextLabel", FreecamGuiFrame)
@@ -1537,61 +1538,85 @@ task.spawn(function()
     fcLayout.Padding = UDim.new(0, 8)
     fcLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    -- 3. CORE LOGIC ENGINE (RENDER STEPPED)
-    local freecamConnection
+    -- 3. INTERACTIVE MOUSE ROTATION ENGINE (KLIK KANAN TAHAN UNTUK GESER KAMERA)
     local camera = workspace.CurrentCamera
     local originalCameraType = camera.CameraType
     local originalCameraSubject = camera.CameraSubject
     local targetCFrame = camera.CFrame
+    local freecamConnection
+    local mouseDragConnection
+    local rotX, rotY = 0, 0
 
+    local function enableMouseLook()
+        if mouseDragConnection then mouseDragConnection:Disconnect() end
+        mouseDragConnection = UserInputService.InputChanged:Connect(function(input)
+            if Config.FreecamMode and not Config.FreecamCinematic then
+                -- Kamera hanya bergeser jika user sedang menahan Klik Kanan Mouse
+                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    local delta = input.Delta
+                    rotX = rotX - delta.X * 0.005
+                    rotY = math.clamp(rotY - delta.Y * 0.005, -math.rad(80), math.rad(80))
+                    targetCFrame = CFrame.new(targetCFrame.Position) * CFrame.Angles(0, rotX, 0) * CFrame.Angles(rotY, 0, 0)
+                end
+            end
+        end)
+    end
+
+    -- 4. CORE ENGINE CORE FREECAM RUNNER (RENDER STEPPED)
     local function updateFreecamEngine()
         if not Config.FreecamMode then
+            -- MATIKAN FREECAM: Kembalikan kondisi map & player ke semula
             if freecamConnection then freecamConnection:Disconnect() freecamConnection = nil end
+            if mouseDragConnection then mouseDragConnection:Disconnect() mouseDragConnection = nil end
             camera.CameraType = originalCameraType
             if originalCameraSubject then camera.CameraSubject = originalCameraSubject end
             camera.FieldOfView = 70
             FreecamGuiFrame.Visible = false
-            MainFrame.Visible = true -- Munculkan menu utama kembali
+            MainFrame.Visible = true -- Tampilkan kembali Menu Utama Script Hub
             return
         end
 
-        -- Ambil status awal kamera sebelum beralih ke Freecam
+        -- HIDUPKAN FREECAM: Simpan data kamera bawaan roblox sebelum dipisahkan
         originalCameraType = camera.CameraType
         originalCameraSubject = camera.CameraSubject
         targetCFrame = camera.CFrame
+        
+        -- Mengambil orientasi sudut pandang awal agar kamera tidak mendadak patah saat aktif
+        local _, y, z = targetCFrame:ToEulerAnglesYXZ()
+        rotX, rotY = y, -_
+
         camera.CameraType = Enum.CameraType.Scriptable
         camera.CameraSubject = nil
         
-        -- Sembunyikan menu utama agar layar bersih untuk cinematic
-        MainFrame.Visible = false 
+        MainFrame.Visible = false -- Sembunyikan Menu Utama agar pandangan bersih
         FreecamGuiFrame.Visible = true
+        enableMouseLook()
 
         freecamConnection = RunService.RenderStepped:Connect(function(dt)
             if not Config.FreecamMode then return end
             
-            -- Atur FOV secara live
+            -- Update Field of View (FOV) secara realtime via slider
             camera.FieldOfView = Config.FreecamFOV
 
             if Config.FreecamCinematic then
-                -- MODE CINEMATIC: Kamera mengorbit (berputar) halus mengelilingi karakter asli
+                -- MODE CINEMATIC PAN/ORBIT: Kamera mengitari objek otomatis secara halus
                 if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                     local pivot = Player.Character.HumanoidRootPart.Position
-                    local speedFactor = (Config.FreecamSpeed / 5) * 0.5
+                    local speedFactor = (Config.FreecamSpeed / 5) * 0.4
                     local angle = os.clock() * speedFactor
-                    local radius = 25 - (Config.FreecamFOV * 0.1) -- Jarak radius menyesuaikan FOV
+                    local radius = 25 - (Config.FreecamFOV * 0.1)
                     
-                    local offset = Vector3.new(math.sin(angle) * radius, 4, math.cos(angle) * radius)
+                    local offset = Vector3.new(math.sin(angle) * radius, 5, math.cos(angle) * radius)
                     local newPos = pivot + offset
                     
-                    -- Interpolasi pergerakan sudut pandang agar super smooth
                     local lookCF = CFrame.new(newPos, pivot)
                     camera.CFrame = camera.CFrame:Lerp(lookCF, (11 - Config.FreecamSmoothing) * dt)
                     targetCFrame = camera.CFrame
                 end
             else
-                -- MODE STANDARD: Gerak bebas menggunakan W, A, S, D, Space, Shift
-                local lookVector = camera.CFrame.LookVector
-                local rightVector = camera.CFrame.RightVector
+                -- MODE STANDARD: Gerak bebas via WASD + Klik Kanan Geser Kamera
+                local lookVector = targetCFrame.LookVector
+                local rightVector = targetCFrame.RightVector
                 local moveDir = Vector3.new(0, 0, 0)
                 local speed = Config.FreecamSpeed * 15
 
@@ -1604,17 +1629,22 @@ task.spawn(function()
 
                 if moveDir.Magnitude > 0 then
                     targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
+                    
+                    -- FITUR TAMBAHAN: Jika diaktifkan (Follow Mode), karakter ikut bergerak beriringan dengan kamera
+                    if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
+                    end
                 end
 
-                -- Efek smoothing lerp (gliding) saat kamera bergerak/berhenti
+                -- Efek Easing / Glide (Smoothing) saat melepas tombol gerak agar sinematik
                 local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
                 camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
             end
         end)
     end
 
-    -- 4. PENGISIAN KOMPONEN DI DALAM GUI FREECAM BAR
-    -- Toggle Switch Mode (Standard vs Cinematic Orbit)
+    -- 5. RENDERING DESIGN PANEL DI DALAM GUI KHUSUS FREECAM BAR
+    -- Tombol Mode Switch (Standard vs Orbit)
     local modeBtn = Instance.new("TextButton", fcContainer)
     modeBtn.Size = UDim2.new(1, 0, 0, 24)
     modeBtn.BackgroundColor3 = Theme.CardBg
@@ -1637,12 +1667,35 @@ task.spawn(function()
         end
     end)
 
-    -- Sliders untuk Customization di dalam GUI khusus
-    addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 2, "FreecamSpeed")
-    addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 3, "FreecamSmoothing")
-    addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 4, "FreecamFOV")
+    -- Tombol 🏃 Character Follow Cam Toggle
+    local runBtn = Instance.new("TextButton", fcContainer)
+    runBtn.Size = UDim2.new(1, 0, 0, 24)
+    runBtn.BackgroundColor3 = Theme.CardBg
+    runBtn.Font = Enum.Font.GothamBold
+    runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+    runBtn.TextColor3 = Theme.TextMuted
+    runBtn.TextSize = 10
+    runBtn.LayoutOrder = 2
+    Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", runBtn).Color = Theme.Stroke
 
-    -- Tombol Teleport Karakter Ke Kamera
+    runBtn.MouseButton1Click:Connect(function()
+        Config.FreecamCharFollow = not Config.FreecamCharFollow
+        if Config.FreecamCharFollow then
+            runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
+            runBtn.TextColor3 = Theme.ConfirmGreen
+        else
+            runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+            runBtn.TextColor3 = Theme.TextMuted
+        end
+    end)
+
+    -- Menyusun sliders pengaturan visual bawaan script hub kamu
+    addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
+    addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
+    addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
+
+    -- Tombol Teleport Instan Karakter Ke Kamera
     local tpCharBtn = Instance.new("TextButton", fcContainer)
     tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
     tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
@@ -1650,7 +1703,7 @@ task.spawn(function()
     tpCharBtn.Text = "⚡ Teleport Character to Cam"
     tpCharBtn.TextColor3 = Theme.Accent
     tpCharBtn.TextSize = 10
-    tpCharBtn.LayoutOrder = 5
+    tpCharBtn.LayoutOrder = 6
     Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
     Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
 
@@ -1660,7 +1713,7 @@ task.spawn(function()
         end
     end)
 
-    -- Tombol Merah Keluar (Exit Freecam)
+    -- Tombol Keluar Permanen dari Mode Freecam (Exit)
     local exitBtn = Instance.new("TextButton", fcContainer)
     exitBtn.Size = UDim2.new(1, 0, 0, 26)
     exitBtn.BackgroundColor3 = Theme.DeleteBg
@@ -1668,7 +1721,7 @@ task.spawn(function()
     exitBtn.Text = "❌ EXIT FREECAM"
     exitBtn.TextColor3 = Theme.DeleteRed
     exitBtn.TextSize = 11
-    exitBtn.LayoutOrder = 6
+    exitBtn.LayoutOrder = 7
     Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
     local exStroke = Instance.new("UIStroke", exitBtn)
     exStroke.Color = Theme.DeleteRed
@@ -1676,23 +1729,40 @@ task.spawn(function()
     exitBtn.MouseButton1Click:Connect(function()
         Config.FreecamMode = false
         updateFreecamEngine()
-        -- Cari dan matikan toggle visual pada menu utama agar status visualnya kembali sinkron (OFF)
-        local mainToggleKnob = flyCard:FindFirstChild("Freecam Mode Control") or flyCard:FindFirstChild("Freecam Mode")
-        if mainToggleKnob then
-            local knob = mainToggleKnob:FindFirstChildOfClass("Frame") or mainToggleKnob:GetDescendants()[2]
-            local track = mainToggleKnob:FindFirstChildOfClass("TextButton")
-            if knob and track then
-                TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, 3, 0.5, -5)}):Play()
-                TweenService:Create(track, TweenInfo.new(0.08), {BackgroundColor3 = Theme.Bg}):Play()
-            end
-        end
     end)
 
-    -- 5. MENYUNTIKKAN TOMBOL KE MENU UTAMA (TAB PLAYER -> BERGABUNG DI FLY CARD)
-    -- Kita sisipkan di dalam flyCard (di bawah Noclip) agar rapi
-    if flyCard then
-        addToggle(flyCard, "Cinematic Freecam Mode", 4, "FreecamMode", function(active)
-            updateFreecamEngine()
-        end)
-    end
+    -- 6. MENYUNTIKKAN TOMBOL UTAMA KE TAB PLAYER (COMPATIBLE LAYER)
+    -- Ditambahkan ke dalam Fly Control Card di bawah Toggle Noclip agar rapi
+    local holder = Instance.new("Frame", flyCard)
+    holder.Size = UDim2.new(1, 0, 0, 28)
+    holder.BackgroundTransparency = 1
+    holder.LayoutOrder = 4
+
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.Text = "Cinematic Freecam UI"
+    lbl.Size = UDim2.new(1, -90, 1, 0)
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.TextColor3 = Theme.TextMain
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.BackgroundTransparency = 1
+
+    local openGuiBtn = Instance.new("TextButton", holder)
+    openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
+    openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
+    openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
+    openGuiBtn.Font = Enum.Font.GothamBold
+    openGuiBtn.Text = "OPENGUI"
+    openGuiBtn.TextColor3 = Theme.AccentPurple
+    openGuiBtn.TextSize = 10
+    Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
+    local btnStroke = Instance.new("UIStroke", openGuiBtn)
+    btnStroke.Color = Theme.AccentPurple
+    btnStroke.Thickness = 1
+
+    openGuiBtn.MouseButton1Click:Connect(function()
+        Config.FreecamMode = true
+        updateFreecamEngine()
+    end)
+end)
 end)
