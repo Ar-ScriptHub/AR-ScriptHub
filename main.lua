@@ -1,7 +1,9 @@
 -- ====================================================================
--- CORE SERVICES & INITIALIZATION
+-- AR SCRIPT HUB - v7.1
 -- ====================================================================
 local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
@@ -9,14 +11,8 @@ local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local Lighting = game:GetService("Lighting")
 
-local Player = Players.LocalPlayer
-local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
-
--- ====================================================================
 -- ANTI-BUG CLEAN-UP ENGINE
--- ====================================================================
 pcall(function()
     if Player.Character then
         for _, obj in pairs(Player.Character:GetDescendants()) do
@@ -36,9 +32,6 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
     SafeGuiTarget.AR_Script_Hub:Destroy()
 end
 
--- ====================================================================
--- GUI CORE INSTANCE & THEME CONFIGURATION
--- ====================================================================
 local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
 MainGui.Parent = SafeGuiTarget
@@ -90,34 +83,41 @@ local Config = {
     UiTransparency = 0.15,
     TweenTeleport = false,
     TweenSpeed = 350,
-    FullBright = false
+    FullBright = false,
+    
+    -- STATE TAMBAHAN UNTUK FREECAM ENGINE
+    FreecamMode = false,
+    FreecamSpeed = 5,
+    FreecamSmoothing = 5,
+    FreecamFOV = 70,
+    FreecamCinematic = false,
+    FreecamCharFollow = false
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
-local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local CorrectKey = "AR_PREMIUM_KEY"
-
 local CurrentPlaceId = tostring(game.PlaceId)
 local AllWaypoints = {}
-local KeyVerified = false
 
+local Lighting = game:GetService("Lighting")
 local origAmbient = Lighting.Ambient
 local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
 
 -- ====================================================================
--- SECURITY & DATA LICENSE SYSTEM
+-- CONFIG KEY SYSTEM (24 JAM BYPASS)
 -- ====================================================================
+local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
+local CorrectKey = "AR_PREMIUM_KEY"
+local KeyVerified = false
+
 local function loadKeyStatus()
     local success, content = pcall(function() return readfile(KEY_FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
         if decodeSuccess and type(decodedData) == "table" then
             if decodedData.Timestamp and (os.time() - decodedData.Timestamp) < 86400 then
-                if decodedData.Key == CorrectKey then 
-                    KeyVerified = true 
-                end
+                if decodedData.Key == CorrectKey then KeyVerified = true end
             end
         end
     end
@@ -127,21 +127,18 @@ local function saveKeyStatus()
     local data = { Key = CorrectKey, Timestamp = os.time() }
     pcall(function() writefile(KEY_FILE_NAME, HttpService:JSONEncode(data)) end)
 end
-
 loadKeyStatus()
 
 local CurrentMapName = "Unknown Game"
 pcall(function()
     local productInfo = MarketplaceService:GetProductInfo(game.PlaceId)
-    if productInfo and productInfo.Name then 
-        CurrentMapName = productInfo.Name 
-    end
+    if productInfo and productInfo.Name then CurrentMapName = productInfo.Name end
 end)
 
 local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
 
 -- ====================================================================
--- MOVEMENT BACKGROUND CORE ENGINE
+-- REAL BACKGROUND FUNCTIONAL ENGINE (ANTI-BUG FLY)
 -- ====================================================================
 local flyBg, flyBv
 
@@ -157,26 +154,14 @@ local function stopFlying()
 end
 
 local function handleFlyEngine()
-    if not Config.FlyMode then 
-        stopFlying() 
-        return 
-    end
+    if not Config.FlyMode then stopFlying() return end
     stopFlying()
-    
-    local char = Player.Character 
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local char = Player.Character if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local torso = char.HumanoidRootPart
-    local hum = char:FindFirstChildOfClass("Humanoid") 
-    if not hum then return end
+    local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
     
-    flyBg = Instance.new("BodyGyro", torso) 
-    flyBg.P = 9e4 
-    flyBg.maxTorque = Vector3.new(9e9, 9e9, 9e9) 
-    flyBg.cframe = torso.CFrame
-    
-    flyBv = Instance.new("BodyVelocity", torso) 
-    flyBv.velocity = Vector3.new(0, 0, 0) 
-    flyBv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    flyBg = Instance.new("BodyGyro", torso) flyBg.P = 9e4 flyBg.maxTorque = Vector3.new(9e9, 9e9, 9e9) flyBg.cframe = torso.CFrame
+    flyBv = Instance.new("BodyVelocity", torso) flyBv.velocity = Vector3.new(0, 0, 0) flyBv.maxForce = Vector3.new(9e9, 9e9, 9e9)
     
     task.spawn(function()
         local camera = workspace.CurrentCamera
@@ -197,18 +182,11 @@ local function handleFlyEngine()
             
             local finalVelocity = (direction.Magnitude > 0) and (direction.Unit * speed) or Vector3.new(0, 0, 0)
             local verticalSpeed = 0
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then verticalSpeed = speed
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then verticalSpeed = -speed end
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
-                verticalSpeed = speed
-            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then 
-                verticalSpeed = -speed 
-            end
-            
-            if verticalSpeed ~= 0 then 
-                flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
-            else 
-                flyBv.velocity = finalVelocity 
-            end
+            if verticalSpeed ~= 0 then flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
+            else flyBv.velocity = finalVelocity end
             
             flyBg.cframe = camCF
             task.wait()
@@ -217,24 +195,17 @@ local function handleFlyEngine()
     end)
 end
 
--- ====================================================================
--- MOVEMENT PROPERTY WORKERS
--- ====================================================================
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then 
-            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
-        end
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then 
-                part.CanCollide = false 
-            end
+            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
         end
     end
 end)
@@ -251,10 +222,7 @@ end
 Player.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid", 5)
     enforceHumanoidProperties()
-    if Config.FlyMode then 
-        task.wait(0.1) 
-        handleFlyEngine() 
-    end
+    if Config.FlyMode then task.wait(0.1) handleFlyEngine() end
 end)
 
 task.spawn(function()
@@ -266,9 +234,7 @@ task.spawn(function()
         end
         if Config.InfiniteOxygen and Player.Character then
             local oxygen = Player.Character:FindFirstChild("Oxygen") or Player:FindFirstChild("Oxygen")
-            if oxygen and oxygen:IsA("NumberValue") then 
-                oxygen.Value = 100 
-            end
+            if oxygen and oxygen:IsA("NumberValue") then oxygen.Value = 100 end
         end
     end
 end)
@@ -289,26 +255,21 @@ local function bypassTeleportWithTween(targetCFrame)
         local distance = (hrp.Position - targetCFrame.Position).Magnitude
         local duration = distance / math.max(Config.TweenSpeed, 50)
         local bodyVelocity = Instance.new("BodyVelocity")
-        
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bodyVelocity.Parent = hrp
-        
         local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
         tween:Play()
-        tween.Completed:Connect(function() 
-            bodyVelocity:Destroy() 
-        end)
+        tween.Completed:Connect(function() bodyVelocity:Destroy() end)
         return true
     end
     return false
 end
 
 -- ====================================================================
--- ESP RENDER CHAMS ENGINE
+-- ESP GLOW & CHAMS ENGINE
 -- ====================================================================
 local espCache = {}
-
 local function cleanESP(target)
     if espCache[target] then
         if espCache[target].Box then espCache[target].Box:Destroy() end
@@ -322,79 +283,41 @@ local function buildESP(target)
     if target == Player then return end
     RunService.RenderStepped:Connect(function()
         if not Config.EnableESP or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-            cleanESP(target) 
-            return
+            cleanESP(target) return
         end
-        
-        local tChar = target.Character 
-        local tHrp = tChar.HumanoidRootPart 
-        local pHrp = Player.Character.HumanoidRootPart
-        local camera = workspace.CurrentCamera 
-        local _, onScreen = camera:WorldToViewportPoint(tHrp.Position)
+        local tChar = target.Character local tHrp = tChar.HumanoidRootPart local pHrp = Player.Character.HumanoidRootPart
+        local camera = workspace.CurrentCamera local _, onScreen = camera:WorldToViewportPoint(tHrp.Position)
         local distance = (pHrp.Position - tHrp.Position).Magnitude
 
-        if Config.TeamCheck and target.Team == Player.Team then 
-            cleanESP(target) 
-            return 
-        end
-        if distance > Config.MaxDistance then 
-            cleanESP(target) 
-            return 
-        end
-        
+        if Config.TeamCheck and target.Team == Player.Team then cleanESP(target) return end
+        if distance > Config.MaxDistance then cleanESP(target) return end
         if not espCache[target] then espCache[target] = {} end
 
         if Config.ShowBoxes and onScreen then
             if not espCache[target].Box then
-                local b = Instance.new("BoxHandleAdornment") 
-                b.Size = Vector3.new(4, 5.5, 4) 
-                b.Color3 = Theme.Accent 
-                b.AlwaysOnTop = true 
-                b.Transparency = 0.6 
-                espCache[target].Box = b
-            end
-            espCache[target].Box.Adornee = tChar 
-            espCache[target].Box.Parent = SafeGuiTarget
+                local b = Instance.new("BoxHandleAdornment") b.Size = Vector3.new(4, 5.5, 4) b.Color3 = Theme.Accent b.AlwaysOnTop = true b.Transparency = 0.6 espCache[target].Box = b
+           end
+            espCache[target].Box.Adornee = tChar espCache[target].Box.Parent = SafeGuiTarget
         else
             if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
         end
 
         if Config.ShowNames and onScreen then
             if not espCache[target].Label then
-                local bgui = Instance.new("BillboardGui") 
-                bgui.Size = UDim2.new(0, 150, 0, 40) 
-                bgui.AlwaysOnTop = true 
-                bgui.StudsOffset = Vector3.new(0, 3, 0)
-                
-                local txt = Instance.new("TextLabel", bgui) 
-                txt.Size = UDim2.new(1, 0, 1, 0) 
-                txt.BackgroundTransparency = 1 
-                txt.TextColor3 = Theme.TextMain 
-                txt.Font = Enum.Font.GothamBold 
-                txt.TextSize = 10 
-                
-                espCache[target].Label = bgui 
-                espCache[target].TxtObject = txt
-            end
+               local bgui = Instance.new("BillboardGui") bgui.Size = UDim2.new(0, 150, 0, 40) bgui.AlwaysOnTop = true bgui.StudsOffset = Vector3.new(0, 3, 0)
+                local txt = Instance.new("TextLabel", bgui) txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextColor3 = Theme.TextMain txt.Font = Enum.Font.GothamBold txt.TextSize = 10 espCache[target].Label = bgui espCache[target].TxtObject = txt
+           end
             espCache[target].TxtObject.Text = string.format("%s\n[%d m]", target.DisplayName, math.round(distance))
-            espCache[target].Label.Adornee = tHrp 
-            espCache[target].Label.Parent = SafeGuiTarget
+            espCache[target].Label.Adornee = tHrp espCache[target].Label.Parent = SafeGuiTarget
         else
             if espCache[target].Label then espCache[target].Label:Destroy() espCache[target].Label = nil end
         end
 
         if Config.ShowGlow then
-            if not espCache[target].Highlight then
-                local hl = Instance.new("Highlight") 
-                hl.FillColor = Theme.AccentPurple 
-                hl.FillTransparency = 0.4 
-                hl.OutlineColor = Theme.TextMain 
-                hl.OutlineTransparency = 0.1 
-                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop 
-                espCache[target].Highlight = hl
+           if not espCache[target].Highlight then
+                local hl = Instance.new("Highlight") hl.FillColor = Theme.AccentPurple hl.FillTransparency = 0.4 hl.OutlineColor = Theme.TextMain hl.OutlineTransparency = 0.1 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop espCache[target].Highlight = hl
             end
-            espCache[target].Highlight.Adornee = tChar 
-            espCache[target].Highlight.Parent = SafeGuiTarget
+            espCache[target].Highlight.Adornee = tChar espCache[target].Highlight.Parent = SafeGuiTarget
         else
             if espCache[target].Highlight then espCache[target].Highlight:Destroy() espCache[target].Highlight = nil end
         end
@@ -406,22 +329,18 @@ for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
 local function applyGraphicsBoost()
     game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
-    if Config.AntiLag then 
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 
-    end
+    if Config.AntiLag then settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end
 end
 
 -- ====================================================================
--- LOCAL WAYPOINT STORAGE SYSTEM
+-- WAYPOINT MANAGEMENT STORAGE (FIXED DICTIONARY STRUCT)
 -- ====================================================================
 local function loadWaypointsFromStorage()
     AllWaypoints = {}
     local success, content = pcall(function() return readfile(FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-        if decodeSuccess and type(decodedData) == "table" then 
-            AllWaypoints = decodedData 
-        end
+        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
     else
         pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
     end
@@ -431,157 +350,48 @@ end
 local function saveWaypointsToStorage()
     pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(AllWaypoints)) end)
 end
-
 loadWaypointsFromStorage()
 
 -- ====================================================================
--- INTERFACE BUILD UTILITIES
+-- COUPLING INTERFACE BUILDER
 -- ====================================================================
 local PopupFrame = Instance.new("Frame")
-PopupFrame.Name = "PopupFrame" 
-PopupFrame.Parent = MainGui 
-PopupFrame.Size = UDim2.new(0, 280, 0, 140) 
-PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70) 
-PopupFrame.BackgroundColor3 = Theme.Bg 
-PopupFrame.BackgroundTransparency = Config.UiTransparency 
-PopupFrame.Visible = false 
-PopupFrame.ZIndex = 1000 
-Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
+PopupFrame.Name = "PopupFrame" PopupFrame.Parent = MainGui PopupFrame.Size = UDim2.new(0, 280, 0, 140) PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70) PopupFrame.BackgroundColor3 = Theme.Bg PopupFrame.BackgroundTransparency = Config.UiTransparency PopupFrame.Visible = false PopupFrame.ZIndex = 1000 Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
+local popStroke = Instance.new("UIStroke", PopupFrame) popStroke.Color = Theme.AccentPurple popStroke.Thickness = 1.5
 
-local popStroke = Instance.new("UIStroke", PopupFrame) 
-popStroke.Color = Theme.AccentPurple 
-popStroke.Thickness = 1.5
+local PopupText = Instance.new("TextLabel", PopupFrame) PopupText.Size = UDim2.new(1, -24, 0, 50) PopupText.Position = UDim2.new(0, 12, 0, 20) PopupText.Text = "Apakah anda yakin?" PopupText.Font = Enum.Font.GothamBold PopupText.TextColor3 = Theme.TextMain PopupText.TextSize = 13 PopupText.TextWrapped = true PopupText.BackgroundTransparency = 1 PopupText.ZIndex = 1001
 
-local PopupText = Instance.new("TextLabel", PopupFrame) 
-PopupText.Size = UDim2.new(1, -24, 0, 50) 
-PopupText.Position = UDim2.new(0, 12, 0, 20) 
-PopupText.Text = "Apakah anda yakin?" 
-PopupText.Font = Enum.Font.GothamBold 
-PopupText.TextColor3 = Theme.TextMain 
-PopupText.TextSize = 13 
-PopupText.TextWrapped = true 
-PopupText.BackgroundTransparency = 1 
-PopupText.ZIndex = 1001
+local PopupYes = Instance.new("TextButton", PopupFrame) PopupYes.Size = UDim2.new(0, 110, 0, 30) PopupYes.Position = UDim2.new(0, 20, 1, -45) PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45) PopupYes.Font = Enum.Font.GothamBold PopupYes.Text = "YA" PopupYes.TextColor3 = Theme.ConfirmGreen PopupYes.TextSize = 12 PopupYes.ZIndex = 1001 Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", PopupYes).Color = Theme.Stroke
 
-local PopupYes = Instance.new("TextButton", PopupFrame) 
-PopupYes.Size = UDim2.new(0, 110, 0, 30) 
-PopupYes.Position = UDim2.new(0, 20, 1, -45) 
-PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45) 
-PopupYes.Font = Enum.Font.GothamBold 
-PopupYes.Text = "YA" 
-PopupYes.TextColor3 = Theme.ConfirmGreen 
-PopupYes.TextSize = 12 
-PopupYes.ZIndex = 1001 
-Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 5) 
-Instance.new("UIStroke", PopupYes).Color = Theme.Stroke
-
-local PopupNo = Instance.new("TextButton", PopupFrame) 
-PopupNo.Size = UDim2.new(0, 110, 0, 30) 
-PopupNo.Position = UDim2.new(1, -130, 1, -45) 
-PopupNo.BackgroundColor3 = Color3.fromRGB(60, 30, 35) 
-PopupNo.Font = Enum.Font.GothamBold 
-PopupNo.Text = "TIDAK" 
-PopupNo.TextColor3 = Theme.DeleteRed 
-PopupNo.TextSize = 12 
-PopupNo.ZIndex = 1001 
-Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 5) 
-Instance.new("UIStroke", PopupNo).Color = Theme.Stroke
+local PopupNo = Instance.new("TextButton", PopupFrame) PopupNo.Size = UDim2.new(0, 110, 0, 30) PopupNo.Position = UDim2.new(1, -130, 1, -45) PopupNo.BackgroundColor3 = Color3.fromRGB(60, 30, 35) PopupNo.Font = Enum.Font.GothamBold PopupNo.Text = "TIDAK" PopupNo.TextColor3 = Theme.DeleteRed PopupNo.TextSize = 12 PopupNo.ZIndex = 1001 Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", PopupNo).Color = Theme.Stroke
 
 local currentCallback = nil
 local function showConfirmation(message, onYes)
-    PopupText.Text = message 
-    currentCallback = onYes 
-    PopupFrame.Visible = true 
-    PopupFrame.Size = UDim2.new(0, 250, 0, 120)
+    PopupText.Text = message currentCallback = onYes PopupFrame.Visible = true PopupFrame.Size = UDim2.new(0, 250, 0, 120)
     TweenService:Create(PopupFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
 end
+PopupYes.MouseButton1Click:Connect(function() PopupFrame.Visible = false if currentCallback then currentCallback() end end)
+PopupNo.MouseButton1Click:Connect(function() PopupFrame.Visible = false end)
 
-PopupYes.MouseButton1Click:Connect(function() 
-    PopupFrame.Visible = false 
-    if currentCallback then currentCallback() end 
-end)
-
-PopupNo.MouseButton1Click:Connect(function() 
-    PopupFrame.Visible = false 
-end)
-
--- ====================================================================
--- INTRO SPLASH LOAD ENGINE
--- ====================================================================
 local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Name = "LoadingFrame" 
-LoadingFrame.Parent = MainGui 
-LoadingFrame.Size = UDim2.new(0, 320, 0, 180) 
-LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90) 
-LoadingFrame.BackgroundColor3 = Theme.Bg 
-LoadingFrame.BackgroundTransparency = 0.05 
-Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+LoadingFrame.Name = "LoadingFrame" LoadingFrame.Parent = MainGui LoadingFrame.Size = UDim2.new(0, 320, 0, 180) LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90) LoadingFrame.BackgroundColor3 = Theme.Bg LoadingFrame.BackgroundTransparency = 0.05 Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+local loadStroke = Instance.new("UIStroke", LoadingFrame) loadStroke.Color = Theme.Stroke loadStroke.Thickness = 1.5
 
-local loadStroke = Instance.new("UIStroke", LoadingFrame) 
-loadStroke.Color = Theme.Stroke 
-loadStroke.Thickness = 1.5
+local LoadTitle = Instance.new("TextLabel", LoadingFrame) LoadTitle.Size = UDim2.new(1, 0, 0, 40) LoadTitle.Position = UDim2.new(0, 0, 0, 25) LoadTitle.Text = "AR SCRIPT HUB" LoadTitle.Font = Enum.Font.GothamBold LoadTitle.TextColor3 = Theme.TextMain LoadTitle.TextSize = 18 LoadTitle.BackgroundTransparency = 1
+local LoadStatus = Instance.new("TextLabel", LoadingFrame) LoadStatus.Size = UDim2.new(1, 0, 0, 20) LoadStatus.Position = UDim2.new(0, 0, 0, 65) LoadStatus.Text = "Menginisialisasi core script..." LoadStatus.Font = Enum.Font.GothamMedium LoadStatus.TextColor3 = Theme.TextMuted LoadStatus.TextSize = 11 LoadStatus.BackgroundTransparency = 1
+local LoadProgressText = Instance.new("TextLabel", LoadingFrame) LoadProgressText.Size = UDim2.new(1, 0, 0, 20) LoadProgressText.Position = UDim2.new(0, 0, 0, 90) LoadProgressText.Text = "0%" LoadProgressText.Font = Enum.Font.GothamBold LoadProgressText.TextColor3 = Theme.AccentPurple LoadProgressText.TextSize = 14 LoadProgressText.BackgroundTransparency = 1
+local LoadTrack = Instance.new("Frame", LoadingFrame) LoadTrack.Size = UDim2.new(1, -60, 0, 6) LoadTrack.Position = UDim2.new(0, 30, 0, 125) LoadTrack.BackgroundColor3 = Theme.CardBg Instance.new("UICorner", LoadTrack).CornerRadius = UDim.new(0, 3) local ltStroke = Instance.new("UIStroke", LoadTrack) ltStroke.Color = Theme.Stroke
+local LoadFill = Instance.new("Frame", LoadTrack) LoadFill.Size = UDim2.new(0, 0, 1, 0) LoadFill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
 
-local LoadTitle = Instance.new("TextLabel", LoadingFrame) 
-LoadTitle.Size = UDim2.new(1, 0, 0, 40) 
-LoadTitle.Position = UDim2.new(0, 0, 0, 25) 
-LoadTitle.Text = "AR SCRIPT HUB" 
-LoadTitle.Font = Enum.Font.GothamBold 
-LoadTitle.TextColor3 = Theme.TextMain 
-LoadTitle.TextSize = 18 
-LoadTitle.BackgroundTransparency = 1
-
-local LoadStatus = Instance.new("TextLabel", LoadingFrame) 
-LoadStatus.Size = UDim2.new(1, 0, 0, 20) 
-LoadStatus.Position = UDim2.new(0, 0, 0, 65) 
-LoadStatus.Text = "Menginisialisasi core script..." 
-LoadStatus.Font = Enum.Font.GothamMedium 
-LoadStatus.TextColor3 = Theme.TextMuted 
-LoadStatus.TextSize = 11 
-LoadStatus.BackgroundTransparency = 1
-
-local LoadProgressText = Instance.new("TextLabel", LoadingFrame) 
-LoadProgressText.Size = UDim2.new(1, 0, 0, 20) 
-LoadProgressText.Position = UDim2.new(0, 0, 0, 90) 
-LoadProgressText.Text = "0%" 
-LoadProgressText.Font = Enum.Font.GothamBold 
-LoadProgressText.TextColor3 = Theme.AccentPurple 
-LoadProgressText.TextSize = 14 
-LoadProgressText.BackgroundTransparency = 1
-
-local LoadTrack = Instance.new("Frame", LoadingFrame) 
-LoadTrack.Size = UDim2.new(1, -60, 0, 6) 
-LoadTrack.Position = UDim2.new(0, 30, 0, 125) 
-LoadTrack.BackgroundColor3 = Theme.CardBg 
-Instance.new("UICorner", LoadTrack).CornerRadius = UDim.new(0, 3) 
-
-local ltStroke = Instance.new("UIStroke", LoadTrack) 
-ltStroke.Color = Theme.Stroke
-
-local LoadFill = Instance.new("Frame", LoadTrack) 
-LoadFill.Size = UDim2.new(0, 0, 1, 0) 
-LoadFill.BackgroundColor3 = Theme.Accent 
-Instance.new("UICorner", LoadFill).CornerRadius = UDim.new(0, 3)
-
--- ====================================================================
--- DRAG ENGINE BUILDER
--- ====================================================================
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true 
-            dragStart = input.Position 
-            startPos = frame.Position
-            input.Changed:Connect(function() 
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end 
-            end)
+            dragging = true dragStart = input.Position startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-    dragHandle.InputChanged:Connect(function(input) 
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then 
-            dragInput = input 
-        end 
-    end)
+    dragHandle.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
@@ -590,135 +400,38 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- ====================================================================
--- INTERFACE FRAME HOUSINGS
--- ====================================================================
 local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "ToggleButton" 
-ToggleButton.Parent = MainGui 
-ToggleButton.Size = UDim2.new(0, 46, 0, 46) 
-ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0) 
-ToggleButton.BackgroundColor3 = Theme.Bg 
-ToggleButton.BackgroundTransparency = Config.UiTransparency 
-ToggleButton.Font = Enum.Font.GothamBold 
-ToggleButton.Text = "AR" 
-ToggleButton.TextColor3 = Theme.Accent 
-ToggleButton.TextSize = 16 
-ToggleButton.Visible = false 
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
-
-local tbStroke = Instance.new("UIStroke", ToggleButton) 
-tbStroke.Color = Theme.AccentPurple 
-makeDraggable(ToggleButton, ToggleButton)
+ToggleButton.Name = "ToggleButton" ToggleButton.Parent = MainGui ToggleButton.Size = UDim2.new(0, 46, 0, 46) ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0) ToggleButton.BackgroundColor3 = Theme.Bg ToggleButton.BackgroundTransparency = Config.UiTransparency ToggleButton.Font = Enum.Font.GothamBold ToggleButton.Text = "AR" ToggleButton.TextColor3 = Theme.Accent ToggleButton.TextSize = 16 ToggleButton.Visible = false Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
+local tbStroke = Instance.new("UIStroke", ToggleButton) tbStroke.Color = Theme.AccentPurple makeDraggable(ToggleButton, ToggleButton)
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame" 
-MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 560, 0, 340) 
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170) 
-MainFrame.BackgroundColor3 = Theme.Bg 
-MainFrame.BackgroundTransparency = Config.UiTransparency 
-MainFrame.Visible = false 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
-local mainStroke = Instance.new("UIStroke", MainFrame) 
-mainStroke.Color = Theme.Stroke 
-mainStroke.Thickness = 1.5
+MainFrame.Name = "MainFrame" MainFrame.Parent = MainGui MainFrame.Size = UDim2.new(0, 560, 0, 340) MainFrame.Position = UDim2.new(0.5, -280, 0.5, -170) MainFrame.BackgroundColor3 = Theme.Bg MainFrame.BackgroundTransparency = Config.UiTransparency MainFrame.Visible = false Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+local mainStroke = Instance.new("UIStroke", MainFrame) mainStroke.Color = Theme.Stroke mainStroke.Thickness = 1.5
 
 local function updateUiTransparency(value)
-    Config.UiTransparency = value 
-    MainFrame.BackgroundTransparency = value 
-    ToggleButton.BackgroundTransparency = value 
-    PopupFrame.BackgroundTransparency = value
+    Config.UiTransparency = value MainFrame.BackgroundTransparency = value ToggleButton.BackgroundTransparency = value PopupFrame.BackgroundTransparency = value
 end
 
-local Header = Instance.new("Frame", MainFrame) 
-Header.Size = UDim2.new(1, 0, 0, 40) 
-Header.BackgroundTransparency = 1
-
-local Title = Instance.new("TextLabel", Header) 
-Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.1</font>" 
-Title.RichText = true 
-Title.Size = UDim2.new(0.5, 0, 1, 0) 
-Title.Position = UDim2.new(0, 16, 0, 0) 
-Title.Font = Enum.Font.GothamBold 
-Title.TextColor3 = Theme.TextMain 
-Title.TextSize = 14 
-Title.TextXAlignment = Enum.TextXAlignment.Left 
-Title.BackgroundTransparency = 1
-
-local CloseBtn = Instance.new("TextButton", Header) 
-CloseBtn.Text = "×" 
-CloseBtn.Size = UDim2.new(0, 35, 1, 0) 
-CloseBtn.Position = UDim2.new(1, -35, 0, 0) 
-CloseBtn.Font = Enum.Font.GothamMedium 
-CloseBtn.TextColor3 = Theme.DeleteRed 
-CloseBtn.TextSize = 24 
-CloseBtn.BackgroundTransparency = 1
-
-local MinimizeBtn = Instance.new("TextButton", Header) 
-MinimizeBtn.Text = "−" 
-MinimizeBtn.Size = UDim2.new(0, 35, 1, 0) 
-MinimizeBtn.Position = UDim2.new(1, -70, 0, 0) 
-MinimizeBtn.Font = Enum.Font.GothamMedium 
-MinimizeBtn.TextColor3 = Theme.TextMuted 
-MinimizeBtn.TextSize = 20 
-MinimizeBtn.BackgroundTransparency = 1
+local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, 0, 0, 40) Header.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Header) Title.Text = "AR SCRIPT HUB <font color='#c092ff'>v1.1</font>" Title.RichText = true Title.Size = UDim2.new(0.5, 0, 1, 0) Title.Position = UDim2.new(0, 16, 0, 0) Title.Font = Enum.Font.GothamBold Title.TextColor3 = Theme.TextMain Title.TextSize = 14 Title.TextXAlignment = Enum.TextXAlignment.Left Title.BackgroundTransparency = 1
+local CloseBtn = Instance.new("TextButton", Header) CloseBtn.Text = "×" CloseBtn.Size = UDim2.new(0, 35, 1, 0) CloseBtn.Position = UDim2.new(1, -35, 0, 0) CloseBtn.Font = Enum.Font.GothamMedium CloseBtn.TextColor3 = Theme.DeleteRed CloseBtn.TextSize = 24 CloseBtn.BackgroundTransparency = 1
+local MinimizeBtn = Instance.new("TextButton", Header) MinimizeBtn.Text = "−" MinimizeBtn.Size = UDim2.new(0, 35, 1, 0) MinimizeBtn.Position = UDim2.new(1, -70, 0, 0) MinimizeBtn.Font = Enum.Font.GothamMedium MinimizeBtn.TextColor3 = Theme.TextMuted MinimizeBtn.TextSize = 20 MinimizeBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
-
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = true ToggleButton.Visible = false end)
 MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false ToggleButton.Visible = true end)
 CloseBtn.MouseButton1Click:Connect(function() showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function() MainGui:Destroy() end) end)
 
--- ====================================================================
--- NAVIGATION LAYER CONSTRUCTS
--- ====================================================================
-local TopBarNav = Instance.new("Frame", MainFrame) 
-TopBarNav.Name = "TopBarNav" 
-TopBarNav.Size = UDim2.new(1, -32, 0, 36) 
-TopBarNav.Position = UDim2.new(0, 16, 0, 45) 
-TopBarNav.BackgroundColor3 = Theme.CardBg 
-TopBarNav.BackgroundTransparency = 0.6 
-Instance.new("UICorner", TopBarNav).CornerRadius = UDim.new(0, 6) 
+local TopBarNav = Instance.new("Frame", MainFrame) TopBarNav.Name = "TopBarNav" TopBarNav.Size = UDim2.new(1, -32, 0, 36) TopBarNav.Position = UDim2.new(0, 16, 0, 45) TopBarNav.BackgroundColor3 = Theme.CardBg TopBarNav.BackgroundTransparency = 0.6 Instance.new("UICorner", TopBarNav).CornerRadius = UDim.new(0, 6) local navStroke = Instance.new("UIStroke", TopBarNav) navStroke.Color = Theme.Stroke
+local NavLayout = Instance.new("UIListLayout", TopBarNav) NavLayout.FillDirection = Enum.FillDirection.Horizontal NavLayout.SortOrder = Enum.SortOrder.LayoutOrder NavLayout.VerticalAlignment = Enum.VerticalAlignment.Center NavLayout.Padding = UDim.new(0, 4)
+local paddingNav = Instance.new("UIPadding", TopBarNav) paddingNav.PaddingLeft = UDim.new(0, 6)
 
-local navStroke = Instance.new("UIStroke", TopBarNav) 
-navStroke.Color = Theme.Stroke
-
-local NavLayout = Instance.new("UIListLayout", TopBarNav) 
-NavLayout.FillDirection = Enum.FillDirection.Horizontal 
-NavLayout.SortOrder = Enum.SortOrder.LayoutOrder 
-NavLayout.VerticalAlignment = Enum.VerticalAlignment.Center 
-NavLayout.Padding = UDim.new(0, 4)
-
-local paddingNav = Instance.new("UIPadding", TopBarNav) 
-paddingNav.PaddingLeft = UDim.new(0, 6)
-
-local MainContentFrame = Instance.new("ScrollingFrame", MainFrame) 
-MainContentFrame.Name = "MainContentFrame" 
-MainContentFrame.Size = UDim2.new(1, -16, 1, -105) 
-MainContentFrame.Position = UDim2.new(0, 0, 0, 95) 
-MainContentFrame.BackgroundTransparency = 1 
-MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) 
-MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y 
-MainContentFrame.ScrollBarThickness = 3 
-MainContentFrame.ScrollBarImageColor3 = Theme.Accent
-
-local framePadding = Instance.new("UIPadding", MainContentFrame) 
-framePadding.PaddingTop = UDim.new(0, 4) 
-framePadding.PaddingBottom = UDim.new(0, 20) 
-framePadding.PaddingLeft = UDim.new(0, 16)
+local MainContentFrame = Instance.new("ScrollingFrame", MainFrame) MainContentFrame.Name = "MainContentFrame" MainContentFrame.Size = UDim2.new(1, -16, 1, -105) MainContentFrame.Position = UDim2.new(0, 0, 0, 95) MainContentFrame.BackgroundTransparency = 1 MainContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) MainContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y MainContentFrame.ScrollBarThickness = 3 MainContentFrame.ScrollBarImageColor3 = Theme.Accent
+local framePadding = Instance.new("UIPadding", MainContentFrame) framePadding.PaddingTop = UDim.new(0, 4) framePadding.PaddingBottom = UDim.new(0, 20) framePadding.PaddingLeft = UDim.new(0, 16)
 
 local menuContainers = {}
 local function createMenuPage(name, isVisible)
-    local page = Instance.new("Frame", MainContentFrame) 
-    page.Name = name .. "Page" 
-    page.Size = UDim2.new(0, 536, 0, 0) 
-    page.AutomaticSize = Enum.AutomaticSize.Y 
-    page.BackgroundTransparency = 1 
-    page.Visible = isVisible 
-    menuContainers[name] = page 
-    return page
+    local page = Instance.new("Frame", MainContentFrame) page.Name = name .. "Page" page.Size = UDim2.new(0, 536, 0, 0) page.AutomaticSize = Enum.AutomaticSize.Y page.BackgroundTransparency = 1 page.Visible = isVisible menuContainers[name] = page return page
 end
 
 local playerPage = createMenuPage("Player", true)
@@ -733,74 +446,29 @@ local function switchTab(tabName)
 end
 
 local function addTopBarButton(textDisplay, tabTarget, order)
-    local btn = Instance.new("TextButton", TopBarNav) 
-    btn.Size = UDim2.new(0, 96, 0, 26) 
-    btn.BackgroundColor3 = Color3.fromRGB(30, 32, 54) 
-    btn.Font = Enum.Font.GothamBold 
-    btn.Text = textDisplay 
-    btn.TextSize = 11 
-    btn.TextColor3 = Theme.TextMain 
-    btn.LayoutOrder = order 
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4) 
-    
-    local bStroke = Instance.new("UIStroke", btn) 
-    bStroke.Color = Theme.Stroke
-    
+    local btn = Instance.new("TextButton", TopBarNav) btn.Size = UDim2.new(0, 96, 0, 26) btn.BackgroundColor3 = Color3.fromRGB(30, 32, 54) btn.Font = Enum.Font.GothamBold btn.Text = textDisplay btn.TextSize = 11 btn.TextColor3 = Theme.TextMain btn.LayoutOrder = order Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4) local bStroke = Instance.new("UIStroke", btn) bStroke.Color = Theme.Stroke
     btn.MouseButton1Click:Connect(function()
-        for _, child in pairs(TopBarNav:GetChildren()) do 
-            if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain end 
-        end
-        btn.TextColor3 = Theme.Accent 
-        switchTab(tabTarget)
+        for _, child in pairs(TopBarNav:GetChildren()) do if child:IsA("TextButton") then child.TextColor3 = Theme.TextMain end end
+        btn.TextColor3 = Theme.Accent switchTab(tabTarget)
     end)
     return btn
 end
 
-local btnPlayer = addTopBarButton("👤 Player", "Player", 1) 
-btnPlayer.TextColor3 = Theme.Accent
+local btnPlayer = addTopBarButton("👤 Player", "Player", 1) btnPlayer.TextColor3 = Theme.Accent
 addTopBarButton("👁️ ESP", "ESP", 2)
 addTopBarButton("🌀 Teleportation", "Teleportation", 3)
 addTopBarButton("🌐 Server", "Server", 4)
 addTopBarButton("⚙️ Setting", "Setting", 5)
 
--- ====================================================================
--- CONTROL INTERFACE FRAME FACTORY
--- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
-    local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 24) 
-    holder.BackgroundTransparency = 1 
-    holder.LayoutOrder = order
-    
-    local lbl = Instance.new("TextLabel", holder) 
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(1, -40, 1, 0) 
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 12 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
-    
-    local track = Instance.new("TextButton", holder) 
-    track.Size = UDim2.new(0, 32, 0, 16) 
-    track.Position = UDim2.new(1, -32, 0.5, -8) 
-    track.BackgroundColor3 = Theme.Bg 
-    track.Text = "" 
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) 
-    
-    local tStr = Instance.new("UIStroke", track) 
-    tStr.Color = Theme.Stroke
-    
-    local knob = Instance.new("Frame", track) 
-    knob.Size = UDim2.new(0, 10, 0, 10) 
-    knob.Position = UDim2.new(0, 3, 0.5, -5) 
-    knob.BackgroundColor3 = Theme.TextMuted 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+    local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 24) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+    local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(1, -40, 1, 0) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 12 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+    local track = Instance.new("TextButton", holder) track.Size = UDim2.new(0, 32, 0, 16) track.Position = UDim2.new(1, -32, 0.5, -8) track.BackgroundColor3 = Theme.Bg track.Text = "" Instance.new("UICorner", track).CornerRadius = UDim.new(0, 8) local tStr = Instance.new("UIStroke", track) tStr.Color = Theme.Stroke
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(0, 3, 0.5, -5) knob.BackgroundColor3 = Theme.TextMuted Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
     
     track.MouseButton1Click:Connect(function()
         if not configKey then return end
-        Config[configKey] = not Config[configKey] 
-        local active = Config[configKey]
+        Config[configKey] = not Config[configKey] local active = Config[configKey]
         TweenService:Create(knob, TweenInfo.new(0.08), {Position = UDim2.new(0, active and 19 or 3, 0.5, -5)}):Play()
         TweenService:Create(track, TweenInfo.new(0.08), {BackgroundColor3 = active and Theme.Accent or Theme.Bg}):Play()
         tStr.Color = active and Theme.Accent or Theme.Stroke
@@ -809,211 +477,78 @@ local function addToggle(parent, labelText, order, configKey, callback)
 end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
-    local holder = Instance.new("Frame", parent) 
-    holder.Size = UDim2.new(1, 0, 0, 38) 
-    holder.BackgroundTransparency = 1 
-    holder.LayoutOrder = order
-    
-    local lbl = Instance.new("TextLabel", holder) 
-    lbl.Text = labelText 
-    lbl.Size = UDim2.new(0.65, 0, 0, 14) 
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 11 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.BackgroundTransparency = 1
-    
-    local inputBox = Instance.new("TextBox", holder) 
-    inputBox.Size = UDim2.new(0, 36, 0, 16) 
-    inputBox.Position = UDim2.new(1, -36, 0, 0) 
-    inputBox.BackgroundColor3 = Theme.Bg 
-    inputBox.Font = Enum.Font.GothamBold 
-    inputBox.Text = tostring(defaultVal) 
-    inputBox.TextColor3 = Theme.Accent 
-    inputBox.TextSize = 10 
-    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) 
-    
-    local bStr = Instance.new("UIStroke", inputBox) 
-    bStr.Color = Theme.Stroke
-    
-    local track = Instance.new("Frame", holder) 
-    track.Size = UDim2.new(1, 0, 0, 4) 
-    track.Position = UDim2.new(0, 0, 1, -4) 
-    track.BackgroundColor3 = Theme.Stroke 
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
-    
-    local fill = Instance.new("Frame", track) 
-    local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1) 
-    fill.Size = UDim2.new(startPerc, 0, 1, 0) 
-    fill.BackgroundColor3 = Theme.Accent 
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
-    
-    local knob = Instance.new("Frame", track) 
-    knob.Position = UDim2.new(startPerc, -5, 0.5, -5) 
-    knob.Size = UDim2.new(0, 10, 0, 10) 
-    knob.BackgroundColor3 = Theme.TextMain 
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0) 
-    Instance.new("UIStroke", knob).Color = Theme.AccentPurple
-    
-    local dragTrigger = Instance.new("ImageButton", knob) 
-    dragTrigger.Size = UDim2.new(2, 0, 2, 0) 
-    dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) 
-    dragTrigger.BackgroundTransparency = 1
+    local holder = Instance.new("Frame", parent) holder.Size = UDim2.new(1, 0, 0, 38) holder.BackgroundTransparency = 1 holder.LayoutOrder = order
+    local lbl = Instance.new("TextLabel", holder) lbl.Text = labelText lbl.Size = UDim2.new(0.65, 0, 0, 14) lbl.Font = Enum.Font.GothamMedium lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.BackgroundTransparency = 1
+    local inputBox = Instance.new("TextBox", holder) inputBox.Size = UDim2.new(0, 36, 0, 16) inputBox.Position = UDim2.new(1, -36, 0, 0) inputBox.BackgroundColor3 = Theme.Bg inputBox.Font = Enum.Font.GothamBold inputBox.Text = tostring(defaultVal) inputBox.TextColor3 = Theme.Accent inputBox.TextSize = 10 Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 4) local bStr = Instance.new("UIStroke", inputBox) bStr.Color = Theme.Stroke
+    local track = Instance.new("Frame", holder) track.Size = UDim2.new(1, 0, 0, 4) track.Position = UDim2.new(0, 0, 1, -4) track.BackgroundColor3 = Theme.Stroke Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+    local fill = Instance.new("Frame", track) local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1) fill.Size = UDim2.new(startPerc, 0, 1, 0) fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+    local knob = Instance.new("Frame", track) knob.Size = UDim2.new(0, 10, 0, 10) knob.Position = UDim2.new(startPerc, -5, 0.5, -5) knob.BackgroundColor3 = Theme.TextMain Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", knob).Color = Theme.AccentPurple
+    local dragTrigger = Instance.new("ImageButton", knob) dragTrigger.Size = UDim2.new(2, 0, 2, 0) dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0) dragTrigger.BackgroundTransparency = 1
 
     local function refreshVisuals(value)
-        local clampedValue = math.clamp(value, min, max) 
-        if configKey then Config[configKey] = clampedValue end
-        local perc = (clampedValue - min) / (max - min) 
-        fill.Size = UDim2.new(perc, 0, 1, 0) 
-        knob.Position = UDim2.new(perc, -5, 0.5, -5) 
-        inputBox.Text = tostring(clampedValue)
+        local clampedValue = math.clamp(value, min, max) if configKey then Config[configKey] = clampedValue end
+        local perc = (clampedValue - min) / (max - min) fill.Size = UDim2.new(perc, 0, 1, 0) knob.Position = UDim2.new(perc, -5, 0.5, -5) inputBox.Text = tostring(clampedValue)
         if callback then callback(clampedValue) end
     end
 
     local sliding = false
-    dragTrigger.InputBegan:Connect(function(input) 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end 
-    end)
-    UserInputService.InputEnded:Connect(function(input) 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end 
-    end)
+    dragTrigger.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end end)
     UserInputService.InputChanged:Connect(function(input)
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local relX = input.Position.X - track.AbsolutePosition.X 
-            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+            local relX = input.Position.X - track.AbsolutePosition.X local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
             refreshVisuals(math.round(min + (perc * (max - min))))
         end
     end)
-    inputBox.FocusLost:Connect(function() 
-        local num = tonumber(inputBox.Text) refreshVisuals(num or min) 
-    end)
+    inputBox.FocusLost:Connect(function() local num = tonumber(inputBox.Text) refreshVisuals(num or min) end)
 end
 
 local function createStatLabel(parent, labelText, order)
-    local lbl = Instance.new("TextLabel", parent) 
-    lbl.Size = UDim2.new(1, 0, 0, 18) 
-    lbl.BackgroundTransparency = 1 
-    lbl.Font = Enum.Font.GothamMedium 
-    lbl.Text = labelText 
-    lbl.TextColor3 = Theme.TextMain 
-    lbl.TextSize = 11 
-    lbl.TextXAlignment = Enum.TextXAlignment.Left 
-    lbl.LayoutOrder = order 
-    return lbl
+    local lbl = Instance.new("TextLabel", parent) lbl.Size = UDim2.new(1, 0, 0, 18) lbl.BackgroundTransparency = 1 lbl.Font = Enum.Font.GothamMedium lbl.Text = labelText lbl.TextColor3 = Theme.TextMain lbl.TextSize = 11 lbl.TextXAlignment = Enum.TextXAlignment.Left lbl.LayoutOrder = order return lbl
 end
 
 local function createServerButton(parent, text, color, onClick, order)
-    local btn = Instance.new("TextButton", parent) 
-    btn.Size = UDim2.new(1, 0, 0, 26) 
-    btn.BackgroundColor3 = color 
-    btn.Font = Enum.Font.GothamBold 
-    btn.Text = text 
-    btn.TextColor3 = Theme.TextMain 
-    btn.TextSize = 11 
-    btn.LayoutOrder = order 
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
-    Instance.new("UIStroke", btn).Color = Theme.Stroke
-    btn.MouseButton1Click:Connect(onClick) 
-    return btn
+    local btn = Instance.new("TextButton", parent) btn.Size = UDim2.new(1, 0, 0, 26) btn.BackgroundColor3 = color btn.Font = Enum.Font.GothamBold btn.Text = text btn.TextColor3 = Theme.TextMain btn.TextSize = 11 btn.LayoutOrder = order Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
+    btn.MouseButton1Click:Connect(onClick) return btn
 end
 
 local function createCard(parent, titleText, order)
-    local card = Instance.new("Frame", parent) 
-    card.Size = UDim2.new(1, 0, 0, 0) 
-    card.AutomaticSize = Enum.AutomaticSize.Y 
-    card.BackgroundColor3 = Theme.CardBg 
-    card.BackgroundTransparency = Theme.CardTrans 
-    card.LayoutOrder = order 
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8) 
-    Instance.new("UIStroke", card).Color = Theme.Stroke
-    
-    local ttl = Instance.new("TextLabel", card) 
-    ttl.Size = UDim2.new(1, -12, 0, 26) 
-    ttl.Position = UDim2.new(0, 12, 0, 4) 
-    ttl.Text = titleText:upper() 
-    ttl.Font = Enum.Font.GothamBold 
-    ttl.TextColor3 = Theme.AccentPurple 
-    ttl.TextSize = 11 
-    ttl.BackgroundTransparency = 1 
-    ttl.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local container = Instance.new("Frame", card) 
-    container.Size = UDim2.new(1, -24, 0, 0) 
-    container.AutomaticSize = Enum.AutomaticSize.Y 
-    container.Position = UDim2.new(0, 12, 0, 32) 
-    container.BackgroundTransparency = 1
-    
-    local innerLayout = Instance.new("UIListLayout", container) 
-    innerLayout.Padding = UDim.new(0, 12) 
-    innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    Instance.new("UIPadding", container).PaddingBottom = UDim.new(0, 12) 
-    return container
+    local card = Instance.new("Frame", parent) card.Size = UDim2.new(1, 0, 0, 0) card.AutomaticSize = Enum.AutomaticSize.Y card.BackgroundColor3 = Theme.CardBg card.BackgroundTransparency = Theme.CardTrans card.LayoutOrder = order Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", card).Color = Theme.Stroke
+    local ttl = Instance.new("TextLabel", card) ttl.Size = UDim2.new(1, -12, 0, 26) ttl.Position = UDim2.new(0, 12, 0, 4) ttl.Text = titleText:upper() ttl.Font = Enum.Font.GothamBold ttl.TextColor3 = Theme.AccentPurple ttl.TextSize = 11 ttl.BackgroundTransparency = 1 ttl.TextXAlignment = Enum.TextXAlignment.Left
+    local container = Instance.new("Frame", card) container.Size = UDim2.new(1, -24, 0, 0) container.AutomaticSize = Enum.AutomaticSize.Y container.Position = UDim2.new(0, 12, 0, 32) container.BackgroundTransparency = 1
+    local innerLayout = Instance.new("UIListLayout", container) innerLayout.Padding = UDim.new(0, 12) innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    Instance.new("UIPadding", container).PaddingBottom = UDim.new(0, 12) return container
 end
 
 local function createLeftColumn(parentName, columnName)
-    local col = Instance.new("Frame", menuContainers[parentName]) 
-    col.Name = columnName 
-    col.Size = UDim2.new(0, 255, 0, 0) 
-    col.AutomaticSize = Enum.AutomaticSize.Y 
-    col.BackgroundTransparency = 1
-    local layout = Instance.new("UIListLayout", col) 
-    layout.Padding = UDim.new(0, 12) 
-    layout.SortOrder = Enum.SortOrder.LayoutOrder 
-    return col
+    local col = Instance.new("Frame", menuContainers[parentName]) col.Name = columnName col.Size = UDim2.new(0, 255, 0, 0) col.AutomaticSize = Enum.AutomaticSize.Y col.BackgroundTransparency = 1
+    local layout = Instance.new("UIListLayout", col) layout.Padding = UDim.new(0, 12) layout.SortOrder = Enum.SortOrder.LayoutOrder return col
 end
 
 local function createShiftedRightColumn(parentName, columnName)
-    local col = Instance.new("Frame", menuContainers[parentName]) 
-    col.Name = columnName 
-    col.Size = UDim2.new(0, 255, 0, 0) 
-    col.AutomaticSize = Enum.AutomaticSize.Y 
-    col.Position = UDim2.new(0, 263, 0, 0) 
-    col.BackgroundTransparency = 1
-    local layout = Instance.new("UIListLayout", col) 
-    layout.Padding = UDim.new(0, 12) 
-    layout.SortOrder = Enum.SortOrder.LayoutOrder 
-    return col
+    local col = Instance.new("Frame", menuContainers[parentName]) col.Name = columnName col.Size = UDim2.new(0, 255, 0, 0) col.AutomaticSize = Enum.AutomaticSize.Y col.Position = UDim2.new(0, 263, 0, 0) col.BackgroundTransparency = 1
+    local layout = Instance.new("UIListLayout", col) layout.Padding = UDim.new(0, 12) layout.SortOrder = Enum.SortOrder.LayoutOrder return col
 end
 
--- ====================================================================
--- COUPLING STRUCT COLUMN ALLOCATORS
--- ====================================================================
-local LeftColumn = createLeftColumn("Player", "LeftColumn") 
-local RightColumn = createShiftedRightColumn("Player", "RightColumn")
-
-local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn") 
-local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
-
-local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn") 
-local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
-
-local serverLeftColumn = createLeftColumn("Server", "ServerLeftColumn") 
-local serverRightColumn = createShiftedRightColumn("Server", "ServerRightColumn")
-
-local SetLeftColumn = createLeftColumn("Setting", "SetLeftColumn") 
-local SetRightColumn = createShiftedRightColumn("Setting", "SetRightColumn")
+local LeftColumn = createLeftColumn("Player", "LeftColumn") local RightColumn = createShiftedRightColumn("Player", "RightColumn")
+local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn") local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
+local tpLeftColumn = createLeftColumn("TpLeftColumn", "TpLeftColumn") local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
+local serverLeftColumn = createLeftColumn("Server", "ServerLeftColumn") local serverRightColumn = createShiftedRightColumn("Server", "ServerRightColumn")
+local SetLeftColumn = createLeftColumn("Setting", "SetLeftColumn") local SetRightColumn = createShiftedRightColumn("Setting", "SetRightColumn")
 
 -- ====================================================================
--- SETTING RENDERING LAYER
+-- RENDERING SETTING PAGE
 -- ====================================================================
 local clientInfoCard = createCard(SetLeftColumn, "Client Information", 1)
 local infoUser = createStatLabel(clientInfoCard, "Username: Loading...", 1)
 local infoExec = createStatLabel(clientInfoCard, "Executor: Loading...", 2)
 local infoMap = createStatLabel(clientInfoCard, "Map Name: Loading...", 3)
-
-infoUser.Text = "Username: <font color='#73aaff'>" .. Player.Name .. "</font> (" .. Player.UserId .. ")" 
-infoUser.RichText = true
-
-infoExec.Text = "Executor: <font color='#c092ff'>" .. CurrentExecutor .. "</font>" 
-infoExec.RichText = true
-
-infoMap.Text = "Map: <font color='#73aaff'>" .. CurrentMapName .. "</font>" 
-infoMap.RichText = true
+infoUser.Text = "Username: <font color='#73aaff'>" .. Player.Name .. "</font> (" .. Player.UserId .. ")" infoUser.RichText = true
+infoExec.Text = "Executor: <font color='#c092ff'>" .. CurrentExecutor .. "</font>" infoExec.RichText = true
+infoMap.Text = "Map: <font color='#73aaff'>" .. CurrentMapName .. "</font>" infoMap.RichText = true
 
 local visualSetCard = createCard(SetLeftColumn, "Visual Settings", 2)
-addSliderWithInput(visualSetCard, "UI Background Opacity", 0, 90, 15, 1, nil, function(val) 
-    updateUiTransparency(val / 100) 
-end)
+addSliderWithInput(visualSetCard, "UI Background Opacity", 0, 90, 15, 1, nil, function(val) updateUiTransparency(val / 100) end)
 
 local coreActionCard = createCard(SetRightColumn, "Core Actions", 1)
 createServerButton(coreActionCard, "🔴 Close System UI", Theme.DeleteBg, function()
@@ -1039,12 +574,40 @@ createServerButton(coreActionCard, "🔄 Reload System UI", Color3.fromRGB(35, 3
 end, 2)
 
 -- ====================================================================
--- PLAYER CONTROL RENDERING LAYER
+-- RENDERING PLAYER PAGE
 -- ====================================================================
 local flyCard = createCard(LeftColumn, "Fly Control", 1)
 addToggle(flyCard, "Fly Mode", 1, "FlyMode", handleFlyEngine) 
 addSliderWithInput(flyCard, "Fly Speed Costumization", 1, 20, 5, 2, "FlySpeed") 
 addToggle(flyCard, "Noclip", 3, "Noclip")
+
+-- [SUNTIKAN BUTTON FREECAM DI TAB PLAYER - BAWAH NOCLIP]
+local fcHolder = Instance.new("Frame", flyCard)
+fcHolder.Size = UDim2.new(1, 0, 0, 28)
+fcHolder.BackgroundTransparency = 1
+fcHolder.LayoutOrder = 4
+
+local fcLbl = Instance.new("TextLabel", fcHolder)
+fcLbl.Text = "Cinematic Freecam UI"
+fcLbl.Size = UDim2.new(1, -90, 1, 0)
+fcLbl.Font = Enum.Font.GothamMedium
+fcLbl.TextColor3 = Theme.TextMain
+fcLbl.TextSize = 12
+fcLbl.TextXAlignment = Enum.TextXAlignment.Left
+fcLbl.BackgroundTransparency = 1
+
+local openGuiBtn = Instance.new("TextButton", fcHolder)
+openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
+openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
+openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
+openGuiBtn.Font = Enum.Font.GothamBold
+openGuiBtn.Text = "OPENGUI"
+openGuiBtn.TextColor3 = Theme.AccentPurple
+openGuiBtn.TextSize = 10
+Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
+local btnStroke = Instance.new("UIStroke", openGuiBtn)
+btnStroke.Color = Theme.AccentPurple
+btnStroke.Thickness = 1
 
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
 addToggle(walkCard, "Super Speed", 1, "SuperSpeed", enforceHumanoidProperties) 
@@ -1057,18 +620,14 @@ addToggle(jumpCard, "Infinite Jump", 3, "InfiniteJump")
 
 local physicsCard = createCard(LeftColumn, "Physics Modifier", 3)
 addSliderWithInput(physicsCard, "Global Gravity ", 0, 196, 196, 1, "Gravity", function(val) workspace.Gravity = val end) 
-addSliderWithInput(physicsCard, "HipHeight Controller", 0, 20, 2, 2, "HipHeight", function(val) 
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then 
-        Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val 
-    end 
-end)
+addSliderWithInput(physicsCard, "HipHeight Controller", 0, 20, 2, 2, "HipHeight", function(val) if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val end end)
 
 local utilCard = createCard(RightColumn, "Character Utilities", 2)
 addToggle(utilCard, "Anti Ragdoll / Fall State", 1, "AntiRagdoll") 
 addToggle(utilCard, "Infinite Oxygen Valve", 2, "InfiniteOxygen")
 
 -- ====================================================================
--- VISUAL ESP RENDERING LAYER
+-- RENDERING ESP PAGE
 -- ====================================================================
 local playerEspCard = createCard(espLeftColumn, "Visual ESP Engine", 1)
 addToggle(playerEspCard, "Enable ESP Master", 1, "EnableESP") 
@@ -1081,38 +640,17 @@ addToggle(espSettingsCard, "Enforce Team Check", 1, "TeamCheck")
 addSliderWithInput(espSettingsCard, "Max Distance Threshold", 100, 5000, 1000, 2, "MaxDistance")
 
 -- ====================================================================
--- TELEPORTATION RENDERING LAYER
+-- RENDERING TELEPORTATION PAGE
 -- ====================================================================
 local tweenCard = createCard(tpRightColumn, "Tween Teleportation Mode", 1)
 addToggle(tweenCard, "Enable Tween Glide Teleport", 1, "TweenTeleport")
 addSliderWithInput(tweenCard, "Tween Speed (Studs/Sec)", 50, 1000, 350, 2, "TweenSpeed")
 
 local playerTpCard = createCard(tpLeftColumn, "Target Player Teleport", 1)
-local inputPlayerFrame = Instance.new("Frame", playerTpCard) 
-inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28) 
-inputPlayerFrame.BackgroundTransparency = 1 
-inputPlayerFrame.LayoutOrder = 1
+local inputPlayerFrame = Instance.new("Frame", playerTpCard) inputPlayerFrame.Size = UDim2.new(1, 0, 0, 28) inputPlayerFrame.BackgroundTransparency = 1 inputPlayerFrame.LayoutOrder = 1
+local tpPlayerInput = Instance.new("TextBox", inputPlayerFrame) tpPlayerInput.Size = UDim2.new(1, 0, 1, 0) tpPlayerInput.BackgroundColor3 = Theme.Bg tpPlayerInput.Font = Enum.Font.GothamMedium tpPlayerInput.PlaceholderText = "Masukkan nama player..." tpPlayerInput.TextColor3 = Theme.TextMain tpPlayerInput.PlaceholderColor3 = Theme.TextMuted tpPlayerInput.TextSize = 11 Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", tpPlayerInput).Color = Theme.Stroke
 
-local tpPlayerInput = Instance.new("TextBox", inputPlayerFrame) 
-tpPlayerInput.Size = UDim2.new(1, 0, 1, 0) 
-tpPlayerInput.BackgroundColor3 = Theme.Bg 
-tpPlayerInput.Font = Enum.Font.GothamMedium 
-tpPlayerInput.PlaceholderText = "Masukkan nama player..." 
-tpPlayerInput.TextColor3 = Theme.TextMain 
-tpPlayerInput.PlaceholderColor3 = Theme.TextMuted 
-tpPlayerInput.TextSize = 11 
-Instance.new("UICorner", tpPlayerInput).CornerRadius = UDim.new(0, 5) 
-Instance.new("UIStroke", tpPlayerInput).Color = Theme.Stroke
-
-local btnPlayerTp = Instance.new("TextButton", playerTpCard) 
-btnPlayerTp.Size = UDim2.new(1, 0, 0, 26) 
-btnPlayerTp.BackgroundColor3 = Theme.Accent 
-btnPlayerTp.Font = Enum.Font.GothamBold 
-btnPlayerTp.Text = "⚡ Teleport ke Player" 
-btnPlayerTp.TextColor3 = Theme.Bg 
-btnPlayerTp.TextSize = 11 
-btnPlayerTp.LayoutOrder = 2 
-Instance.new("UICorner", btnPlayerTp).CornerRadius = UDim.new(0, 5)
+local btnPlayerTp = Instance.new("TextButton", playerTpCard) btnPlayerTp.Size = UDim2.new(1, 0, 0, 26) btnPlayerTp.BackgroundColor3 = Theme.Accent btnPlayerTp.Font = Enum.Font.GothamBold btnPlayerTp.Text = "⚡ Teleport ke Player" btnPlayerTp.TextColor3 = Theme.Bg btnPlayerTp.TextSize = 11 btnPlayerTp.LayoutOrder = 2 Instance.new("UICorner", btnPlayerTp).CornerRadius = UDim.new(0, 5)
 
 btnPlayerTp.MouseButton1Click:Connect(function()
     local targetName = tpPlayerInput.Text:lower()
@@ -1130,80 +668,42 @@ btnPlayerTp.MouseButton1Click:Connect(function()
 end)
 
 local waypointCard = createCard(tpLeftColumn, "Local Position Saver", 2)
-local inputWpFrame = Instance.new("Frame", waypointCard) 
-inputWpFrame.Size = UDim2.new(1, 0, 0, 28) 
-inputWpFrame.BackgroundTransparency = 1 
-inputWpFrame.LayoutOrder = 1
+local inputWpFrame = Instance.new("Frame", waypointCard) inputWpFrame.Size = UDim2.new(1, 0, 0, 28) inputWpFrame.BackgroundTransparency = 1 inputWpFrame.LayoutOrder = 1
+local wpNameInput = Instance.new("TextBox", inputWpFrame) wpNameInput.Size = UDim2.new(1, 0, 1, 0) wpNameInput.BackgroundColor3 = Theme.Bg wpNameInput.Font = Enum.Font.GothamMedium wpNameInput.PlaceholderText = "Nama waypoint baru..." wpNameInput.TextColor3 = Theme.TextMain wpNameInput.PlaceholderColor3 = Theme.TextMuted wpNameInput.TextSize = 11 Instance.new("UICorner", wpNameInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", wpNameInput).Color = Theme.Stroke
 
-local wpNameInput = Instance.new("TextBox", inputWpFrame) 
-wpNameInput.Size = UDim2.new(1, 0, 1, 0) 
-wpNameInput.BackgroundColor3 = Theme.Bg 
-wpNameInput.Font = Enum.Font.GothamMedium 
-wpNameInput.PlaceholderText = "Nama waypoint baru..." 
-wpNameInput.TextColor3 = Theme.TextMain 
-wpNameInput.PlaceholderColor3 = Theme.TextMuted 
-wpNameInput.TextSize = 11 
-Instance.new("UICorner", wpNameInput).CornerRadius = UDim.new(0, 5) 
-Instance.new("UIStroke", wpNameInput).Color = Theme.Stroke
-
-local btnSavePos = Instance.new("TextButton", waypointCard) 
-btnSavePos.Size = UDim2.new(1, 0, 0, 26) 
-btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85) 
-btnSavePos.Font = Enum.Font.GothamBold 
-btnSavePos.Text = "💾 Simpan Posisi Saat Ini" 
-btnSavePos.TextColor3 = Theme.Accent 
-btnSavePos.TextSize = 11 
-btnSavePos.LayoutOrder = 2 
-Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5) 
-btnSavePos.BorderSizePixel = 0 
-Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
+local btnSavePos = Instance.new("TextButton", waypointCard) btnSavePos.Size = UDim2.new(1, 0, 0, 26) btnSavePos.BackgroundColor3 = Color3.fromRGB(35, 45, 85) btnSavePos.Font = Enum.Font.GothamBold btnSavePos.Text = "💾 Simpan Posisi Saat Ini" btnSavePos.TextColor3 = Theme.Accent btnSavePos.TextSize = 11 btnSavePos.LayoutOrder = 2 Instance.new("UICorner", btnSavePos).CornerRadius = UDim.new(0, 5) btnSavePos.BorderSizePixel = 0 Instance.new("UIStroke", btnSavePos).Color = Theme.Stroke
 
 local areaTpCard = createCard(tpRightColumn, "Saved CFrame Milestones", 2)
 local refreshLandmarksUI
 
 local function deleteWaypoint(wpName)
     if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
-        AllWaypoints[CurrentPlaceId][wpName] = nil 
-        saveWaypointsToStorage() 
-        refreshLandmarksUI()
+        AllWaypoints[CurrentPlaceId][wpName] = nil saveWaypointsToStorage() refreshLandmarksUI()
     end
 end
 
 -- ====================================================================
--- MILESTONES COORDINATE REFRESH SYSTEM
+-- INITIAL SPAWN POINT & RENDER SAVER SYSTEM (DICTIONARY EXPLICIT LOCK)
 -- ====================================================================
 task.spawn(function()
     repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
-    local hrp = Player.Character.HumanoidRootPart 
-    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-    
+    local hrp = Player.Character.HumanoidRootPart local hum = Player.Character:FindFirstChildOfClass("Humanoid")
     for i = 1, 30 do
         if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
         task.wait(0.5)
     end
     task.wait(1.5)
-    
     local spawnPos = hrp.Position
     local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
+    -- MEMBUAT BARIS TOMBOL DENGAN MENGUNCI VARIABLE X, Y, Z KAMU SECARA ABSOLUT
     local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
-        local rowFrame = Instance.new("Frame", areaTpCard) 
-        rowFrame.Size = UDim2.new(1, 0, 0, 26) 
-        rowFrame.BackgroundTransparency = 1 
-        rowFrame.LayoutOrder = orderIndex
-        
-        local btn = Instance.new("TextButton", rowFrame) 
-        btn.Size = UDim2.new(1, -32, 1, 0) 
-        btn.BackgroundColor3 = Theme.CardBg 
-        btn.Font = Enum.Font.GothamMedium 
-        btn.Text = "📌 " .. wpName 
-        btn.TextColor3 = Theme.TextMain 
-        btn.TextSize = 11 
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
-        Instance.new("UIStroke", btn).Color = Theme.Stroke
+        local rowFrame = Instance.new("Frame", areaTpCard) rowFrame.Size = UDim2.new(1, 0, 0, 26) rowFrame.BackgroundTransparency = 1 rowFrame.LayoutOrder = orderIndex
+        local btn = Instance.new("TextButton", rowFrame) btn.Size = UDim2.new(1, -32, 1, 0) btn.BackgroundColor3 = Theme.CardBg btn.Font = Enum.Font.GothamMedium btn.Text = "📌 " .. wpName btn.TextColor3 = Theme.TextMain btn.TextSize = 11 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", btn).Color = Theme.Stroke
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                -- Validasi ganda tipe data number untuk menangkal bug void
                 local finalX = tonumber(targetX) or 0
                 local finalY = tonumber(targetY) or 0
                 local finalZ = tonumber(targetZ) or 0
@@ -1212,44 +712,17 @@ task.spawn(function()
             end
         end)
         
-        local delBtn = Instance.new("TextButton", rowFrame) 
-        delBtn.Size = UDim2.new(0, 26, 1, 0) 
-        delBtn.Position = UDim2.new(1, -26, 0, 0) 
-        delBtn.BackgroundColor3 = Theme.DeleteBg 
-        delBtn.Font = Enum.Font.GothamBold 
-        delBtn.Text = "×" 
-        delBtn.TextColor3 = Theme.DeleteRed 
-        delBtn.TextSize = 16 
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-        
-        delBtn.MouseButton1Click:Connect(function() 
-            showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) 
-        end)
+        local delBtn = Instance.new("TextButton", rowFrame) delBtn.Size = UDim2.new(0, 26, 1, 0) delBtn.Position = UDim2.new(1, -26, 0, 0) delBtn.BackgroundColor3 = Theme.DeleteBg delBtn.Font = Enum.Font.GothamBold delBtn.Text = "×" delBtn.TextColor3 = Theme.DeleteRed delBtn.TextSize = 16 Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+        delBtn.MouseButton1Click:Connect(function() showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) end)
     end
 
     function refreshLandmarksUI()
         if not areaTpCard then return end
-        for _, child in pairs(areaTpCard:GetChildren()) do 
-            if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end 
-        end
+        for _, child in pairs(areaTpCard:GetChildren()) do if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end end
         
-        local rowFrameSpawn = Instance.new("Frame", areaTpCard) 
-        rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) 
-        rowFrameSpawn.BackgroundTransparency = 1 
-        rowFrameSpawn.LayoutOrder = 0
-        
-        local btnSpawn = Instance.new("TextButton", rowFrameSpawn) 
-        btnSpawn.Size = UDim2.new(1, 0, 1, 0) 
-        btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) 
-        btnSpawn.Font = Enum.Font.GothamBold 
-        btnSpawn.Text = "📍 Initial Spawn Point" 
-        btnSpawn.TextColor3 = Theme.ConfirmGreen 
-        btnSpawn.TextSize = 11 
-        Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) 
-        
-        local bsStroke = Instance.new("UIStroke", btnSpawn) 
-        bsStroke.Color = Theme.ConfirmGreen 
-        bsStroke.Thickness = 0
+        -- Default Initial Spawn Point
+        local rowFrameSpawn = Instance.new("Frame", areaTpCard) rowFrameSpawn.Size = UDim2.new(1, 0, 0, 26) rowFrameSpawn.BackgroundTransparency = 1 rowFrameSpawn.LayoutOrder = 0
+        local btnSpawn = Instance.new("TextButton", rowFrameSpawn) btnSpawn.Size = UDim2.new(1, 0, 1, 0) btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 38, 36) btnSpawn.Font = Enum.Font.GothamBold btnSpawn.Text = "📍 Initial Spawn Point" btnSpawn.TextColor3 = Theme.ConfirmGreen btnSpawn.TextSize = 11 Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) local bsStroke = Instance.new("UIStroke", btnSpawn) bsStroke.Color = Theme.ConfirmGreen bsStroke.Thickness = 0
         
         btnSpawn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -1260,9 +733,9 @@ task.spawn(function()
         if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
         local currentMapData = AllWaypoints[CurrentPlaceId]
         local indexOrder = 1
-        
         for wpName, coord in pairs(currentMapData) do
             if type(coord) == "table" then
+                -- Mengantisipasi pembacaan JSON Array lawas maupun Dictionary baru agar tidak crash
                 local posX = coord.X or coord or 0
                 local posY = coord.Y or coord or 0
                 local posZ = coord.Z or coord or 0
@@ -1279,14 +752,13 @@ task.spawn(function()
                 local currentPos = Player.Character.HumanoidRootPart.Position
                 if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
                 
+                -- DICTIONARY EXPLICIT METHOD: Mengunci data koordinat mati menggunakan KEY string "X, Y, Z"
                 AllWaypoints[CurrentPlaceId][name] = {
                     X = math.round(currentPos.X * 100) / 100, 
                     Y = math.round(currentPos.Y * 100) / 100, 
                     Z = math.round(currentPos.Z * 100) / 100
                 }
-                saveWaypointsToStorage() 
-                wpNameInput.Text = "" 
-                refreshLandmarksUI()
+                saveWaypointsToStorage() wpNameInput.Text = "" refreshLandmarksUI()
              end
         end
     end)
@@ -1295,53 +767,30 @@ task.spawn(function()
 end)
 
 -- ====================================================================
--- SERVER DIAGNOSTICS & HARDWARE RUNNER
+-- RENDERING SERVER PAGE
 -- ====================================================================
 local statsCard = createCard(serverLeftColumn, "Live Server Telemetry", 1)
 local lblFps = createStatLabel(statsCard, "FPS: 00.0", 1)
 local lblPing = createStatLabel(statsCard, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(statsCard, "Server Age: 00:00:00", 3)
 
-local lastTime = os.clock() 
-local frameCount = 0 
-local currentFps = 60
-
+local lastTime = os.clock() local frameCount = 0 local currentFps = 60
 task.spawn(function()
     while task.wait(0.1) do
         if not MainGui or not MainGui.Parent then break end
-        frameCount = frameCount + 1 
-        local now = os.clock()
-        
-        if now - lastTime >= 0.5 then 
-            currentFps = math.round(frameCount / (now - lastTime)) 
-            frameCount = 0 
-            lastTime = now 
-        end
-        
-        local pingVal = 0 
-        pcall(function() pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
+        frameCount = frameCount + 1 local now = os.clock()
+        if now - lastTime >= 0.5 then currentFps = math.round(frameCount / (now - lastTime)) frameCount = 0 lastTime = now end
+        local pingVal = 0 pcall(function() pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
         if pingVal <= 0 then pingVal = math.round(Player:GetNetworkPing() * 2000) end
         if pingVal <= 0 then pingVal = 15 end
-        
         local sTime = math.round(workspace.DistributedGameTime)
-        local hours = string.format("%02d", math.floor(sTime / 3600)) 
-        local minutes = string.format("%02d", math.floor((sTime % 3600) / 60)) 
-        local seconds = string.format("%02d", sTime % 60)
-        
-        lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(currentFps) .. " FPS</font>" 
-        lblFps.RichText = true
-        
-        lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingVal) .. " ms</font>" 
-        lblPing.RichText = true
-        
-        lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>" 
-        lblTime.RichText = true
+        local hours = string.format("%02d", math.floor(sTime / 3600)) local minutes = string.format("%02d", math.floor((sTime % 3600) / 60)) local seconds = string.format("%02d", sTime % 60)
+        lblFps.Text = "FPS: <font color='#73aaff'>" .. tostring(currentFps) .. " FPS</font>" lblFps.RichText = true
+        lblPing.Text = "Ping: <font color='#73aaff'>" .. tostring(pingVal) .. " ms</font>" lblPing.RichText = true
+        lblTime.Text = "Server Age: <font color='#c092ff'>" .. hours .. ":" .. minutes .. ":" .. seconds .. "</font>" lblTime.RichText = true
     end
 end)
 
--- ====================================================================
--- SERVER CONNECTIVITY INTERFACE LAYER
--- ====================================================================
 local navCard = createCard(serverLeftColumn, "Server Connections", 2)
 createServerButton(navCard, "🔄 Rejoin Current Instance", Color3.fromRGB(30, 35, 60), function()
     showConfirmation("Rejoin ke server saat ini?", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end)
@@ -1360,32 +809,235 @@ end, 2)
 
 local optiCard = createCard(serverRightColumn, "Graphic Optimizations", 1)
 createServerButton(optiCard, "🗑️ Purge Environmental Memory", Color3.fromRGB(25, 45, 35), function()
-    local c = 0 
-    for _, o in pairs(workspace:GetDescendants()) do 
-        if o:IsA("VisualEffect") or o:IsA("Decal") or o:IsA("Texture") then o:Destroy() c = c + 1 end 
-    end
+    local c = 0 for _, o in pairs(workspace:GetDescendants()) do if o:IsA("VisualEffect") or o:IsA("Decal") or o:IsA("Texture") then o:Destroy() c = c + 1 end end
     showConfirmation("Berhasil membersihkan " .. tostring(c) .. " objek lag.", function() end)
 end, 1)
-
 addToggle(optiCard, "Disable Global Shadows", 2, "ShadowsDisabled", applyGraphicsBoost)
 addToggle(optiCard, "Anti-Lag Core Engine", 3, "AntiLag", applyGraphicsBoost)
 
 addToggle(optiCard, "💡 FullBright Core Engine", 4, "FullBright", function(active)
     if active then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255) 
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) 
-        Lighting.Brightness = 2 
-        Lighting.ClockTime = 14
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) Lighting.Brightness = 2 Lighting.ClockTime = 14
     else
-        Lighting.Ambient = origAmbient 
-        Lighting.OutdoorAmbient = origOutdoorAmbient 
-        Lighting.Brightness = origBrightness 
-        Lighting.ClockTime = origClockTime
+        Lighting.Ambient = origAmbient Lighting.OutdoorAmbient = origOutdoorAmbient Lighting.Brightness = origBrightness Lighting.ClockTime = origClockTime
     end
 end)
 
 -- ====================================================================
--- BOOT SEQUENCE & KEY VERIFICATION RUNNER
+-- CORE DESIGN & CORE FREECAM OPERATIONAL LOGIC CODE ENGINE
+-- ====================================================================
+local FreecamGuiFrame = Instance.new("Frame")
+FreecamGuiFrame.Name = "FreecamGuiFrame"
+FreecamGuiFrame.Parent = MainGui
+FreecamGuiFrame.Size = UDim2.new(0, 240, 0, 290)
+FreecamGuiFrame.Position = UDim2.new(1, -260, 0.5, -145)
+FreecamGuiFrame.BackgroundColor3 = Theme.Bg
+FreecamGuiFrame.BackgroundTransparency = 0.2
+FreecamGuiFrame.Visible = false
+Instance.new("UICorner", FreecamGuiFrame).CornerRadius = UDim.new(0, 10)
+local fcStroke = Instance.new("UIStroke", FreecamGuiFrame)
+fcStroke.Color = Theme.AccentPurple
+fcStroke.Thickness = 1.5
+
+makeDraggable(FreecamGuiFrame, FreecamGuiFrame)
+
+local fcTitle = Instance.new("TextLabel", FreecamGuiFrame)
+fcTitle.Size = UDim2.new(1, 0, 0, 30)
+fcTitle.Text = "🎥 FREECAM CINEMATIC"
+fcTitle.Font = Enum.Font.GothamBold
+fcTitle.TextColor3 = Theme.Accent
+fcTitle.TextSize = 12
+fcTitle.BackgroundTransparency = 1
+
+local fcContainer = Instance.new("Frame", FreecamGuiFrame)
+fcContainer.Size = UDim2.new(1, -20, 1, -40)
+fcContainer.Position = UDim2.new(0, 10, 0, 30)
+fcContainer.BackgroundTransparency = 1
+local fcLayout = Instance.new("UIListLayout", fcContainer)
+fcLayout.Padding = UDim.new(0, 8)
+fcLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local camera = workspace.CurrentCamera
+local originalCameraType = camera.CameraType
+local originalCameraSubject = camera.CameraSubject
+local targetCFrame = camera.CFrame
+local freecamConnection
+local mouseDragConnection
+local rotX, rotY = 0, 0
+
+local function enableMouseLook()
+    if mouseDragConnection then mouseDragConnection:Disconnect() end
+    mouseDragConnection = UserInputService.InputChanged:Connect(function(input)
+        if Config.FreecamMode and not Config.FreecamCinematic then
+            if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                local delta = input.Delta
+                rotX = rotX - delta.X * 0.005
+                rotY = math.clamp(rotY - delta.Y * 0.005, -math.rad(80), math.rad(80))
+                targetCFrame = CFrame.new(targetCFrame.Position) * CFrame.Angles(0, rotX, 0) * CFrame.Angles(rotY, 0, 0)
+            end
+        end
+    end)
+end
+
+local function updateFreecamEngine()
+    if not Config.FreecamMode then
+        if freecamConnection then freecamConnection:Disconnect() freecamConnection = nil end
+        if mouseDragConnection then mouseDragConnection:Disconnect() mouseDragConnection = nil end
+        camera.CameraType = originalCameraType
+        if originalCameraSubject then camera.CameraSubject = originalCameraSubject end
+        camera.FieldOfView = 70
+        FreecamGuiFrame.Visible = false
+        MainFrame.Visible = true
+        return
+    end
+
+    originalCameraType = camera.CameraType
+    originalCameraSubject = camera.CameraSubject
+    targetCFrame = camera.CFrame
+    
+    local _, y, z = targetCFrame:ToEulerAnglesYXZ()
+    rotX, rotY = y, -_
+
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CameraSubject = nil
+    
+    MainFrame.Visible = false
+    FreecamGuiFrame.Visible = true
+    enableMouseLook()
+
+    freecamConnection = RunService.RenderStepped:Connect(function(dt)
+        if not Config.FreecamMode then return end
+        camera.FieldOfView = Config.FreecamFOV
+
+        if Config.FreecamCinematic then
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local pivot = Player.Character.HumanoidRootPart.Position
+                local speedFactor = (Config.FreecamSpeed / 5) * 0.4
+                local angle = os.clock() * speedFactor
+                local radius = 25 - (Config.FreecamFOV * 0.1)
+                local offset = Vector3.new(math.sin(angle) * radius, 5, math.cos(angle) * radius)
+                local newPos = pivot + offset
+                local lookCF = CFrame.new(newPos, pivot)
+                camera.CFrame = camera.CFrame:Lerp(lookCF, (11 - Config.FreecamSmoothing) * dt)
+                targetCFrame = camera.CFrame
+            end
+        else
+            local lookVector = targetCFrame.LookVector
+            local rightVector = targetCFrame.RightVector
+            local moveDir = Vector3.new(0, 0, 0)
+            local speed = Config.FreecamSpeed * 15
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+            if moveDir.Magnitude > 0 then
+                targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
+                if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                    Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
+                end
+            end
+
+            local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
+            camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
+        end
+    end)
+end
+
+-- BIND BUTTON OPENGUI
+openGuiBtn.MouseButton1Click:Connect(function()
+    Config.FreecamMode = true
+    updateFreecamEngine()
+end)
+
+-- PANEL CONTENT FREECAM BAR
+local modeBtn = Instance.new("TextButton", fcContainer)
+modeBtn.Size = UDim2.new(1, 0, 0, 24)
+modeBtn.BackgroundColor3 = Theme.CardBg
+modeBtn.Font = Enum.Font.GothamBold
+modeBtn.Text = "MODE: STANDARD (WASD)"
+modeBtn.TextColor3 = Theme.TextMain
+modeBtn.TextSize = 10
+modeBtn.LayoutOrder = 1
+Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", modeBtn).Color = Theme.Stroke
+
+modeBtn.MouseButton1Click:Connect(function()
+    Config.FreecamCinematic = not Config.FreecamCinematic
+    if Config.FreecamCinematic then
+        modeBtn.Text = "MODE: CINEMATIC PAN/ORBIT"
+        modeBtn.TextColor3 = Theme.AccentPurple
+    else
+        modeBtn.Text = "MODE: STANDARD (WASD)"
+        modeBtn.TextColor3 = Theme.TextMain
+    end
+end)
+
+local runBtn = Instance.new("TextButton", fcContainer)
+runBtn.Size = UDim2.new(1, 0, 0, 24)
+runBtn.BackgroundColor3 = Theme.CardBg
+runBtn.Font = Enum.Font.GothamBold
+runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+runBtn.TextColor3 = Theme.TextMuted
+runBtn.TextSize = 10
+runBtn.LayoutOrder = 2
+Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", runBtn).Color = Theme.Stroke
+
+runBtn.MouseButton1Click:Connect(function()
+    Config.FreecamCharFollow = not Config.FreecamCharFollow
+    if Config.FreecamCharFollow then
+        runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
+        runBtn.TextColor3 = Theme.ConfirmGreen
+    else
+        runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+        runBtn.TextColor3 = Theme.TextMuted
+    end
+end)
+
+addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
+addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
+addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
+
+local tpCharBtn = Instance.new("TextButton", fcContainer)
+tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
+tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
+tpCharBtn.Font = Enum.Font.GothamBold
+tpCharBtn.Text = "⚡ Teleport Character to Cam"
+tpCharBtn.TextColor3 = Theme.Accent
+tpCharBtn.TextSize = 10
+tpCharBtn.LayoutOrder = 6
+Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
+
+tpCharBtn.MouseButton1Click:Connect(function()
+    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        Player.Character.HumanoidRootPart.CFrame = camera.CFrame * CFrame.new(0, -2, 0)
+    end
+end)
+
+local exitBtn = Instance.new("TextButton", fcContainer)
+exitBtn.Size = UDim2.new(1, 0, 0, 26)
+exitBtn.BackgroundColor3 = Theme.DeleteBg
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.Text = "❌ EXIT FREECAM"
+exitBtn.TextColor3 = Theme.DeleteRed
+exitBtn.TextSize = 11
+exitBtn.LayoutOrder = 7
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
+local exStroke = Instance.new("UIStroke", exitBtn)
+exStroke.Color = Theme.DeleteRed
+
+exitBtn.MouseButton1Click:Connect(function()
+    Config.FreecamMode = false
+    updateFreecamEngine()
+end)
+
+-- ====================================================================
+-- INTRO LOADING SEQUENCE & SECURITY GATE RUNNER
 -- ====================================================================
 task.spawn(function()
     local stages = {
@@ -1394,21 +1046,13 @@ task.spawn(function()
         {t = 75, m = "Menyuntikkan Chams ESP..."},
         {t = 95, m = "Menata Frame Order ke Lapisan Teratas..."}
     }
-    
     for i = 1, 100 do
-        local progress = i / 100 
-        TweenService:Create(LoadFill, TweenInfo.new(0.02, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
+        local progress = i / 100 TweenService:Create(LoadFill, TweenInfo.new(0.02, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
         LoadProgressText.Text = tostring(i) .. "%"
-        
-        for _, stage in ipairs(stages) do 
-            if i == stage.t then LoadStatus.Text = stage.m end 
-        end
+        for _, stage in ipairs(stages) do if i == stage.t then LoadStatus.Text = stage.m end end
         task.wait(0.02)
     end
-    
-    LoadStatus.Text = "Sistem Siap!" 
-    task.wait(0.3)
-    
+    LoadStatus.Text = "Sistem Siap!" task.wait(0.3)
     local f = TweenService:Create(LoadingFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
     TweenService:Create(LoadTitle, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
     TweenService:Create(LoadStatus, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
@@ -1422,506 +1066,25 @@ task.spawn(function()
     f.Completed:Connect(function()
         LoadingFrame:Destroy()
         if KeyVerified then
-            MainFrame.Visible = true 
-            ToggleButton.Visible = false 
-            MainFrame.Size = UDim2.new(0, 520, 0, 300)
+            MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
             TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         else
             local KeyFrame = Instance.new("Frame")
-            KeyFrame.Name = "KeyFrame" 
-            KeyFrame.Parent = MainGui 
-            KeyFrame.Size = UDim2.new(0, 300, 0, 160) 
-            KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -80) 
-            KeyFrame.BackgroundColor3 = Theme.Bg 
-            KeyFrame.BackgroundTransparency = Config.UiTransparency 
-            Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
-            
-            local keyStroke = Instance.new("UIStroke", KeyFrame) 
-            keyStroke.Color = Theme.AccentPurple 
-            keyStroke.Thickness = 1.5
+            KeyFrame.Name = "KeyFrame" KeyFrame.Parent = MainGui KeyFrame.Size = UDim2.new(0, 300, 0, 160) KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -80) KeyFrame.BackgroundColor3 = Theme.Bg KeyFrame.BackgroundTransparency = Config.UiTransparency Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
+            local keyStroke = Instance.new("UIStroke", KeyFrame) keyStroke.Color = Theme.AccentPurple keyStroke.Thickness = 1.5
 
-            local KeyTitle = Instance.new("TextLabel", KeyFrame) 
-            KeyTitle.Size = UDim2.new(1, 0, 0, 40) 
-            KeyTitle.Position = UDim2.new(0, 0, 0, 10) 
-            KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" 
-            KeyTitle.Font = Enum.Font.GothamBold 
-            KeyTitle.TextColor3 = Theme.TextMain 
-            KeyTitle.TextSize = 13 
-            KeyTitle.BackgroundTransparency = 1
-            
-            local KeyInput = Instance.new("TextBox", KeyFrame) 
-            KeyInput.Size = UDim2.new(1, -40, 0, 32) 
-            KeyInput.Position = UDim2.new(0, 20, 0, 55) 
-            KeyInput.BackgroundColor3 = Theme.CardBg 
-            KeyInput.Font = Enum.Font.GothamMedium 
-            KeyInput.PlaceholderText = "Paste key here..." 
-            KeyInput.Text = "" 
-            KeyInput.TextColor3 = Theme.TextMain 
-            KeyInput.PlaceholderColor3 = Theme.TextMuted 
-            KeyInput.TextSize = 11 
-            Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) 
-            Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
-            
-            local SubmitBtn = Instance.new("TextButton", KeyFrame) 
-            SubmitBtn.Size = UDim2.new(1, -40, 0, 32) 
-            SubmitBtn.Position = UDim2.new(0, 20, 1, -50) 
-            SubmitBtn.BackgroundColor3 = Theme.Accent 
-            SubmitBtn.Font = Enum.Font.GothamBold 
-            SubmitBtn.Text = "VERIFY KEY" 
-            SubmitBtn.TextColor3 = Theme.Bg 
-            SubmitBtn.TextSize = 11 
-            Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
+            local KeyTitle = Instance.new("TextLabel", KeyFrame) KeyTitle.Size = UDim2.new(1, 0, 0, 40) KeyTitle.Position = UDim2.new(0, 0, 0, 10) KeyTitle.Text = "ENTER SYSTEM LICENSE KEY" KeyTitle.Font = Enum.Font.GothamBold KeyTitle.TextColor3 = Theme.TextMain KeyTitle.TextSize = 13 KeyTitle.BackgroundTransparency = 1
+            local KeyInput = Instance.new("TextBox", KeyFrame) KeyInput.Size = UDim2.new(1, -40, 0, 32) KeyInput.Position = UDim2.new(0, 20, 0, 55) KeyInput.BackgroundColor3 = Theme.CardBg KeyInput.Font = Enum.Font.GothamMedium KeyInput.PlaceholderText = "Paste key here..." KeyInput.Text = "" KeyInput.TextColor3 = Theme.TextMain KeyInput.PlaceholderColor3 = Theme.TextMuted KeyInput.TextSize = 11 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) Instance.new("UIStroke", KeyInput).Color = Theme.Stroke
+            local SubmitBtn = Instance.new("TextButton", KeyFrame) SubmitBtn.Size = UDim2.new(1, -40, 0, 32) SubmitBtn.Position = UDim2.new(0, 20, 1, -50) SubmitBtn.BackgroundColor3 = Theme.Accent SubmitBtn.Font = Enum.Font.GothamBold SubmitBtn.Text = "VERIFY KEY" SubmitBtn.TextColor3 = Theme.Bg SubmitBtn.TextSize = 11 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
 
             SubmitBtn.MouseButton1Click:Connect(function()
                 if KeyInput.Text == CorrectKey then
-                    saveKeyStatus() 
-                    KeyFrame:Destroy() 
-                    MainFrame.Visible = true 
-                    ToggleButton.Visible = false 
-                    MainFrame.Size = UDim2.new(0, 520, 0, 300)
+                    saveKeyStatus() KeyFrame:Destroy() MainFrame.Visible = true ToggleButton.Visible = false MainFrame.Size = UDim2.new(0, 520, 0, 300)
                     TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
                 else
-                    KeyInput.Text = "" 
-                    KeyInput.PlaceholderText = "INVALID KEY! Try Again..." 
-                    KeyInput.PlaceholderColor3 = Theme.DeleteRed
+                    KeyInput.Text = "" KeyInput.PlaceholderText = "INVALID KEY! Try Again..." KeyInput.PlaceholderColor3 = Theme.DeleteRed
                 end
             end)
         end
     end)
-end)
-
--- ====================================================================
--- INJECTOR FITUR FREECAM CINEMATIC MODE (TAMBAHAN DI PALING BAWAH)
--- ====================================================================
-task.spawn(function()
-    -- Tunggu sampai struktur inti UI utama benar-benar ter-render oleh sistem
-    repeat task.wait(0.5) until LeftColumn and MainGui and Theme and MainFrame
-
-    -- 1. ADAPTASI STATE BARU KE CONFIG UTAMA
-    Config.FreecamMode = false
-    Config.FreecamSpeed = 5
-    Config.FreecamSmoothing = 5
-    Config.FreecamFOV = 70
-    Config.FreecamCinematic = false  -- false = Standard WASD, true = Orbit/Pan
-    Config.FreecamCharFollow = false -- false = Karakter Diam, true = Karakter Ikut Bergerak (🏃)
-
-    -- 2. MEMBUAT GUI KHUSUS FREECAM BAR (TERPISAH & MINIMALIS)
-    local FreecamGuiFrame = Instance.new("Frame")
-    FreecamGuiFrame.Name = "FreecamGuiFrame"
-    FreecamGuiFrame.Parent = MainGui
-    FreecamGuiFrame.Size = UDim2.new(0, 240, 0, 290)
-    FreecamGuiFrame.Position = UDim2.new(1, -260, 0.5, -145) -- Pojok kanan layar
-    FreecamGuiFrame.BackgroundColor3 = Theme.Bg
-    FreecamGuiFrame.BackgroundTransparency = 0.2
-    FreecamGuiFrame.Visible = false
-    Instance.new("UICorner", FreecamGuiFrame).CornerRadius = UDim.new(0, 10)
-    local fcStroke = Instance.new("UIStroke", FreecamGuiFrame)
-    fcStroke.Color = Theme.AccentPurple
-    fcStroke.Thickness = 1.5
-
-    -- Aktifkan sistem drag agar panel khusus bisa digeser di layar
-    makeDraggable(FreecamGuiFrame, FreecamGuiFrame)
-
-    local fcTitle = Instance.new("TextLabel", FreecamGuiFrame)
-    fcTitle.Size = UDim2.new(1, 0, 0, 30)
-    fcTitle.Text = "🎥 FREECAM CINEMATIC"
-    fcTitle.Font = Enum.Font.GothamBold
-    fcTitle.TextColor3 = Theme.Accent
-    fcTitle.TextSize = 12
-    fcTitle.BackgroundTransparency = 1
-
-    local fcContainer = Instance.new("Frame", FreecamGuiFrame)
-    fcContainer.Size = UDim2.new(1, -20, 1, -40)
-    fcContainer.Position = UDim2.new(0, 10, 0, 30)
-    fcContainer.BackgroundTransparency = 1
-    local fcLayout = Instance.new("UIListLayout", fcContainer)
-    fcLayout.Padding = UDim.new(0, 8)
-    fcLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    -- 3. INTERACTIVE MOUSE ROTATION ENGINE (KLIK KANAN TAHAN UNTUK GESER KAMERA)
-    local camera = workspace.CurrentCamera
-    local originalCameraType = camera.CameraType
-    local originalCameraSubject = camera.CameraSubject
-    local targetCFrame = camera.CFrame
-    local freecamConnection
-    local mouseDragConnection
-    local rotX, rotY = 0, 0
-
-    local function enableMouseLook()
-        if mouseDragConnection then mouseDragConnection:Disconnect() end
-        mouseDragConnection = UserInputService.InputChanged:Connect(function(input)
-            if Config.FreecamMode and not Config.FreecamCinematic then
-                -- Kamera hanya bergeser jika user sedang menahan Klik Kanan Mouse
-                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                    local delta = input.Delta
-                    rotX = rotX - delta.X * 0.005
-                    rotY = math.clamp(rotY - delta.Y * 0.005, -math.rad(80), math.rad(80))
-                    targetCFrame = CFrame.new(targetCFrame.Position) * CFrame.Angles(0, rotX, 0) * CFrame.Angles(rotY, 0, 0)
-                end
-            end
-        end)
-    end
-
-    -- 4. CORE ENGINE FREECAM RUNNER (RENDER STEPPED)
-    local function updateFreecamEngine()
-        if not Config.FreecamMode then
-            -- MATIKAN FREECAM: Kembalikan kondisi map & player ke semula
-            if freecamConnection then freecamConnection:Disconnect() freecamConnection = nil end
-            if mouseDragConnection then mouseDragConnection:Disconnect() mouseDragConnection = nil end
-            camera.CameraType = originalCameraType
-            if originalCameraSubject then camera.CameraSubject = originalCameraSubject end
-            camera.FieldOfView = 70
-            FreecamGuiFrame.Visible = false
-            MainFrame.Visible = true -- Tampilkan kembali Menu Utama Script Hub
-            return
-        end
-
-        -- HIDUPKAN FREECAM: Simpan data kamera bawaan roblox sebelum dipisahkan
-        originalCameraType = camera.CameraType
-        originalCameraSubject = camera.CameraSubject
-        targetCFrame = camera.CFrame
-        
-        -- Mengambil orientasi sudut pandang awal agar kamera tidak mendadak patah saat aktif
-        local _, y, z = targetCFrame:ToEulerAnglesYXZ()
-        rotX, rotY = y, -_
-
-        camera.CameraType = Enum.CameraType.Scriptable
-        camera.CameraSubject = nil
-        
-        MainFrame.Visible = false -- Sembunyikan Menu Utama agar pandangan bersih
-        FreecamGuiFrame.Visible = true
-        enableMouseLook()
-
-        freecamConnection = RunService.RenderStepped:Connect(function(dt)
-            if not Config.FreecamMode then return end
-            
-            -- Update Field of View (FOV) secara realtime via slider
-            camera.FieldOfView = Config.FreecamFOV
-
-            if Config.FreecamCinematic then
-                -- MODE CINEMATIC PAN/ORBIT: Kamera mengitari objek otomatis secara halus
-                if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                    local pivot = Player.Character.HumanoidRootPart.Position
-                    local speedFactor = (Config.FreecamSpeed / 5) * 0.4
-                    local angle = os.clock() * speedFactor
-                    local radius = 25 - (Config.FreecamFOV * 0.1)
-                    
-                    local offset = Vector3.new(math.sin(angle) * radius, 5, math.cos(angle) * radius)
-                    local newPos = pivot + offset
-                    
-                    local lookCF = CFrame.new(newPos, pivot)
-                    camera.CFrame = camera.CFrame:Lerp(lookCF, (11 - Config.FreecamSmoothing) * dt)
-                    targetCFrame = camera.CFrame
-                end
-            else
-                -- MODE STANDARD: Gerak bebas via WASD + Klik Kanan Geser Kamera
-                local lookVector = targetCFrame.LookVector
-                local rightVector = targetCFrame.RightVector
-                local moveDir = Vector3.new(0, 0, 0)
-                local speed = Config.FreecamSpeed * 15
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-                if moveDir.Magnitude > 0 then
-                    targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
-                    
-                    -- FITUR TAMBAHAN: Jika diaktifkan (Follow Mode), karakter ikut bergerak beriringan dengan kamera
-                    if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
-                    end
-                end
-
-                -- Efek Easing / Glide (Smoothing) saat melepas tombol gerak agar sinematik
-                local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
-                camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
-            end
-        end)
-    end
-
-    -- 5. RENDERING DESIGN PANEL DI DALAM GUI KHUSUS FREECAM BAR
-    -- Tombol Mode Switch (Standard vs Orbit)
-    local modeBtn = Instance.new("TextButton", fcContainer)
-    modeBtn.Size = UDim2.new(1, 0, 0, 24)
-    modeBtn.BackgroundColor3 = Theme.CardBg
-    modeBtn.Font = Enum.Font.GothamBold
-    modeBtn.Text = "MODE: STANDARD (WASD)"
-    modeBtn.TextColor3 = Theme.TextMain
-    modeBtn.TextSize = 10
-    modeBtn.LayoutOrder = 1
-    Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", modeBtn).Color = Theme.Stroke
-
-    modeBtn.MouseButton1Click:Connect(function()
-        Config.FreecamCinematic = not Config.FreecamCinematic
-        if Config.FreecamCinematic then
-            modeBtn.Text = "MODE: CINEMATIC PAN/ORBIT"
-            modeBtn.TextColor3 = Theme.AccentPurple
-        else
-            modeBtn.Text = "MODE: STANDARD (WASD)"
-            modeBtn.TextColor3 = Theme.TextMain
-        end
-    end)
-
-    -- Tombol 🏃 Character Follow Cam Toggle
-    local runBtn = Instance.new("TextButton", fcContainer)
-    runBtn.Size = UDim2.new(1, 0, 0, 24)
-    runBtn.BackgroundColor3 = Theme.CardBg
-    runBtn.Font = Enum.Font.GothamBold
-    runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-    runBtn.TextColor3 = Theme.TextMuted
-    runBtn.TextSize = 10
-    runBtn.LayoutOrder = 2
-    Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", runBtn).Color = Theme.Stroke
-
-    runBtn.MouseButton1Click:Connect(function()
-        Config.FreecamCharFollow = not Config.FreecamCharFollow
-        if Config.FreecamCharFollow then
-            runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
-            runBtn.TextColor3 = Theme.ConfirmGreen
-        else
-            runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-            runBtn.TextColor3 = Theme.TextMuted
-        end
-    end)
-
-    -- Menyusun sliders pengaturan visual bawaan script hub kamu
-    addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
-    addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
-    addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
-
-    -- Tombol Teleport Instan Karakter Ke Kamera
-    local tpCharBtn = Instance.new("TextButton", fcContainer)
-    tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
-    tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
-    tpCharBtn.Font = Enum.Font.GothamBold
-    tpCharBtn.Text = "⚡ Teleport Character to Cam"
-    tpCharBtn.TextColor3 = Theme.Accent
-    tpCharBtn.TextSize = 10
-    tpCharBtn.LayoutOrder = 6
-    Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
-
-    tpCharBtn.MouseButton1Click:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = camera.CFrame * CFrame.new(0, -2, 0)
-        end
-    end)
-
-    -- Tombol Keluar Permanen dari Mode Freecam (Exit)
-    local exitBtn = Instance.new("TextButton", fcContainer)
-    exitBtn.Size = UDim2.new(1, 0, 0, 26)
-    exitBtn.BackgroundColor3 = Theme.DeleteBg
-    exitBtn.Font = Enum.Font.GothamBold
-    exitBtn.Text = "❌ EXIT FREECAM"
-    exitBtn.TextColor3 = Theme.DeleteRed
-    exitBtn.TextSize = 11
-    exitBtn.LayoutOrder = 7
-    Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
-    local exStroke = Instance.new("UIStroke", exitBtn)
-    exStroke.Color = Theme.DeleteRed
-
-    exitBtn.MouseButton1Click:Connect(function()
-        Config.FreecamMode = false
-        updateFreecamEngine()
-    end)
-
-    -- 6. MENYUNTIKKAN TOMBOL UTAMA BERDASARKAN SUSUNAN HIRARKI UI (AMAN & ANTI-ERROR)
-    -- Mencari "Fly Control" Card di dalam LeftColumn secara dinamis
-    local targetCard = nil
-    for _, child in pairs(LeftColumn:GetChildren()) do
-        if child:IsA("Frame") and child:FindFirstChild("Frame") then
-            local txtLabel = child:FindFirstChildOfClass("TextLabel")
-            if txtLabel and txtLabel.Text == "FLY CONTROL" then
-                targetCard = child:FindFirstChildOfClass("Frame")
-                break
-            end
-        end
-    end
-
-    -- Jika Fly Control Card ditemukan, buat tombol OPENGUI di dalamnya
-    if targetCard then
-        local holder = Instance.new("Frame", targetCard)
-        holder.Size = UDim2.new(1, 0, 0, 28)
-        holder.BackgroundTransparency = 1
-        holder.LayoutOrder = 4
-
-        local lbl = Instance.new("TextLabel", holder)
-        lbl.Text = "Cinematic Freecam UI"
-        lbl.Size = UDim2.new(1, -90, 1, 0)
-        lbl.Font = Enum.Font.GothamMedium
-        lbl.TextColor3 = Theme.TextMain
-        lbl.TextSize = 12
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.BackgroundTransparency = 1
-
-        local openGuiBtn = Instance.new("TextButton", holder)
-        openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
-        openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
-        openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
-        openGuiBtn.Font = Enum.Font.GothamBold
-        openGuiBtn.Text = "OPENGUI"
-        openGuiBtn.TextColor3 = Theme.AccentPurple
-        openGuiBtn.TextSize = 10
-        Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
-        local btnStroke = Instance.new("UIStroke", openGuiBtn)
-        btnStroke.Color = Theme.AccentPurple
-        btnStroke.Thickness = 1
-
-        openGuiBtn.MouseButton1Click:Connect(function()
-            Config.FreecamMode = true
-            updateFreecamEngine()
-        end)
-    end
-end)
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-                if moveDir.Magnitude > 0 then
-                    targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
-                    
-                    -- FITUR TAMBAHAN: Jika diaktifkan (Follow Mode), karakter ikut bergerak beriringan dengan kamera
-                    if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
-                    end
-                end
-
-                -- Efek Easing / Glide (Smoothing) saat melepas tombol gerak agar sinematik
-                local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
-                camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
-            end
-        end)
-    end
-
-    -- 5. RENDERING DESIGN PANEL DI DALAM GUI KHUSUS FREECAM BAR
-    -- Tombol Mode Switch (Standard vs Orbit)
-    local modeBtn = Instance.new("TextButton", fcContainer)
-    modeBtn.Size = UDim2.new(1, 0, 0, 24)
-    modeBtn.BackgroundColor3 = Theme.CardBg
-    modeBtn.Font = Enum.Font.GothamBold
-    modeBtn.Text = "MODE: STANDARD (WASD)"
-    modeBtn.TextColor3 = Theme.TextMain
-    modeBtn.TextSize = 10
-    modeBtn.LayoutOrder = 1
-    Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", modeBtn).Color = Theme.Stroke
-
-    modeBtn.MouseButton1Click:Connect(function()
-        Config.FreecamCinematic = not Config.FreecamCinematic
-        if Config.FreecamCinematic then
-            modeBtn.Text = "MODE: CINEMATIC PAN/ORBIT"
-            modeBtn.TextColor3 = Theme.AccentPurple
-        else
-            modeBtn.Text = "MODE: STANDARD (WASD)"
-            modeBtn.TextColor3 = Theme.TextMain
-        end
-    end)
-
-    -- Tombol 🏃 Character Follow Cam Toggle
-    local runBtn = Instance.new("TextButton", fcContainer)
-    runBtn.Size = UDim2.new(1, 0, 0, 24)
-    runBtn.BackgroundColor3 = Theme.CardBg
-    runBtn.Font = Enum.Font.GothamBold
-    runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-    runBtn.TextColor3 = Theme.TextMuted
-    runBtn.TextSize = 10
-    runBtn.LayoutOrder = 2
-    Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", runBtn).Color = Theme.Stroke
-
-    runBtn.MouseButton1Click:Connect(function()
-        Config.FreecamCharFollow = not Config.FreecamCharFollow
-        if Config.FreecamCharFollow then
-            runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
-            runBtn.TextColor3 = Theme.ConfirmGreen
-        else
-            runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-            runBtn.TextColor3 = Theme.TextMuted
-        end
-    end)
-
-    -- Menyusun sliders pengaturan visual bawaan script hub kamu
-    addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
-    addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
-    addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
-
-    -- Tombol Teleport Instan Karakter Ke Kamera
-    local tpCharBtn = Instance.new("TextButton", fcContainer)
-    tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
-    tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
-    tpCharBtn.Font = Enum.Font.GothamBold
-    tpCharBtn.Text = "⚡ Teleport Character to Cam"
-    tpCharBtn.TextColor3 = Theme.Accent
-    tpCharBtn.TextSize = 10
-    tpCharBtn.LayoutOrder = 6
-    Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
-    Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
-
-    tpCharBtn.MouseButton1Click:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame = camera.CFrame * CFrame.new(0, -2, 0)
-        end
-    end)
-
-    -- Tombol Keluar Permanen dari Mode Freecam (Exit)
-    local exitBtn = Instance.new("TextButton", fcContainer)
-    exitBtn.Size = UDim2.new(1, 0, 0, 26)
-    exitBtn.BackgroundColor3 = Theme.DeleteBg
-    exitBtn.Font = Enum.Font.GothamBold
-    exitBtn.Text = "❌ EXIT FREECAM"
-    exitBtn.TextColor3 = Theme.DeleteRed
-    exitBtn.TextSize = 11
-    exitBtn.LayoutOrder = 7
-    Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
-    local exStroke = Instance.new("UIStroke", exitBtn)
-    exStroke.Color = Theme.DeleteRed
-
-    exitBtn.MouseButton1Click:Connect(function()
-        Config.FreecamMode = false
-        updateFreecamEngine()
-    end)
-
-    -- 6. MENYUNTIKKAN TOMBOL UTAMA KE TAB PLAYER (COMPATIBLE LAYER)
-    -- Ditambahkan ke dalam Fly Control Card di bawah Toggle Noclip agar rapi
-    local holder = Instance.new("Frame", flyCard)
-    holder.Size = UDim2.new(1, 0, 0, 28)
-    holder.BackgroundTransparency = 1
-    holder.LayoutOrder = 4
-
-    local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = "Cinematic Freecam UI"
-    lbl.Size = UDim2.new(1, -90, 1, 0)
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 12
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.BackgroundTransparency = 1
-
-    local openGuiBtn = Instance.new("TextButton", holder)
-    openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
-    openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
-    openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
-    openGuiBtn.Font = Enum.Font.GothamBold
-    openGuiBtn.Text = "OPENGUI"
-    openGuiBtn.TextColor3 = Theme.AccentPurple
-    openGuiBtn.TextSize = 10
-    Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
-    local btnStroke = Instance.new("UIStroke", openGuiBtn)
-    btnStroke.Color = Theme.AccentPurple
-    btnStroke.Thickness = 1
-
-    openGuiBtn.MouseButton1Click:Connect(function()
-        Config.FreecamMode = true
-        updateFreecamEngine()
-    end)
-end)
 end)
