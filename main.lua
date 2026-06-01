@@ -1634,17 +1634,16 @@ local function updateFreecamEngine()
             if hrp and hrp.Anchored then hrp.Anchored = false end
         end
 
-        -- Ambil input Rotasi Mouse (Klik Kanan Tahan)
-        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-            local delta = UserInputService:GetMouseDelta()
-            fcRotY = fcRotY - (delta.X * 0.003)
-            fcRotX = math.clamp(fcRotX - (delta.Y * 0.003), -math.pi/2.2, math.pi/2.2)
-        else
-            if not MainFrame.Visible and not FreecamHud.Visible then
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            end
-        end
+    -- Ambil input Rotasi Mouse (Klik Kanan Tahan)
+if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+    local delta = UserInputService:GetMouseDelta()
+    fcRotY = fcRotY - (delta.X * 0.003)
+    fcRotX = math.clamp(fcRotX - (delta.Y * 0.003), -math.pi/2.2, math.pi/2.2)
+else
+    -- KEMBALIKAN MOUSE JADI NORMAL JIKA KLIK KANAN TIDAK DITAHAN
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
 
         -- Hitung Arah Gerak Keyboard
         local moveDir = Vector3.zero
