@@ -1494,8 +1494,8 @@ end)
 -- INJECTOR FITUR FREECAM CINEMATIC MODE (TAMBAHAN DI PALING BAWAH)
 -- ====================================================================
 task.spawn(function()
-    -- Tunggu sampai LeftColumn (UI Player) benar-benar ter-render oleh sistem utama
-    repeat task.wait(0.5) until LeftColumn and MainGui and Theme and flyCard
+    -- Tunggu sampai struktur inti UI utama benar-benar ter-render oleh sistem
+    repeat task.wait(0.5) until LeftColumn and MainGui and Theme and MainFrame
 
     -- 1. ADAPTASI STATE BARU KE CONFIG UTAMA
     Config.FreecamMode = false
@@ -1562,7 +1562,7 @@ task.spawn(function()
         end)
     end
 
-    -- 4. CORE ENGINE CORE FREECAM RUNNER (RENDER STEPPED)
+    -- 4. CORE ENGINE FREECAM RUNNER (RENDER STEPPED)
     local function updateFreecamEngine()
         if not Config.FreecamMode then
             -- MATIKAN FREECAM: Kembalikan kondisi map & player ke semula
@@ -1620,6 +1620,165 @@ task.spawn(function()
                 local moveDir = Vector3.new(0, 0, 0)
                 local speed = Config.FreecamSpeed * 15
 
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+                if moveDir.Magnitude > 0 then
+                    targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
+                    
+                    -- FITUR TAMBAHAN: Jika diaktifkan (Follow Mode), karakter ikut bergerak beriringan dengan kamera
+                    if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
+                    end
+                end
+
+                -- Efek Easing / Glide (Smoothing) saat melepas tombol gerak agar sinematik
+                local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
+                camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
+            end
+        end)
+    end
+
+    -- 5. RENDERING DESIGN PANEL DI DALAM GUI KHUSUS FREECAM BAR
+    -- Tombol Mode Switch (Standard vs Orbit)
+    local modeBtn = Instance.new("TextButton", fcContainer)
+    modeBtn.Size = UDim2.new(1, 0, 0, 24)
+    modeBtn.BackgroundColor3 = Theme.CardBg
+    modeBtn.Font = Enum.Font.GothamBold
+    modeBtn.Text = "MODE: STANDARD (WASD)"
+    modeBtn.TextColor3 = Theme.TextMain
+    modeBtn.TextSize = 10
+    modeBtn.LayoutOrder = 1
+    Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", modeBtn).Color = Theme.Stroke
+
+    modeBtn.MouseButton1Click:Connect(function()
+        Config.FreecamCinematic = not Config.FreecamCinematic
+        if Config.FreecamCinematic then
+            modeBtn.Text = "MODE: CINEMATIC PAN/ORBIT"
+            modeBtn.TextColor3 = Theme.AccentPurple
+        else
+            modeBtn.Text = "MODE: STANDARD (WASD)"
+            modeBtn.TextColor3 = Theme.TextMain
+        end
+    end)
+
+    -- Tombol 🏃 Character Follow Cam Toggle
+    local runBtn = Instance.new("TextButton", fcContainer)
+    runBtn.Size = UDim2.new(1, 0, 0, 24)
+    runBtn.BackgroundColor3 = Theme.CardBg
+    runBtn.Font = Enum.Font.GothamBold
+    runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+    runBtn.TextColor3 = Theme.TextMuted
+    runBtn.TextSize = 10
+    runBtn.LayoutOrder = 2
+    Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", runBtn).Color = Theme.Stroke
+
+    runBtn.MouseButton1Click:Connect(function()
+        Config.FreecamCharFollow = not Config.FreecamCharFollow
+        if Config.FreecamCharFollow then
+            runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
+            runBtn.TextColor3 = Theme.ConfirmGreen
+        else
+            runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
+            runBtn.TextColor3 = Theme.TextMuted
+        end
+    end)
+
+    -- Menyusun sliders pengaturan visual bawaan script hub kamu
+    addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
+    addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
+    addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
+
+    -- Tombol Teleport Instan Karakter Ke Kamera
+    local tpCharBtn = Instance.new("TextButton", fcContainer)
+    tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
+    tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
+    tpCharBtn.Font = Enum.Font.GothamBold
+    tpCharBtn.Text = "⚡ Teleport Character to Cam"
+    tpCharBtn.TextColor3 = Theme.Accent
+    tpCharBtn.TextSize = 10
+    tpCharBtn.LayoutOrder = 6
+    Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
+    Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
+
+    tpCharBtn.MouseButton1Click:Connect(function()
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            Player.Character.HumanoidRootPart.CFrame = camera.CFrame * CFrame.new(0, -2, 0)
+        end
+    end)
+
+    -- Tombol Keluar Permanen dari Mode Freecam (Exit)
+    local exitBtn = Instance.new("TextButton", fcContainer)
+    exitBtn.Size = UDim2.new(1, 0, 0, 26)
+    exitBtn.BackgroundColor3 = Theme.DeleteBg
+    exitBtn.Font = Enum.Font.GothamBold
+    exitBtn.Text = "❌ EXIT FREECAM"
+    exitBtn.TextColor3 = Theme.DeleteRed
+    exitBtn.TextSize = 11
+    exitBtn.LayoutOrder = 7
+    Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
+    local exStroke = Instance.new("UIStroke", exitBtn)
+    exStroke.Color = Theme.DeleteRed
+
+    exitBtn.MouseButton1Click:Connect(function()
+        Config.FreecamMode = false
+        updateFreecamEngine()
+    end)
+
+    -- 6. MENYUNTIKKAN TOMBOL UTAMA BERDASARKAN SUSUNAN HIRARKI UI (AMAN & ANTI-ERROR)
+    -- Mencari "Fly Control" Card di dalam LeftColumn secara dinamis
+    local targetCard = nil
+    for _, child in pairs(LeftColumn:GetChildren()) do
+        if child:IsA("Frame") and child:FindFirstChild("Frame") then
+            local txtLabel = child:FindFirstChildOfClass("TextLabel")
+            if txtLabel and txtLabel.Text == "FLY CONTROL" then
+                targetCard = child:FindFirstChildOfClass("Frame")
+                break
+            end
+        end
+    end
+
+    -- Jika Fly Control Card ditemukan, buat tombol OPENGUI di dalamnya
+    if targetCard then
+        local holder = Instance.new("Frame", targetCard)
+        holder.Size = UDim2.new(1, 0, 0, 28)
+        holder.BackgroundTransparency = 1
+        holder.LayoutOrder = 4
+
+        local lbl = Instance.new("TextLabel", holder)
+        lbl.Text = "Cinematic Freecam UI"
+        lbl.Size = UDim2.new(1, -90, 1, 0)
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextColor3 = Theme.TextMain
+        lbl.TextSize = 12
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.BackgroundTransparency = 1
+
+        local openGuiBtn = Instance.new("TextButton", holder)
+        openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
+        openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
+        openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
+        openGuiBtn.Font = Enum.Font.GothamBold
+        openGuiBtn.Text = "OPENGUI"
+        openGuiBtn.TextColor3 = Theme.AccentPurple
+        openGuiBtn.TextSize = 10
+        Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
+        local btnStroke = Instance.new("UIStroke", openGuiBtn)
+        btnStroke.Color = Theme.AccentPurple
+        btnStroke.Thickness = 1
+
+        openGuiBtn.MouseButton1Click:Connect(function()
+            Config.FreecamMode = true
+            updateFreecamEngine()
+        end)
+    end
+end)
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
