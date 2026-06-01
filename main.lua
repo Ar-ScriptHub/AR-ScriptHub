@@ -1523,7 +1523,7 @@ task.spawn(function()
 
     local fcTitle = Instance.new("TextLabel", FreecamGuiFrame)
     fcTitle.Size = UDim2.new(1, 0, 0, 30)
-    fcTitle.Text = "🎥 FREECAM CINEMATIC"
+    fcTitle.Text = "AR FREECAM"
     fcTitle.Font = Enum.Font.GothamBold
     fcTitle.TextColor3 = Theme.Accent
     fcTitle.TextSize = 12
