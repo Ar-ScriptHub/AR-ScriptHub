@@ -1491,7 +1491,7 @@ task.spawn(function()
 end)
 
 -- ====================================================================
--- INJECTOR FITUR FREECAM CINEMATIC PRO (5 MODES - REMOVED WAYPOINTS)
+-- INJECTOR FREECAM CINEMATIC PRO MAX V2 (ADD TELEPORT & ULTRA-SLOW SPEED)
 -- ====================================================================
 
 -- 1. EXTENSION CONFIG STATE FOR CINEMATIC
@@ -1532,8 +1532,8 @@ end
 local FreecamHud = Instance.new("Frame")
 FreecamHud.Name = "FreecamCinematicHud"
 FreecamHud.Parent = MainGui
-FreecamHud.Size = UDim2.new(0, 260, 0, 360)
-FreecamHud.Position = UDim2.new(1, -280, 0.5, -180)
+FreecamHud.Size = UDim2.new(0, 260, 0, 400) -- Ukuran ditinggikan sedikit untuk tombol Teleport
+FreecamHud.Position = UDim2.new(1, -280, 0.5, -200)
 FreecamHud.BackgroundColor3 = Theme.Bg
 FreecamHud.BackgroundTransparency = 0.1
 FreecamHud.Visible = false
@@ -1547,7 +1547,7 @@ makeDraggable(FreecamHud, FreecamHud)
 -- HUD Title Area
 local fhTitle = Instance.new("TextLabel", FreecamHud)
 fhTitle.Size = UDim2.new(1, 0, 0, 30)
-fhTitle.Text = "🎬 AR MULTI-CINEMATIC"
+fhTitle.Text = "🎬 FREECAM MULTI-CINEMATIC"
 fhTitle.Font = Enum.Font.GothamBold
 fhTitle.TextColor3 = Theme.Accent
 fhTitle.TextSize = 12
@@ -1604,9 +1604,6 @@ local function updateFreecamEngine()
         -- Sinkronisasi status freeze karakter secara berkala
         handleCharacterFreeze(Config.FreecamFreezeChar)
 
-        local char = Player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
         -- Ambil input Rotasi Mouse (Hanya mengunci jika Klik Kanan ditahan)
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
             UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
@@ -1614,14 +1611,12 @@ local function updateFreecamEngine()
             fcRotY = fcRotY - (delta.X * 0.003)
             fcRotX = math.clamp(fcRotX - (delta.Y * 0.003), -math.pi/2.2, math.pi/2.2)
         else
-            if not MainFrame.Visible and not FreecamHud.Visible then
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            else
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            end
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         end
 
         local targetRotation = CFrame.Angles(0, fcRotY, 0) * CFrame.Angles(fcRotX, 0, 0)
+        local char = Player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
         -- ====================================================================
         -- PERHITUNGAN EXCLUSIVE MODES
@@ -1648,7 +1643,7 @@ local function updateFreecamEngine()
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             if hrp then
                 orbitAngle = orbitAngle + (Config.FreecamSpeed * 0.5 * dt)
-                local radius = 15 -- Jarak orbit lingkaran radius
+                local radius = 15 -- Jarak radius orbit lingkaran
                 local offset = Vector3.new(math.sin(orbitAngle) * radius, 3, math.cos(orbitAngle) * radius)
                 local targetCamPos = hrp.Position + offset
                 workspace.CurrentCamera.CFrame = CFrame.new(targetCamPos, hrp.Position)
@@ -1721,7 +1716,7 @@ local function updateFreecamEngine()
             
             if hrp then
                 workspace.CurrentCamera.CFrame = CFrame.new(targetFC_CFrame.Position, hrp.Position)
-                -- Sinkronisasi rotasi internal agar saat kembali ke mode manual tidak hentakan patah
+                -- Sinkronisasi rotasi internal agar saat kembali tidak patah hentakan
                 local look = workspace.CurrentCamera.CFrame.LookVector
                 fcRotX = math.asin(look.Y)
                 fcRotY = math.atan2(-look.X, -look.Z)
@@ -1733,7 +1728,10 @@ local function updateFreecamEngine()
 end
 
 -- 4. RECONSTRUCT INTERFACE COMPONENTS (BUILD SLIDERS AND CARD MODES)
-addSliderWithInput(fhScroll, "Freecam/Cinematic Speed", 1, 10, 2, 1, "FreecamSpeed")
+-- Modifikasi slider agar mendukung pergerakan super lambat (0.1 sampai 10)
+addSliderWithInput(fhScroll, "Freecam/Cinematic Speed", 1, 100, 10, 1, nil, function(v)
+    Config.FreecamSpeed = math.clamp(v / 10, 0.1, 10)
+end)
 addSliderWithInput(fhScroll, "Camera Inertia Damping", 1, 50, 15, 2, nil, function(v)
     Config.FreecamSmoothness = math.clamp(v / 100, 0.01, 1)
 end)
@@ -1741,6 +1739,37 @@ addSliderWithInput(fhScroll, "Cinematic Lense FOV", 10, 120, 70, 3, "FreecamFov"
     dollyStartFov = v
 end)
 addToggle(fhScroll, "Freeze Character Movement Only", 4, "FreecamFreezeChar")
+
+-- FITUR BARU: TOMBOL TELEPORT TO FREECAM POSITION
+local tpToCamBtn = Instance.new("TextButton", fhScroll)
+tpToCamBtn.Size = UDim2.new(1, 0, 0, 28)
+tpToCamBtn.BackgroundColor3 = Color3.fromRGB(35, 65, 50)
+tpToCamBtn.Font = Enum.Font.GothamBold
+tpToCamBtn.Text = "📍 TELEPORT TO FREECAM"
+tpToCamBtn.TextColor3 = Theme.ConfirmGreen
+tpToCamBtn.TextSize = 11
+tpToCamBtn.LayoutOrder = 4.5
+Instance.new("UICorner", tpToCamBtn).CornerRadius = UDim.new(0, 5)
+local tpStroke = Instance.new("UIStroke", tpToCamBtn)
+tpStroke.Color = Theme.ConfirmGreen
+
+tpToCamBtn.MouseButton1Click:Connect(function()
+    local char = Player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        -- Simpan status Anchor untuk bypass sementara jika karakter sedang di-freeze
+        local wasAnchored = hrp.Anchored
+        hrp.Anchored = false
+        
+        -- Memindahkan koordinat karakter tepat di bawah posisi kamera Freecam saat ini
+        local camPos = workspace.CurrentCamera.CFrame.Position
+        hrp.CFrame = CFrame.new(camPos)
+        
+        -- Kembalikan status anchor semula
+        task.wait(0.05)
+        hrp.Anchored = wasAnchored
+    end
+end)
 
 -- Cinematic Modes Panel Card Component Interface
 local modeCard = Instance.new("Frame", fhScroll)
