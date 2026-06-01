@@ -1,5 +1,5 @@
 -- ====================================================================
--- AR SCRIPT HUB - v7.1
+-- AR SCRIPT HUB - v7.1 (FIXED FLY & CAMERA)
 -- ====================================================================
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -83,15 +83,7 @@ local Config = {
     UiTransparency = 0.15,
     TweenTeleport = false,
     TweenSpeed = 350,
-    FullBright = false,
-    
-    -- STATE TAMBAHAN UNTUK FREECAM ENGINE
-    FreecamMode = false,
-    FreecamSpeed = 5,
-    FreecamSmoothing = 5,
-    FreecamFOV = 70,
-    FreecamCinematic = false,
-    FreecamCharFollow = false
+    FullBright = false
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -138,7 +130,7 @@ end)
 local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
 
 -- ====================================================================
--- REAL BACKGROUND FUNCTIONAL ENGINE (ANTI-BUG FLY)
+-- REAL BACKGROUND FUNCTIONAL ENGINE (ANTI-BUG FLY) - FIXED CAMERA
 -- ====================================================================
 local flyBg, flyBv
 
@@ -176,7 +168,6 @@ local function handleFlyEngine()
             local speed = Config.FlySpeed * 10
             local camCF = camera.CFrame
             
-            -- FIX: Membaca input keyboard secara langsung untuk kebebasan arah kamera
             local forward = 0
             local side = 0
             
@@ -185,7 +176,6 @@ local function handleFlyEngine()
             if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then side = -1 end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then side = 1 end
             
-            -- Kalkulasi arah pergerakan mutlak mengikuti arah pandang kamera (Follow Cam)
             local direction = (camCF.LookVector * forward) + (camCF.RightVector * side)
             
             local finalVelocity = Vector3.new(0, 0, 0)
@@ -193,7 +183,6 @@ local function handleFlyEngine()
                 finalVelocity = direction.Unit * speed
             end
             
-            -- Kontrol naik turun (Space = Naik, LeftShift = Turun)
             local verticalSpeed = 0
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
                 verticalSpeed = speed
@@ -201,20 +190,19 @@ local function handleFlyEngine()
                 verticalSpeed = -speed 
             end
             
-            -- Gabungkan kecepatan horizontal dan vertikal
             if verticalSpeed ~= 0 then 
                 flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
             else 
                 flyBv.velocity = finalVelocity 
             end
             
-            -- Memaksa sumbu rotasi karakter selalu mengarah persis seperti kamera
             flyBg.cframe = camCF
             task.wait()
         end
         stopFlying()
     end)
 end
+
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
@@ -552,7 +540,7 @@ end
 
 local LeftColumn = createLeftColumn("Player", "LeftColumn") local RightColumn = createShiftedRightColumn("Player", "RightColumn")
 local espLeftColumn = createLeftColumn("ESP", "EspLeftColumn") local espRightColumn = createShiftedRightColumn("ESP", "EspRightColumn")
-local tpLeftColumn = createLeftColumn("TpLeftColumn", "TpLeftColumn") local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
+local tpLeftColumn = createLeftColumn("Teleportation", "TpLeftColumn") local tpRightColumn = createShiftedRightColumn("Teleportation", "TpRightColumn")
 local serverLeftColumn = createLeftColumn("Server", "ServerLeftColumn") local serverRightColumn = createShiftedRightColumn("Server", "ServerRightColumn")
 local SetLeftColumn = createLeftColumn("Setting", "SetLeftColumn") local SetRightColumn = createShiftedRightColumn("Setting", "SetRightColumn")
 
@@ -600,34 +588,6 @@ local flyCard = createCard(LeftColumn, "Fly Control", 1)
 addToggle(flyCard, "Fly Mode", 1, "FlyMode", handleFlyEngine) 
 addSliderWithInput(flyCard, "Fly Speed Costumization", 1, 20, 5, 2, "FlySpeed") 
 addToggle(flyCard, "Noclip", 3, "Noclip")
-
--- [SUNTIKAN BUTTON FREECAM DI TAB PLAYER - BAWAH NOCLIP]
-local fcHolder = Instance.new("Frame", flyCard)
-fcHolder.Size = UDim2.new(1, 0, 0, 28)
-fcHolder.BackgroundTransparency = 1
-fcHolder.LayoutOrder = 4
-
-local fcLbl = Instance.new("TextLabel", fcHolder)
-fcLbl.Text = "Cinematic Freecam UI"
-fcLbl.Size = UDim2.new(1, -90, 1, 0)
-fcLbl.Font = Enum.Font.GothamMedium
-fcLbl.TextColor3 = Theme.TextMain
-fcLbl.TextSize = 12
-fcLbl.TextXAlignment = Enum.TextXAlignment.Left
-fcLbl.BackgroundTransparency = 1
-
-local openGuiBtn = Instance.new("TextButton", fcHolder)
-openGuiBtn.Size = UDim2.new(0, 85, 0, 22)
-openGuiBtn.Position = UDim2.new(1, -85, 0.5, -11)
-openGuiBtn.BackgroundColor3 = Color3.fromRGB(40, 35, 75)
-openGuiBtn.Font = Enum.Font.GothamBold
-openGuiBtn.Text = "OPENGUI"
-openGuiBtn.TextColor3 = Theme.AccentPurple
-openGuiBtn.TextSize = 10
-Instance.new("UICorner", openGuiBtn).CornerRadius = UDim.new(0, 5)
-local btnStroke = Instance.new("UIStroke", openGuiBtn)
-btnStroke.Color = Theme.AccentPurple
-btnStroke.Thickness = 1
 
 local walkCard = createCard(LeftColumn, "Superspeed", 2)
 addToggle(walkCard, "Super Speed", 1, "SuperSpeed", enforceHumanoidProperties) 
@@ -841,219 +801,6 @@ addToggle(optiCard, "💡 FullBright Core Engine", 4, "FullBright", function(act
     else
         Lighting.Ambient = origAmbient Lighting.OutdoorAmbient = origOutdoorAmbient Lighting.Brightness = origBrightness Lighting.ClockTime = origClockTime
     end
-end)
-
--- ====================================================================
--- CORE DESIGN & CORE FREECAM OPERATIONAL LOGIC CODE ENGINE
--- ====================================================================
-local FreecamGuiFrame = Instance.new("Frame")
-FreecamGuiFrame.Name = "FreecamGuiFrame"
-FreecamGuiFrame.Parent = MainGui
-FreecamGuiFrame.Size = UDim2.new(0, 240, 0, 290)
-FreecamGuiFrame.Position = UDim2.new(1, -260, 0.5, -145)
-FreecamGuiFrame.BackgroundColor3 = Theme.Bg
-FreecamGuiFrame.BackgroundTransparency = 0.2
-FreecamGuiFrame.Visible = false
-Instance.new("UICorner", FreecamGuiFrame).CornerRadius = UDim.new(0, 10)
-local fcStroke = Instance.new("UIStroke", FreecamGuiFrame)
-fcStroke.Color = Theme.AccentPurple
-fcStroke.Thickness = 1.5
-
-makeDraggable(FreecamGuiFrame, FreecamGuiFrame)
-
-local fcTitle = Instance.new("TextLabel", FreecamGuiFrame)
-fcTitle.Size = UDim2.new(1, 0, 0, 30)
-fcTitle.Text = "🎥 FREECAM CINEMATIC"
-fcTitle.Font = Enum.Font.GothamBold
-fcTitle.TextColor3 = Theme.Accent
-fcTitle.TextSize = 12
-fcTitle.BackgroundTransparency = 1
-
-local fcContainer = Instance.new("Frame", FreecamGuiFrame)
-fcContainer.Size = UDim2.new(1, -20, 1, -40)
-fcContainer.Position = UDim2.new(0, 10, 0, 30)
-fcContainer.BackgroundTransparency = 1
-local fcLayout = Instance.new("UIListLayout", fcContainer)
-fcLayout.Padding = UDim.new(0, 8)
-fcLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local camera = workspace.CurrentCamera
-local originalCameraType = camera.CameraType
-local originalCameraSubject = camera.CameraSubject
-local targetCFrame = camera.CFrame
-local freecamConnection
-local mouseDragConnection
-local rotX, rotY = 0, 0
-
-local function enableMouseLook()
-    if mouseDragConnection then mouseDragConnection:Disconnect() end
-    mouseDragConnection = UserInputService.InputChanged:Connect(function(input)
-        if Config.FreecamMode and not Config.FreecamCinematic then
-            if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                local delta = input.Delta
-                rotX = rotX - delta.X * 0.005
-                rotY = math.clamp(rotY - delta.Y * 0.005, -math.rad(80), math.rad(80))
-                targetCFrame = CFrame.new(targetCFrame.Position) * CFrame.Angles(0, rotX, 0) * CFrame.Angles(rotY, 0, 0)
-            end
-        end
-    end)
-end
-
-local function updateFreecamEngine()
-    if not Config.FreecamMode then
-        if freecamConnection then freecamConnection:Disconnect() freecamConnection = nil end
-        if mouseDragConnection then mouseDragConnection:Disconnect() mouseDragConnection = nil end
-        camera.CameraType = originalCameraType
-        if originalCameraSubject then camera.CameraSubject = originalCameraSubject end
-        camera.FieldOfView = 70
-        FreecamGuiFrame.Visible = false
-        MainFrame.Visible = true
-        return
-    end
-
-    originalCameraType = camera.CameraType
-    originalCameraSubject = camera.CameraSubject
-    targetCFrame = camera.CFrame
-    
-    local _, y, z = targetCFrame:ToEulerAnglesYXZ()
-    rotX, rotY = y, -_
-
-    camera.CameraType = Enum.CameraType.Scriptable
-    camera.CameraSubject = nil
-    
-    MainFrame.Visible = false
-    FreecamGuiFrame.Visible = true
-    enableMouseLook()
-
-    freecamConnection = RunService.RenderStepped:Connect(function(dt)
-        if not Config.FreecamMode then return end
-        camera.FieldOfView = Config.FreecamFOV
-
-        if Config.FreecamCinematic then
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                local pivot = Player.Character.HumanoidRootPart.Position
-                local speedFactor = (Config.FreecamSpeed / 5) * 0.4
-                local angle = os.clock() * speedFactor
-                local radius = 25 - (Config.FreecamFOV * 0.1)
-                local offset = Vector3.new(math.sin(angle) * radius, 5, math.cos(angle) * radius)
-                local newPos = pivot + offset
-                local lookCF = CFrame.new(newPos, pivot)
-                camera.CFrame = camera.CFrame:Lerp(lookCF, (11 - Config.FreecamSmoothing) * dt)
-                targetCFrame = camera.CFrame
-            end
-        else
-            local lookVector = targetCFrame.LookVector
-            local rightVector = targetCFrame.RightVector
-            local moveDir = Vector3.new(0, 0, 0)
-            local speed = Config.FreecamSpeed * 15
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + lookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - lookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + rightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - rightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-            if moveDir.Magnitude > 0 then
-                targetCFrame = targetCFrame + (moveDir.Unit * speed * dt)
-                if Config.FreecamCharFollow and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                    Player.Character.HumanoidRootPart.CFrame = CFrame.new(targetCFrame.Position - (lookVector * 4))
-                end
-            end
-
-            local smoothFactor = math.clamp((11 - Config.FreecamSmoothing) * 2 * dt, 0, 1)
-            camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothFactor)
-        end
-    end)
-end
-
--- BIND BUTTON OPENGUI
-openGuiBtn.MouseButton1Click:Connect(function()
-    Config.FreecamMode = true
-    updateFreecamEngine()
-end)
-
--- PANEL CONTENT FREECAM BAR
-local modeBtn = Instance.new("TextButton", fcContainer)
-modeBtn.Size = UDim2.new(1, 0, 0, 24)
-modeBtn.BackgroundColor3 = Theme.CardBg
-modeBtn.Font = Enum.Font.GothamBold
-modeBtn.Text = "MODE: STANDARD (WASD)"
-modeBtn.TextColor3 = Theme.TextMain
-modeBtn.TextSize = 10
-modeBtn.LayoutOrder = 1
-Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", modeBtn).Color = Theme.Stroke
-
-modeBtn.MouseButton1Click:Connect(function()
-    Config.FreecamCinematic = not Config.FreecamCinematic
-    if Config.FreecamCinematic then
-        modeBtn.Text = "MODE: CINEMATIC PAN/ORBIT"
-        modeBtn.TextColor3 = Theme.AccentPurple
-    else
-        modeBtn.Text = "MODE: STANDARD (WASD)"
-        modeBtn.TextColor3 = Theme.TextMain
-    end
-end)
-
-local runBtn = Instance.new("TextButton", fcContainer)
-runBtn.Size = UDim2.new(1, 0, 0, 24)
-runBtn.BackgroundColor3 = Theme.CardBg
-runBtn.Font = Enum.Font.GothamBold
-runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-runBtn.TextColor3 = Theme.TextMuted
-runBtn.TextSize = 10
-runBtn.LayoutOrder = 2
-Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", runBtn).Color = Theme.Stroke
-
-runBtn.MouseButton1Click:Connect(function()
-    Config.FreecamCharFollow = not Config.FreecamCharFollow
-    if Config.FreecamCharFollow then
-        runBtn.Text = "🏃 CHAR FOLLOW CAM: ON"
-        runBtn.TextColor3 = Theme.ConfirmGreen
-    else
-        runBtn.Text = "🏃 CHAR FOLLOW CAM: OFF"
-        runBtn.TextColor3 = Theme.TextMuted
-    end
-end)
-
-addSliderWithInput(fcContainer, "Camera Speed", 1, 20, 5, 3, "FreecamSpeed")
-addSliderWithInput(fcContainer, "Camera Smoothing (Glide)", 1, 10, 5, 4, "FreecamSmoothing")
-addSliderWithInput(fcContainer, "Field of View (FOV / Zoom)", 10, 120, 70, 5, "FreecamFOV")
-
-local tpCharBtn = Instance.new("TextButton", fcContainer)
-tpCharBtn.Size = UDim2.new(1, 0, 0, 24)
-tpCharBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 85)
-tpCharBtn.Font = Enum.Font.GothamBold
-tpCharBtn.Text = "⚡ Teleport Character to Cam"
-tpCharBtn.TextColor3 = Theme.Accent
-tpCharBtn.TextSize = 10
-tpCharBtn.LayoutOrder = 6
-Instance.new("UICorner", tpCharBtn).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", tpCharBtn).Color = Theme.Stroke
-
-tpCharBtn.MouseButton1Click:Connect(function()
-    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-        Player.Character.HumanoidRootPart.CFrame = camera.CFrame * CFrame.new(0, -2, 0)
-    end
-end)
-
-local exitBtn = Instance.new("TextButton", fcContainer)
-exitBtn.Size = UDim2.new(1, 0, 0, 26)
-exitBtn.BackgroundColor3 = Theme.DeleteBg
-exitBtn.Font = Enum.Font.GothamBold
-exitBtn.Text = "❌ EXIT FREECAM"
-exitBtn.TextColor3 = Theme.DeleteRed
-exitBtn.TextSize = 11
-exitBtn.LayoutOrder = 7
-Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 5)
-local exStroke = Instance.new("UIStroke", exitBtn)
-exStroke.Color = Theme.DeleteRed
-
-exitBtn.MouseButton1Click:Connect(function()
-    Config.FreecamMode = false
-    updateFreecamEngine()
 end)
 
 -- ====================================================================
