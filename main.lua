@@ -157,11 +157,17 @@ local function stopFlying()
 end
 
 local function handleFlyEngine()
-    if not Config.FlyMode then stopFlying() return end
+    if not Config.FlyMode then 
+        stopFlying() 
+        return 
+    end
     stopFlying()
-    local char = Player.Character if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local char = Player.Character 
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local torso = char.HumanoidRootPart
-    local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
+    local hum = char:FindFirstChildOfClass("Humanoid") 
+    if not hum then return end
     
     flyBg = Instance.new("BodyGyro", torso) 
     flyBg.P = 9e4 
@@ -177,47 +183,40 @@ local function handleFlyEngine()
         while Config.FlyMode and Player.Character and torso and flyBv and flyBg do
             hum:ChangeState(Enum.HumanoidStateType.Physics)
             local speed = Config.FlySpeed * 10
+            local moveDir = hum.MoveDirection
             local camCF = camera.CFrame
+            local direction = Vector3.new(0, 0, 0)
             
-            -- FIX: Membaca input keyboard secara langsung untuk kebebasan arah kamera
-            local forward = 0
-            local side = 0
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then forward = 1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then forward = -1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then side = -1 end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then side = 1 end
-            
-            -- Kalkulasi arah pergerakan mutlak mengikuti arah pandang kamera (Follow Cam)
-            local direction = (camCF.LookVector * forward) + (camCF.RightVector * side)
-            
-            local finalVelocity = Vector3.new(0, 0, 0)
-            if direction.Magnitude > 0 then
-                finalVelocity = direction.Unit * speed
+            if moveDir.Magnitude > 0 then
+                local lookVector = camCF.LookVector
+                local rightVector = camCF.RightVector
+                local forwardInput = moveDir:Dot(Vector3.new(lookVector.X, 0, lookVector.Z).Unit)
+                local sideInput = moveDir:Dot(Vector3.new(rightVector.X, 0, rightVector.Z).Unit)
+                direction = (lookVector * forwardInput) + (rightVector * sideInput)
             end
             
-            -- Kontrol naik turun (Space = Naik, LeftShift = Turun)
+            local finalVelocity = (direction.Magnitude > 0) and (direction.Unit * speed) or Vector3.new(0, 0, 0)
             local verticalSpeed = 0
+            
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
                 verticalSpeed = speed
             elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then 
                 verticalSpeed = -speed 
             end
             
-            -- Gabungkan kecepatan horizontal dan vertikal
             if verticalSpeed ~= 0 then 
                 flyBv.velocity = Vector3.new(finalVelocity.X, verticalSpeed, finalVelocity.Z)
             else 
                 flyBv.velocity = finalVelocity 
             end
             
-            -- Memaksa sumbu rotasi karakter selalu mengarah persis seperti kamera
             flyBg.cframe = camCF
             task.wait()
         end
         stopFlying()
     end)
 end
+
 -- ====================================================================
 -- MOVEMENT PROPERTY WORKERS
 -- ====================================================================
