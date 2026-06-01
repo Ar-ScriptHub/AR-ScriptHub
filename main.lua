@@ -1764,31 +1764,31 @@ exitBtn.MouseButton1Click:Connect(function()
     updateFreecamEngine()
 end)
 
--- 6. MENYUNTIKKAN TOMBOL KE MENU UTAMA (TAB PLAYER -> RIGHT COLUMN)
-local flyCard = RightColumn:FindFirstChild("Flight Controls") or RightColumn:GetChildren()[1]
-if flyCard then
-    -- Membuat Tombol Klik Tunggal (Bukan Toggle)
-    local openFreecamBtn = Instance.new("TextButton", flyCard)
+-- ====================================================================
+-- 6. MENYUNTIKKAN TOMBOL KE MENU UTAMA (FORCE KE BOTTOM RIGHT COLUMN)
+-- ====================================================================
+if RightColumn then
+    -- Membuat tombol mandiri langsung di kolom sebelah kanan
+    local openFreecamBtn = Instance.new("TextButton", RightColumn)
     openFreecamBtn.Name = "OpenFreecamCinematicBtn"
-    openFreecamBtn.Size = UDim2.new(1, 0, 0, 26)
-    openFreecamBtn.BackgroundColor3 = Color3.fromRGB(35, 30, 60)
+    openFreecamBtn.Size = UDim2.new(1, 0, 0, 32) -- Sedikit lebih tebal agar mudah diklik
+    openFreecamBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 75)
     openFreecamBtn.Font = Enum.Font.GothamBold
     openFreecamBtn.Text = "🎥 OPEN FREECAM CINEMATIC"
-    openFreecamBtn.TextColor3 = Theme.AccentPurple
+    openFreecamBtn.TextColor3 = Theme.Accent
     openFreecamBtn.TextSize = 11
-    openFreecamBtn.LayoutOrder = 10 -- Menaruhnya di baris paling bawah card kontrol
-    Instance.new("UICorner", openFreecamBtn).CornerRadius = UDim.new(0, 5)
+    openFreecamBtn.LayoutOrder = 999 -- Memaksa tombol berada di urutan paling bawah sendiri
+    Instance.new("UICorner", openFreecamBtn).CornerRadius = UDim.new(0, 6)
     
     local btnStroke = Instance.new("UIStroke", openFreecamBtn)
     btnStroke.Color = Theme.AccentPurple
-    btnStroke.Thickness = 1
+    btnStroke.Thickness = 1.5
 
     openFreecamBtn.MouseButton1Click:Connect(function()
         Config.FreecamMode = true
         updateFreecamEngine()
     end)
 end
-
 -- ====================================================================
 -- END OF SCRIPT RE-INJECTION
 -- ====================================================================
