@@ -1547,7 +1547,7 @@ makeDraggable(FreecamHud, FreecamHud)
 -- HUD Title Area
 local fhTitle = Instance.new("TextLabel", FreecamHud)
 fhTitle.Size = UDim2.new(1, 0, 0, 30)
-fhTitle.Text = "🎬 FREECAM MULTI-CINEMATIC"
+fhTitle.Text = "🎬 AR MULTI-CINEMATIC"
 fhTitle.Font = Enum.Font.GothamBold
 fhTitle.TextColor3 = Theme.Accent
 fhTitle.TextSize = 12
