@@ -1670,7 +1670,7 @@ end
     end)
 end
 
--- 4. FUNCTION TO EXECUTE CINEMATIC WAYPOINT PATH
+-- 4. FUNCTION TO EXECUTE CINEMATIC WAYPOINT PATH (FIXED FREEZE & RESET)
 local function playCinematicPath(durationPerSegment)
     if #FreecamWaypoints < 2 then return end
     IsPlayingPath = true
@@ -1682,18 +1682,27 @@ local function playCinematicPath(durationPerSegment)
         local t = 0
         
         while t < 1 do
-            if not Config.FreecamMode then break end -- Interupsi paksa jika freecam dimatikan tengah jalan
+            if not Config.FreecamMode then break end -- Interupsi jika freecam dimatikan
             t = t + (RunService.RenderStepped:Wait() / durationPerSegment)
-            -- Gunakan Linear Interpolation atau Cubic Easing untuk pergerakan halus antar node kamera
             local alpha = TweenService:GetValue(t, Enum.EasingStyle.QuadInOut, Enum.EasingDirection.InOut)
             workspace.CurrentCamera.CFrame = startCF:Lerp(endCF, math.clamp(alpha, 0, 1))
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
         end
     end
     
+    -- [PERBAIKAN UTAMA]: Sinkronisasi ulang posisi target koordinat Freecam setelah Pathing Selesai
+    local finalCameraCFrame = workspace.CurrentCamera.CFrame
+    targetFC_CFrame = finalCameraCFrame -- Update posisi koordinat mesin utama freecam ke titik akhir cinematic
+    
+    -- Hitung ulang orientasi sudut rotasi mouse dari posisi akhir kamera agar tidak glitch/patah
+    local look = finalCameraCFrame.LookVector
+    fcRotX = math.asin(look.Y)
+    fcRotY = math.atan2(-look.X, -look.Z)
+    
+    -- Netralkan kembali sisa velocity/akselerasi sisa agar kamera berhenti dengan sempurna
+    fcVelocity = Vector3.zero 
+    
     IsPlayingPath = false
-    -- Sinkronisasi ulang posisi target koordinat freecam setelah pathing selesai dijalankan
-    targetFC_CFrame = workspace.CurrentCamera.CFrame
 end
 
 -- 5. RECONSTRUCT INTERFACE COMPONENTS FOR FREECAM CONTROL (INNER HUD MODULAR)
