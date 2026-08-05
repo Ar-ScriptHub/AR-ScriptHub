@@ -14,9 +14,6 @@ local Lighting = game:GetService("Lighting")
 local Player = Players.LocalPlayer
 local SafeGuiTarget = Player:FindFirstChildOfClass("PlayerGui") or Player:WaitForChild("PlayerGui", 5)
 
--- LOAD TOPBARPLUS V3 MODULE
-local Icon = loadstring(game:HttpGet("https://raw.githubusercontent.com/184138/TopbarPlus/main/src/Icon.lua"))()
-
 -- ====================================================================
 -- ANTI-BUG CLEAN-UP ENGINE
 -- ====================================================================
@@ -594,8 +591,26 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- ====================================================================
--- INTERFACE FRAME HOUSINGS & TOPBARPLUS INTEGRATION
+-- INTERFACE FRAME HOUSINGS
 -- ====================================================================
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton" 
+ToggleButton.Parent = MainGui 
+ToggleButton.Size = UDim2.new(0, 46, 0, 46) 
+ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0) 
+ToggleButton.BackgroundColor3 = Theme.Bg 
+ToggleButton.BackgroundTransparency = Config.UiTransparency 
+ToggleButton.Font = Enum.Font.GothamBold 
+ToggleButton.Text = "AR" 
+ToggleButton.TextColor3 = Theme.Accent 
+ToggleButton.TextSize = 16 
+ToggleButton.Visible = false 
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 9)
+
+local tbStroke = Instance.new("UIStroke", ToggleButton) 
+tbStroke.Color = Theme.AccentPurple 
+makeDraggable(ToggleButton, ToggleButton)
+
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
@@ -610,23 +625,10 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke 
 mainStroke.Thickness = 1.5
 
--- TOPBARPLUS ICON CONFIGURATION
-local HubIcon = Icon.new()
-HubIcon:setName("ARHubIcon")
-HubIcon:setLabel("AR Hub")
-HubIcon:setCaption("Buka / Tutup AR Script Hub")
-
-HubIcon:bindEvent("selected", function()
-    MainFrame.Visible = true
-end)
-
-HubIcon:bindEvent("deselected", function()
-    MainFrame.Visible = false
-end)
-
 local function updateUiTransparency(value)
     Config.UiTransparency = value 
     MainFrame.BackgroundTransparency = value 
+    ToggleButton.BackgroundTransparency = value 
     PopupFrame.BackgroundTransparency = value
 end
 
@@ -665,17 +667,9 @@ MinimizeBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
 
-MinimizeBtn.MouseButton1Click:Connect(function() 
-    MainFrame.Visible = false 
-    HubIcon:deselect()
-end)
-
-CloseBtn.MouseButton1Click:Connect(function() 
-    showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function() 
-        HubIcon:destroy()
-        MainGui:Destroy() 
-    end) 
-end)
+ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = true ToggleButton.Visible = false end)
+MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false ToggleButton.Visible = true end)
+CloseBtn.MouseButton1Click:Connect(function() showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function() MainGui:Destroy() end) end)
 
 -- ====================================================================
 -- NAVIGATION LAYER CONSTRUCTS
@@ -1023,17 +1017,13 @@ end)
 
 local coreActionCard = createCard(SetRightColumn, "Core Actions", 1)
 createServerButton(coreActionCard, "🔴 Close System UI", Theme.DeleteBg, function()
-    showConfirmation("Apakah kamu ingin menutup UI?", function() 
-        HubIcon:destroy()
-        MainGui:Destroy() 
-    end)
+    showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
 end, 1)
 
 createServerButton(coreActionCard, "🔄 Reload System UI", Color3.fromRGB(35, 35, 55), function()
     showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
         if Config.FlyMode then Config.FlyMode = false pcall(handleFlyEngine) end
         local currentScript = MainGui:GetAttribute("ScriptContent") or ""
-        HubIcon:destroy()
         MainGui:Destroy()
         task.wait(0.15)
         if loadstring and currentScript ~= "" then
@@ -1433,7 +1423,7 @@ task.spawn(function()
         LoadingFrame:Destroy()
         if KeyVerified then
             MainFrame.Visible = true 
-            HubIcon:select()
+            ToggleButton.Visible = false 
             MainFrame.Size = UDim2.new(0, 520, 0, 300)
             TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
         else
@@ -1487,7 +1477,7 @@ task.spawn(function()
                     saveKeyStatus() 
                     KeyFrame:Destroy() 
                     MainFrame.Visible = true 
-                    HubIcon:select()
+                    ToggleButton.Visible = false 
                     MainFrame.Size = UDim2.new(0, 520, 0, 300)
                     TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 560, 0, 340)}):Play()
                 else
@@ -1501,30 +1491,35 @@ task.spawn(function()
 end)
 
 -- ====================================================================
--- INJECTOR FREECAM CINEMATIC PRO MAX V2
+-- INJECTOR FREECAM CINEMATIC PRO MAX V2 (ADD TELEPORT & ULTRA-SLOW SPEED)
 -- ====================================================================
 
+-- 1. EXTENSION CONFIG STATE FOR CINEMATIC
 Config.FreecamMode = false
 Config.FreecamSpeed = 1
 Config.FreecamSmoothness = 0.15
 Config.FreecamFov = 70
 Config.FreecamFreezeChar = false
 
-local CurrentCinematicMode = "Manual"
+-- State variables untuk mode cinematic baru
+local CurrentCinematicMode = "Manual" -- Manual, Orbit, DollyZoom, AutoPan, Handheld, LookAt
 local FreecamConnection = nil
 local targetFC_CFrame = workspace.CurrentCamera.CFrame
 local fcVelocity = Vector3.zero
 local fcRotX, fcRotY = 0, 0
 
+-- State parameters internal cinematic
 local orbitAngle = 0
-local autoPanDir = Vector3.new(1, 0, 0)
+local autoPanDir = Vector3.new(1, 0, 0) -- Default geser kanan (X)
 local dollyStartFov = 70
 local shakeTime = 0
 
+-- Backup variable untuk restorasi kamera asli
 local origCameraType = workspace.CurrentCamera.CameraType
 local origCameraCFrame = workspace.CurrentCamera.CFrame
 local origCameraFov = workspace.CurrentCamera.FieldOfView
 
+-- Helper function untuk mengunci karakter (Tanpa Invisible)
 local function handleCharacterFreeze(freeze)
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1533,10 +1528,11 @@ local function handleCharacterFreeze(freeze)
     end
 end
 
+-- 2. FREECAM HUD CONTROLLER PANEL (MODULAR INTERFACE)
 local FreecamHud = Instance.new("Frame")
 FreecamHud.Name = "FreecamCinematicHud"
 FreecamHud.Parent = MainGui
-FreecamHud.Size = UDim2.new(0, 260, 0, 400)
+FreecamHud.Size = UDim2.new(0, 260, 0, 400) -- Ukuran ditinggikan sedikit untuk tombol Teleport
 FreecamHud.Position = UDim2.new(1, -280, 0.5, -200)
 FreecamHud.BackgroundColor3 = Theme.Bg
 FreecamHud.BackgroundTransparency = 0.1
@@ -1548,6 +1544,7 @@ fhStroke.Thickness = 1.5
 
 makeDraggable(FreecamHud, FreecamHud)
 
+-- HUD Title Area
 local fhTitle = Instance.new("TextLabel", FreecamHud)
 fhTitle.Size = UDim2.new(1, 0, 0, 30)
 fhTitle.Text = "🎬 FREECAM MULTI-CINEMATIC"
@@ -1556,6 +1553,7 @@ fhTitle.TextColor3 = Theme.Accent
 fhTitle.TextSize = 12
 fhTitle.BackgroundTransparency = 1
 
+-- Scrolling Container di dalam HUD Freecam agar rapi
 local fhScroll = Instance.new("ScrollingFrame", FreecamHud)
 fhScroll.Size = UDim2.new(1, -16, 1, -40)
 fhScroll.Position = UDim2.new(0, 8, 0, 32)
@@ -1569,8 +1567,10 @@ local fhLayout = Instance.new("UIListLayout", fhScroll)
 fhLayout.Padding = UDim.new(0, 8)
 fhLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
+-- 3. THE RE-ENGINEERED MULTI-MODE CINEMATIC ENGINE
 local function updateFreecamEngine()
     if not Config.FreecamMode then
+        -- Clean up & Restorasi keadaan semula
         if FreecamConnection then FreecamConnection:Disconnect() FreecamConnection = nil end
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         workspace.CurrentCamera.FieldOfView = origCameraFov
@@ -1580,6 +1580,7 @@ local function updateFreecamEngine()
         return
     end
 
+    -- Inisialisasi posisi awal Freecam dari kamera saat ini
     origCameraType = workspace.CurrentCamera.CameraType
     origCameraCFrame = workspace.CurrentCamera.CFrame
     origCameraFov = workspace.CurrentCamera.FieldOfView
@@ -1595,11 +1596,15 @@ local function updateFreecamEngine()
     workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
     FreecamHud.Visible = true
 
+    -- Handle Freeze Awal Karakter
     handleCharacterFreeze(Config.FreecamFreezeChar)
 
+    -- RunService Loop Utama Freecam
     FreecamConnection = RunService.RenderStepped:Connect(function(dt)
+        -- Sinkronisasi status freeze karakter secara berkala
         handleCharacterFreeze(Config.FreecamFreezeChar)
 
+        -- Ambil input Rotasi Mouse (Hanya mengunci jika Klik Kanan ditahan)
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
             UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
             local delta = UserInputService:GetMouseDelta()
@@ -1613,7 +1618,11 @@ local function updateFreecamEngine()
         local char = Player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
+        -- ====================================================================
+        -- PERHITUNGAN EXCLUSIVE MODES
+        -- ====================================================================
         if CurrentCinematicMode == "Manual" then
+            -- Kontrol Keyboard Standar (W,A,S,D,Q,E) dengan Inertia
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             local moveDir = Vector3.zero
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0, 0, -1) end
@@ -1630,10 +1639,11 @@ local function updateFreecamEngine()
             workspace.CurrentCamera.CFrame = CFrame.new(targetFC_CFrame.Position) * targetRotation
 
         elseif CurrentCinematicMode == "Orbit" then
+            -- Mode 1: 360° Circular Spin di sekitar Karakter / Target
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             if hrp then
                 orbitAngle = orbitAngle + (Config.FreecamSpeed * 0.5 * dt)
-                local radius = 15
+                local radius = 15 -- Jarak radius orbit lingkaran
                 local offset = Vector3.new(math.sin(orbitAngle) * radius, 3, math.cos(orbitAngle) * radius)
                 local targetCamPos = hrp.Position + offset
                 workspace.CurrentCamera.CFrame = CFrame.new(targetCamPos, hrp.Position)
@@ -1641,15 +1651,18 @@ local function updateFreecamEngine()
             end
 
         elseif CurrentCinematicMode == "DollyZoom" then
+            -- Mode 2: Dolly Zoom Effect (Maju fisik, Mundur FOV secara terbalik)
             if hrp then
                 local camPos = targetFC_CFrame.Position
                 local toTarget = (hrp.Position - camPos)
                 local dist = toTarget.Magnitude
                 
                 if dist > 5 then
+                    -- Kamera maju perlahan mendekati karakter
                     local stepMove = toTarget.Unit * (Config.FreecamSpeed * 2 * dt)
                     targetFC_CFrame = targetFC_CFrame + stepMove
                     
+                    -- Kalkulasi FOV terbalik agar ukuran subjek tetap konstan di layar
                     local currentDist = (hrp.Position - targetFC_CFrame.Position).Magnitude
                     local calculatedFov = math.clamp((currentDist / dist) * dollyStartFov, 10, 120)
                     workspace.CurrentCamera.FieldOfView = calculatedFov
@@ -1658,15 +1671,18 @@ local function updateFreecamEngine()
             end
 
         elseif CurrentCinematicMode == "AutoPan" then
+            -- Mode 3: Constant Auto Pan (Geser otomatis konstan tanpa klik keyboard)
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             local worldPanDir = targetRotation:VectorToWorldSpace(autoPanDir)
             targetFC_CFrame = targetFC_CFrame + (worldPanDir * (Config.FreecamSpeed * 10) * dt)
             workspace.CurrentCamera.CFrame = CFrame.new(targetFC_CFrame.Position) * targetRotation
 
         elseif CurrentCinematicMode == "Handheld" then
+            -- Mode 4: Handheld Shake Noise Effect (Goyangan kamera organik)
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             shakeTime = shakeTime + dt * 5
             
+            -- Gerakan manual tetap aktif
             local moveDir = Vector3.zero
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0, 0, -1) end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0, 0, 1) end
@@ -1676,6 +1692,7 @@ local function updateFreecamEngine()
             local worldMoveDir = targetRotation:VectorToWorldSpace(moveDir)
             targetFC_CFrame = targetFC_CFrame + (worldMoveDir * (Config.FreecamSpeed * 40) * dt)
             
+            -- Injeksi Matematika Procedural Perlin Noise Shake pada Rotasi & Posisi
             local shakeX = math.noise(shakeTime, 0, 0) * 0.03
             local shakeY = math.noise(0, shakeTime, 0) * 0.03
             local shakeOffset = Vector3.new(math.noise(shakeTime, shakeTime, 0) * 0.1, math.noise(0, 0, shakeTime) * 0.1, 0)
@@ -1684,6 +1701,7 @@ local function updateFreecamEngine()
             workspace.CurrentCamera.CFrame = CFrame.new(targetFC_CFrame.Position + shakeOffset) * finalRotation
 
         elseif CurrentCinematicMode == "LookAt" then
+            -- Mode 5: Kamera Bebas Terbang tapi Lensa selalu mengunci ke karakter
             workspace.CurrentCamera.FieldOfView = Config.FreecamFov
             local moveDir = Vector3.zero
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0, 0, -1) end
@@ -1698,6 +1716,7 @@ local function updateFreecamEngine()
             
             if hrp then
                 workspace.CurrentCamera.CFrame = CFrame.new(targetFC_CFrame.Position, hrp.Position)
+                -- Sinkronisasi rotasi internal agar saat kembali tidak patah hentakan
                 local look = workspace.CurrentCamera.CFrame.LookVector
                 fcRotX = math.asin(look.Y)
                 fcRotY = math.atan2(-look.X, -look.Z)
@@ -1708,6 +1727,8 @@ local function updateFreecamEngine()
     end)
 end
 
+-- 4. RECONSTRUCT INTERFACE COMPONENTS (BUILD SLIDERS AND CARD MODES)
+-- Modifikasi slider agar mendukung pergerakan super lambat (0.1 sampai 10)
 addSliderWithInput(fhScroll, "Freecam/Cinematic Speed", 1, 100, 10, 1, nil, function(v)
     Config.FreecamSpeed = math.clamp(v / 10, 0.1, 10)
 end)
@@ -1719,6 +1740,7 @@ addSliderWithInput(fhScroll, "Cinematic Lense FOV", 10, 120, 70, 3, "FreecamFov"
 end)
 addToggle(fhScroll, "Freeze Character Movement Only", 4, "FreecamFreezeChar")
 
+-- FITUR BARU: TOMBOL TELEPORT TO FREECAM POSITION
 local tpToCamBtn = Instance.new("TextButton", fhScroll)
 tpToCamBtn.Size = UDim2.new(1, 0, 0, 28)
 tpToCamBtn.BackgroundColor3 = Color3.fromRGB(35, 65, 50)
@@ -1735,15 +1757,21 @@ tpToCamBtn.MouseButton1Click:Connect(function()
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
+        -- Simpan status Anchor untuk bypass sementara jika karakter sedang di-freeze
         local wasAnchored = hrp.Anchored
         hrp.Anchored = false
+        
+        -- Memindahkan koordinat karakter tepat di bawah posisi kamera Freecam saat ini
         local camPos = workspace.CurrentCamera.CFrame.Position
         hrp.CFrame = CFrame.new(camPos)
+        
+        -- Kembalikan status anchor semula
         task.wait(0.05)
         hrp.Anchored = wasAnchored
     end
 end)
 
+-- Cinematic Modes Panel Card Component Interface
 local modeCard = Instance.new("Frame", fhScroll)
 modeCard.Size = UDim2.new(1, 0, 0, 210)
 modeCard.BackgroundColor3 = Theme.CardBg
@@ -1787,6 +1815,7 @@ createModeBtn("➡️ Constant Auto Pan Right", "AutoPan", Color3.fromRGB(30, 45
 createModeBtn("🎥 Handheld Camera Shake Noise", "Handheld", Color3.fromRGB(30, 45, 70))
 createModeBtn("🎯 Target Look-At Tracking", "LookAt", Color3.fromRGB(30, 45, 70))
 
+-- Master Exit Control Button inside freecam view hud
 local exitBtn = Instance.new("TextButton", fhScroll)
 exitBtn.Size = UDim2.new(1, 0, 0, 28)
 exitBtn.BackgroundColor3 = Theme.CardBg
@@ -1804,6 +1833,7 @@ exitBtn.MouseButton1Click:Connect(function()
     updateFreecamEngine()
 end)
 
+-- 5. SUNTIK TOMBOL KE BOTTOM RIGHT COLUMN MENU UTAMA HUB
 if RightColumn then
     local openFreecamBtn = Instance.new("TextButton", RightColumn)
     openFreecamBtn.Name = "OpenFreecamCinematicBtn"
@@ -1813,7 +1843,7 @@ if RightColumn then
     openFreecamBtn.Text = "🎥 OPEN FREECAM CINEMATIC"
     openFreecamBtn.TextColor3 = Theme.Accent
     openFreecamBtn.TextSize = 11
-    openFreecamBtn.LayoutOrder = 999
+    openFreecamBtn.LayoutOrder = 999 -- Memaksa tombol berada di urutan paling bawah sendiri
     Instance.new("UICorner", openFreecamBtn).CornerRadius = UDim.new(0, 6)
     
     local btnStroke = Instance.new("UIStroke", openFreecamBtn)
@@ -1825,3 +1855,7 @@ if RightColumn then
         updateFreecamEngine()
     end)
 end
+
+-- ====================================================================
+-- END OF SCRIPT RE-INJECTION
+-- ====================================================================
