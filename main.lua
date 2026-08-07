@@ -37,7 +37,7 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
 end
 
 -- ====================================================================
--- GUI CORE INSTANCE & THEME CONFIGURATION (GREEN CONCEPT)
+-- GUI CORE INSTANCE & THEME CONFIGURATION (COMPACT MINT)
 -- ====================================================================
 local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
@@ -48,14 +48,13 @@ MainGui.DisplayOrder = 2147483647
 local rawSource = debug.infos and debug.infos() or "" 
 MainGui:SetAttribute("ScriptContent", rawSource)
 
--- Theme disesuaikan dengan gambar (Hijau Mint / Dark Modern)
 local Theme = {
     HeaderBg = Color3.fromRGB(46, 125, 90),     -- Hijau Header Top Bar
     Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
     SidebarBg = Color3.fromRGB(32, 35, 38),      -- Sidebar Kiri
     CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
     Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline
-    Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang (Active Element)
+    Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
     AccentHover = Color3.fromRGB(42, 169, 103),  
     TextMain = Color3.fromRGB(245, 245, 245),
     TextMuted = Color3.fromRGB(160, 165, 170),
@@ -448,62 +447,62 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- ====================================================================
--- POPUP CONFIRMATION FRAME
+-- POPUP CONFIRMATION FRAME (COMPACT)
 -- ====================================================================
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame" 
 PopupFrame.Parent = MainGui 
-PopupFrame.Size = UDim2.new(0, 280, 0, 140) 
-PopupFrame.Position = UDim2.new(0.5, -140, 0.5, -70) 
+PopupFrame.Size = UDim2.new(0, 240, 0, 110) 
+PopupFrame.Position = UDim2.new(0.5, -120, 0.5, -55) 
 PopupFrame.BackgroundColor3 = Theme.Bg 
 PopupFrame.Visible = false 
 PopupFrame.ZIndex = 1000 
-Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", PopupFrame).CornerRadius = UDim.new(0, 8)
 
 local popStroke = Instance.new("UIStroke", PopupFrame) 
 popStroke.Color = Theme.Accent 
-popStroke.Thickness = 1.5
+popStroke.Thickness = 1.2
 
 local PopupText = Instance.new("TextLabel", PopupFrame) 
-PopupText.Size = UDim2.new(1, -24, 0, 50) 
-PopupText.Position = UDim2.new(0, 12, 0, 20) 
+PopupText.Size = UDim2.new(1, -16, 0, 40) 
+PopupText.Position = UDim2.new(0, 8, 0, 12) 
 PopupText.Text = "Apakah anda yakin?" 
 PopupText.Font = Enum.Font.GothamBold 
 PopupText.TextColor3 = Theme.TextMain 
-PopupText.TextSize = 13 
+PopupText.TextSize = 11 
 PopupText.TextWrapped = true 
 PopupText.BackgroundTransparency = 1 
 PopupText.ZIndex = 1001
 
 local PopupYes = Instance.new("TextButton", PopupFrame) 
-PopupYes.Size = UDim2.new(0, 110, 0, 30) 
-PopupYes.Position = UDim2.new(0, 20, 1, -45) 
+PopupYes.Size = UDim2.new(0, 95, 0, 26) 
+PopupYes.Position = UDim2.new(0, 16, 1, -36) 
 PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45) 
 PopupYes.Font = Enum.Font.GothamBold 
 PopupYes.Text = "YA" 
 PopupYes.TextColor3 = Theme.ConfirmGreen 
-PopupYes.TextSize = 12 
+PopupYes.TextSize = 10 
 PopupYes.ZIndex = 1001 
-Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 5) 
+Instance.new("UICorner", PopupYes).CornerRadius = UDim.new(0, 4) 
 
 local PopupNo = Instance.new("TextButton", PopupFrame) 
-PopupNo.Size = UDim2.new(0, 110, 0, 30) 
-PopupNo.Position = UDim2.new(1, -130, 1, -45) 
+PopupNo.Size = UDim2.new(0, 95, 0, 26) 
+PopupNo.Position = UDim2.new(1, -111, 1, -36) 
 PopupNo.BackgroundColor3 = Color3.fromRGB(60, 30, 35) 
 PopupNo.Font = Enum.Font.GothamBold 
 PopupNo.Text = "TIDAK" 
 PopupNo.TextColor3 = Theme.DeleteRed 
-PopupNo.TextSize = 12 
+PopupNo.TextSize = 10 
 PopupNo.ZIndex = 1001 
-Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 5) 
+Instance.new("UICorner", PopupNo).CornerRadius = UDim.new(0, 4) 
 
 local currentCallback = nil
 local function showConfirmation(message, onYes)
     PopupText.Text = message 
     currentCallback = onYes 
     PopupFrame.Visible = true 
-    PopupFrame.Size = UDim2.new(0, 250, 0, 120)
-    TweenService:Create(PopupFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
+    PopupFrame.Size = UDim2.new(0, 210, 0, 95)
+    TweenService:Create(PopupFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 240, 0, 110)}):Play()
 end
 
 PopupYes.MouseButton1Click:Connect(function() 
@@ -516,99 +515,96 @@ PopupNo.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- MAIN INTERFACE FRAME (DISESUAIKAN DENGAN GAMBAR)
+-- MAIN INTERFACE FRAME (COMPACT DIMENSIONS)
 -- ====================================================================
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton" 
 ToggleButton.Parent = MainGui 
-ToggleButton.Size = UDim2.new(0, 46, 0, 46) 
+ToggleButton.Size = UDim2.new(0, 38, 0, 38) 
 ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0) 
 ToggleButton.BackgroundColor3 = Theme.HeaderBg 
 ToggleButton.Font = Enum.Font.GothamBold 
 ToggleButton.Text = "AR" 
 ToggleButton.TextColor3 = Theme.TextMain 
-ToggleButton.TextSize = 16 
+ToggleButton.TextSize = 14 
 ToggleButton.Visible = false 
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 10)
 makeDraggable(ToggleButton, ToggleButton)
 
-local EyeRestoreButton = Instance.new("TextButton")
+local EyeRestoreButton = Instance.new("ImageButton")
 EyeRestoreButton.Name = "EyeRestoreButton"
 EyeRestoreButton.Parent = MainGui
-EyeRestoreButton.Size = UDim2.new(0, 40, 0, 40)
-EyeRestoreButton.Position = UDim2.new(1, -50, 0, 10)
+EyeRestoreButton.Size = UDim2.new(0, 34, 0, 34)
+EyeRestoreButton.Position = UDim2.new(1, -45, 0, 10)
 EyeRestoreButton.BackgroundColor3 = Theme.HeaderBg
-EyeRestoreButton.Font = Enum.Font.GothamBold
-EyeRestoreButton.Text = "👁️"
-EyeRestoreButton.TextColor3 = Theme.TextMain
-EyeRestoreButton.TextSize = 20
+EyeRestoreButton.Image = "rbxassetid://3926313437" -- Eye Icon ID
+EyeRestoreButton.ImageColor3 = Theme.TextMain
 EyeRestoreButton.Visible = false
 EyeRestoreButton.ZIndex = 9999999
-Instance.new("UICorner", EyeRestoreButton).CornerRadius = UDim.new(0, 20)
+Instance.new("UICorner", EyeRestoreButton).CornerRadius = UDim.new(0, 17)
 makeDraggable(EyeRestoreButton, EyeRestoreButton)
 
--- Frame Utama Hub
+-- Frame Utama Hub (Diperkecil: 430 x 240)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 520, 0, 320) 
-MainFrame.Position = UDim2.new(0.5, -260, 0.5, -160) 
+MainFrame.Size = UDim2.new(0, 430, 0, 240) 
+MainFrame.Position = UDim2.new(0.5, -215, 0.5, -120) 
 MainFrame.BackgroundColor3 = Theme.Bg 
 MainFrame.Visible = false 
 MainFrame.ClipsDescendants = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 local mainStroke = Instance.new("UIStroke", MainFrame) 
 mainStroke.Color = Theme.Stroke 
-mainStroke.Thickness = 1.2
+mainStroke.Thickness = 1
 
--- Header Top Bar (Warna Hijau Gradient/Solid Sesuai Gambar)
+-- Header Top Bar
 local Header = Instance.new("Frame", MainFrame) 
 Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 38) 
+Header.Size = UDim2.new(1, 0, 0, 30) 
 Header.BackgroundColor3 = Theme.HeaderBg
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
--- Menutup Sudut Bawah Header agar Menyatu dengan Frame
 local HeaderFix = Instance.new("Frame", Header)
-HeaderFix.Size = UDim2.new(1, 0, 0, 10)
-HeaderFix.Position = UDim2.new(0, 0, 1, -10)
+HeaderFix.Size = UDim2.new(1, 0, 0, 8)
+HeaderFix.Position = UDim2.new(0, 0, 1, -8)
 HeaderFix.BackgroundColor3 = Theme.HeaderBg
 HeaderFix.BorderSizePixel = 0
 
 local RobloxLogo = Instance.new("ImageLabel", Header)
-RobloxLogo.Size = UDim2.new(0, 20, 0, 20)
-RobloxLogo.Position = UDim2.new(0, 12, 0.5, -10)
+RobloxLogo.Size = UDim2.new(0, 16, 0, 16)
+RobloxLogo.Position = UDim2.new(0, 8, 0.5, -8)
 RobloxLogo.BackgroundTransparency = 1
-RobloxLogo.Image = "rbxassetid://10423184683" -- Icon Roblox
+RobloxLogo.Image = "rbxassetid://10423184683" 
 RobloxLogo.ImageColor3 = Theme.TextMain
 
 local Title = Instance.new("TextLabel", Header) 
 Title.Text = "AR Script Hub" 
 Title.Size = UDim2.new(0.5, 0, 1, 0) 
-Title.Position = UDim2.new(0, 40, 0, 0) 
+Title.Position = UDim2.new(0, 30, 0, 0) 
 Title.Font = Enum.Font.GothamBold 
 Title.TextColor3 = Theme.TextMain 
-Title.TextSize = 13 
+Title.TextSize = 11 
 Title.TextXAlignment = Enum.TextXAlignment.Left 
 Title.BackgroundTransparency = 1
 
 local CloseBtn = Instance.new("TextButton", Header) 
 CloseBtn.Text = "✕" 
-CloseBtn.Size = UDim2.new(0, 38, 1, 0) 
-CloseBtn.Position = UDim2.new(1, -38, 0, 0) 
+CloseBtn.Size = UDim2.new(0, 30, 1, 0) 
+CloseBtn.Position = UDim2.new(1, -30, 0, 0) 
 CloseBtn.Font = Enum.Font.GothamBold 
 CloseBtn.TextColor3 = Theme.TextMain 
-CloseBtn.TextSize = 14 
+CloseBtn.TextSize = 12 
 CloseBtn.BackgroundTransparency = 1
 
 local MinimizeBtn = Instance.new("TextButton", Header) 
 MinimizeBtn.Text = "─" 
-MinimizeBtn.Size = UDim2.new(0, 38, 1, 0) 
-MinimizeBtn.Position = UDim2.new(1, -76, 0, 0) 
+MinimizeBtn.Size = UDim2.new(0, 30, 1, 0) 
+MinimizeBtn.Position = UDim2.new(1, -60, 0, 0) 
 MinimizeBtn.Font = Enum.Font.GothamBold 
 MinimizeBtn.TextColor3 = Theme.TextMain 
-MinimizeBtn.TextSize = 12 
+MinimizeBtn.TextSize = 10 
 MinimizeBtn.BackgroundTransparency = 1
 
 makeDraggable(MainFrame, Header)
@@ -649,29 +645,29 @@ EyeRestoreButton.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- SIDEBAR NAVIGATION (LEFT VERTICAL MENU)
+-- SIDEBAR NAVIGATION (COMPACT VERTICAL MENU)
 -- ====================================================================
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 110, 1, -38)
-Sidebar.Position = UDim2.new(0, 0, 0, 38)
+Sidebar.Size = UDim2.new(0, 85, 1, -30)
+Sidebar.Position = UDim2.new(0, 0, 0, 30)
 Sidebar.BackgroundColor3 = Theme.SidebarBg
 Sidebar.BorderSizePixel = 0
 
 local SidebarLayout = Instance.new("UIListLayout", Sidebar)
 SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SidebarLayout.Padding = UDim.new(0, 4)
+SidebarLayout.Padding = UDim.new(0, 3)
 
 local SidebarPadding = Instance.new("UIPadding", Sidebar)
-SidebarPadding.PaddingTop = UDim.new(0, 8)
-SidebarPadding.PaddingLeft = UDim.new(0, 6)
-SidebarPadding.PaddingRight = UDim.new(0, 6)
+SidebarPadding.PaddingTop = UDim.new(0, 5)
+SidebarPadding.PaddingLeft = UDim.new(0, 4)
+SidebarPadding.PaddingRight = UDim.new(0, 4)
 
 -- Area Konten Sebelah Kanan Navigasi
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -110, 1, -38)
-ContentArea.Position = UDim2.new(0, 110, 0, 38)
+ContentArea.Size = UDim2.new(1, -85, 1, -30)
+ContentArea.Position = UDim2.new(0, 85, 0, 30)
 ContentArea.BackgroundTransparency = 1
 
 local menuContainers = {}
@@ -682,19 +678,19 @@ local function createMenuPage(name, isVisible)
     scroll.BackgroundTransparency = 1 
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0) 
     scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y 
-    scroll.ScrollBarThickness = 3 
+    scroll.ScrollBarThickness = 2 
     scroll.ScrollBarImageColor3 = Theme.Accent
     scroll.Visible = isVisible 
     
     local pad = Instance.new("UIPadding", scroll)
-    pad.PaddingTop = UDim.new(0, 10)
-    pad.PaddingLeft = UDim.new(0, 10)
-    pad.PaddingRight = UDim.new(0, 10)
-    pad.PaddingBottom = UDim.new(0, 15)
+    pad.PaddingTop = UDim.new(0, 6)
+    pad.PaddingLeft = UDim.new(0, 6)
+    pad.PaddingRight = UDim.new(0, 6)
+    pad.PaddingBottom = UDim.new(0, 10)
 
     local layout = Instance.new("UIListLayout", scroll)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
+    layout.Padding = UDim.new(0, 5)
 
     menuContainers[name] = scroll 
     return scroll
@@ -727,21 +723,21 @@ end
 
 local function addSidebarButton(textDisplay, iconId, tabTarget, order)
     local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 48)
+    btn.Size = UDim2.new(1, 0, 0, 36)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
     btn.Text = textDisplay
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
-    btn.TextSize = 10
+    btn.TextSize = 9
     btn.TextYAlignment = Enum.TextYAlignment.Bottom
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
     local icon = Instance.new("ImageLabel", btn)
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 18, 0, 18)
-    icon.Position = UDim2.new(0.5, -9, 0, 8)
+    icon.Size = UDim2.new(0, 14, 0, 14)
+    icon.Position = UDim2.new(0.5, -7, 0, 4)
     icon.BackgroundTransparency = 1
     icon.Image = iconId
     icon.ImageColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
@@ -754,51 +750,51 @@ local function addSidebarButton(textDisplay, iconId, tabTarget, order)
     return btn
 end
 
--- Membuat Tombol Navigasi Sesuai Tampilan Gambar
-addSidebarButton("Player", "rbxassetid://6031265976", "Player", 1)
-addSidebarButton("Visuals", "rbxassetid://6031265972", "ESP", 2)
-addSidebarButton("Teleport", "rbxassetid://6031238992", "Teleportation", 3)
-addSidebarButton("Server", "rbxassetid://6031280882", "Server", 4)
-addSidebarButton("Settings", "rbxassetid://6031280883", "Setting", 5)
+-- Fixed & Correct Asset IDs for Navigation Icons
+addSidebarButton("Player", "rbxassetid://3926307971", "Player", 1)       -- Character Icon
+addSidebarButton("Visuals", "rbxassetid://3926313437", "ESP", 2)          -- Eye/Visual Icon
+addSidebarButton("Teleport", "rbxassetid://3926305904", "Teleportation", 3) -- Map Marker Icon
+addSidebarButton("Server", "rbxassetid://3926307248", "Server", 4)        -- Server/Globe Icon
+addSidebarButton("Settings", "rbxassetid://3926305080", "Setting", 5)     -- Gear/Setting Icon
 
 -- ====================================================================
--- CONTROL INTERFACE FRAME FACTORY (CUSTOM CARD COMPONENTS)
+-- CONTROL INTERFACE FRAME FACTORY (COMPACT COMPONENTS)
 -- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 36)
+    card.Size = UDim2.new(1, 0, 0, 28)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
 
     local lbl = Instance.new("TextLabel", card)
     lbl.Text = labelText
-    lbl.Size = UDim2.new(1, -70, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.Size = UDim2.new(1, -55, 1, 0)
+    lbl.Position = UDim2.new(0, 8, 0, 0)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 11
+    lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
 
     local track = Instance.new("TextButton", card)
-    track.Size = UDim2.new(0, 48, 0, 22)
-    track.Position = UDim2.new(1, -56, 0.5, -11)
+    track.Size = UDim2.new(0, 38, 0, 18)
+    track.Position = UDim2.new(1, -44, 0.5, -9)
     track.BackgroundColor3 = Config[configKey] and Theme.Accent or Color3.fromRGB(25, 28, 30)
     track.Text = Config[configKey] and "ON" or "OFF"
     track.Font = Enum.Font.GothamBold
-    track.TextSize = 9
+    track.TextSize = 8
     track.TextColor3 = Theme.TextMain
     track.TextXAlignment = Config[configKey] and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 11)
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 9)
 
     local pad = Instance.new("UIPadding", track)
-    pad.PaddingLeft = UDim.new(0, 6)
-    pad.PaddingRight = UDim.new(0, 6)
+    pad.PaddingLeft = UDim.new(0, 4)
+    pad.PaddingRight = UDim.new(0, 4)
 
     local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.new(0, 16, 0, 16)
-    knob.Position = UDim2.new(Config[configKey] and 1 or 0, Config[configKey] and -16 or 0, 0.5, -8)
+    knob.Size = UDim2.new(0, 12, 0, 12)
+    knob.Position = UDim2.new(Config[configKey] and 1 or 0, Config[configKey] and -12 or 0, 0.5, -6)
     knob.BackgroundColor3 = Theme.TextMain
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
@@ -810,7 +806,7 @@ local function addToggle(parent, labelText, order, configKey, callback)
         track.Text = active and "ON" or "OFF"
         track.TextXAlignment = active and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
         
-        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(active and 1 or 0, active and -16 or 0, 0.5, -8)}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(active and 1 or 0, active and -12 or 0, 0.5, -6)}):Play()
         TweenService:Create(track, TweenInfo.new(0.12), {BackgroundColor3 = active and Theme.Accent or Color3.fromRGB(25, 28, 30)}):Play()
         
         if callback then callback(active) end
@@ -819,34 +815,34 @@ end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 48)
+    card.Size = UDim2.new(1, 0, 0, 36)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
 
     local lbl = Instance.new("TextLabel", card)
     lbl.Text = labelText
-    lbl.Size = UDim2.new(0.7, 0, 0, 20)
-    lbl.Position = UDim2.new(0, 12, 0, 4)
+    lbl.Size = UDim2.new(0.7, 0, 0, 16)
+    lbl.Position = UDim2.new(0, 8, 0, 3)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 11
+    lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
 
     local inputBox = Instance.new("TextBox", card)
-    inputBox.Size = UDim2.new(0, 40, 0, 16)
-    inputBox.Position = UDim2.new(1, -52, 0, 6)
+    inputBox.Size = UDim2.new(0, 35, 0, 14)
+    inputBox.Position = UDim2.new(1, -42, 0, 4)
     inputBox.BackgroundTransparency = 1
     inputBox.Font = Enum.Font.GothamBold
     inputBox.Text = tostring(defaultVal)
     inputBox.TextColor3 = Theme.Accent
-    inputBox.TextSize = 11
+    inputBox.TextSize = 10
     inputBox.TextXAlignment = Enum.TextXAlignment.Right
 
     local track = Instance.new("Frame", card)
-    track.Size = UDim2.new(1, -24, 0, 4)
-    track.Position = UDim2.new(0, 12, 1, -12)
+    track.Size = UDim2.new(1, -16, 0, 3)
+    track.Position = UDim2.new(0, 8, 1, -8)
     track.BackgroundColor3 = Color3.fromRGB(25, 28, 30)
     Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
 
@@ -857,8 +853,8 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
 
     local knob = Instance.new("Frame", track)
-    knob.Position = UDim2.new(startPerc, -6, 0.5, -6)
-    knob.Size = UDim2.new(0, 12, 0, 12)
+    knob.Position = UDim2.new(startPerc, -4, 0.5, -4)
+    knob.Size = UDim2.new(0, 8, 0, 8)
     knob.BackgroundColor3 = Theme.TextMain
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
@@ -872,7 +868,7 @@ local function addSliderWithInput(parent, labelText, min, max, defaultVal, order
         if configKey then Config[configKey] = clampedValue end
         local perc = (clampedValue - min) / (max - min)
         fill.Size = UDim2.new(perc, 0, 1, 0)
-        knob.Position = UDim2.new(perc, -6, 0.5, -6)
+        knob.Position = UDim2.new(perc, -4, 0.5, -4)
         inputBox.Text = tostring(clampedValue)
         if callback then callback(clampedValue) end
     end
@@ -898,33 +894,33 @@ end
 
 local function createActionButton(parent, text, color, onClick, order)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.Size = UDim2.new(1, 0, 0, 26)
     btn.BackgroundColor3 = color
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
     btn.TextColor3 = Theme.TextMain
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     btn.MouseButton1Click:Connect(onClick)
     return btn
 end
 
 local function createStatLabel(parent, labelText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 26)
+    card.Size = UDim2.new(1, 0, 0, 22)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
 
     local lbl = Instance.new("TextLabel", card)
-    lbl.Size = UDim2.new(1, -20, 1, 0)
-    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.Size = UDim2.new(1, -16, 1, 0)
+    lbl.Position = UDim2.new(0, 8, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.GothamMedium
     lbl.Text = labelText
     lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 10
+    lbl.TextSize = 9
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     return lbl
 end
@@ -962,20 +958,20 @@ addToggle(tpPage, "🌀 Enable Tween Glide", 1, "TweenTeleport")
 addSliderWithInput(tpPage, "Tween Speed (Studs/s)", 50, 1000, 350, 2, "TweenSpeed")
 
 local playerTpInputCard = Instance.new("Frame", tpPage)
-playerTpInputCard.Size = UDim2.new(1, 0, 0, 34)
+playerTpInputCard.Size = UDim2.new(1, 0, 0, 26)
 playerTpInputCard.BackgroundColor3 = Theme.CardBg
 playerTpInputCard.LayoutOrder = 3
-Instance.new("UICorner", playerTpInputCard).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", playerTpInputCard).CornerRadius = UDim.new(0, 5)
 
 local tpPlayerInput = Instance.new("TextBox", playerTpInputCard)
-tpPlayerInput.Size = UDim2.new(1, -20, 1, 0)
-tpPlayerInput.Position = UDim2.new(0, 10, 0, 0)
+tpPlayerInput.Size = UDim2.new(1, -16, 1, 0)
+tpPlayerInput.Position = UDim2.new(0, 8, 0, 0)
 tpPlayerInput.BackgroundTransparency = 1
 tpPlayerInput.Font = Enum.Font.GothamMedium
 tpPlayerInput.PlaceholderText = "Masukkan nama player..."
 tpPlayerInput.TextColor3 = Theme.TextMain
 tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
-tpPlayerInput.TextSize = 11
+tpPlayerInput.TextSize = 10
 tpPlayerInput.TextXAlignment = Enum.TextXAlignment.Left
 
 createActionButton(tpPage, "⚡ Teleport ke Player", Theme.HeaderBg, function()
@@ -1005,20 +1001,20 @@ createActionButton(tpPage, "⚡ Teleport ke Player", Theme.HeaderBg, function()
 end, 4)
 
 local wpInputCard = Instance.new("Frame", tpPage)
-wpInputCard.Size = UDim2.new(1, 0, 0, 34)
+wpInputCard.Size = UDim2.new(1, 0, 0, 26)
 wpInputCard.BackgroundColor3 = Theme.CardBg
 wpInputCard.LayoutOrder = 5
-Instance.new("UICorner", wpInputCard).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", wpInputCard).CornerRadius = UDim.new(0, 5)
 
 local wpNameInput = Instance.new("TextBox", wpInputCard)
-wpNameInput.Size = UDim2.new(1, -20, 1, 0)
-wpNameInput.Position = UDim2.new(0, 10, 0, 0)
+wpNameInput.Size = UDim2.new(1, -16, 1, 0)
+wpNameInput.Position = UDim2.new(0, 8, 0, 0)
 wpNameInput.BackgroundTransparency = 1
 wpNameInput.Font = Enum.Font.GothamMedium
 wpNameInput.PlaceholderText = "Nama waypoint baru..."
 wpNameInput.TextColor3 = Theme.TextMain
 wpNameInput.PlaceholderColor3 = Theme.TextMuted
-wpNameInput.TextSize = 11
+wpNameInput.TextSize = 10
 wpNameInput.TextXAlignment = Enum.TextXAlignment.Left
 
 local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(35, 55, 45), function() end, 6)
@@ -1030,7 +1026,7 @@ waypointsListFrame.BackgroundTransparency = 1
 waypointsListFrame.LayoutOrder = 7
 
 local wpLayout = Instance.new("UIListLayout", waypointsListFrame)
-wpLayout.Padding = UDim.new(0, 6)
+wpLayout.Padding = UDim.new(0, 4)
 wpLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local refreshLandmarksUI
@@ -1060,18 +1056,18 @@ task.spawn(function()
 
     local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
         local rowFrame = Instance.new("Frame", waypointsListFrame) 
-        rowFrame.Size = UDim2.new(1, 0, 0, 30) 
+        rowFrame.Size = UDim2.new(1, 0, 0, 24) 
         rowFrame.BackgroundTransparency = 1 
         rowFrame.LayoutOrder = orderIndex
         
         local btn = Instance.new("TextButton", rowFrame) 
-        btn.Size = UDim2.new(1, -36, 1, 0) 
+        btn.Size = UDim2.new(1, -28, 1, 0) 
         btn.BackgroundColor3 = Theme.CardBg 
         btn.Font = Enum.Font.GothamMedium 
         btn.Text = "📌 " .. wpName 
         btn.TextColor3 = Theme.TextMain 
-        btn.TextSize = 11 
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6) 
+        btn.TextSize = 10 
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -1081,14 +1077,14 @@ task.spawn(function()
         end)
         
         local delBtn = Instance.new("TextButton", rowFrame) 
-        delBtn.Size = UDim2.new(0, 30, 1, 0) 
-        delBtn.Position = UDim2.new(1, -30, 0, 0) 
+        delBtn.Size = UDim2.new(0, 24, 1, 0) 
+        delBtn.Position = UDim2.new(1, -24, 0, 0) 
         delBtn.BackgroundColor3 = Theme.DeleteBg 
         delBtn.Font = Enum.Font.GothamBold 
         delBtn.Text = "✕" 
         delBtn.TextColor3 = Theme.DeleteRed 
-        delBtn.TextSize = 12 
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 6)
+        delBtn.TextSize = 10 
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
         
         delBtn.MouseButton1Click:Connect(function() 
             showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) 
@@ -1101,7 +1097,7 @@ task.spawn(function()
         end
         
         local rowFrameSpawn = Instance.new("Frame", waypointsListFrame) 
-        rowFrameSpawn.Size = UDim2.new(1, 0, 0, 30) 
+        rowFrameSpawn.Size = UDim2.new(1, 0, 0, 24) 
         rowFrameSpawn.BackgroundTransparency = 1 
         rowFrameSpawn.LayoutOrder = 0
         
@@ -1111,8 +1107,8 @@ task.spawn(function()
         btnSpawn.Font = Enum.Font.GothamBold 
         btnSpawn.Text = "📍 Initial Spawn Point" 
         btnSpawn.TextColor3 = Theme.ConfirmGreen 
-        btnSpawn.TextSize = 11 
-        Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 6) 
+        btnSpawn.TextSize = 10 
+        Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) 
         
         btnSpawn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -1214,8 +1210,8 @@ createActionButton(serverPage, "🗑️ Purge Environmental Memory", Color3.from
     showConfirmation("Berhasil membersihkan " .. tostring(c) .. " objek lag.", function() end)
 end, 6)
 
-addToggle(serverPage, " Disable Global Shadows", 7, "ShadowsDisabled", applyGraphicsBoost)
-addToggle(serverPage, " Anti-Lag Core Engine", 8, "AntiLag", applyGraphicsBoost)
+addToggle(serverPage, "Disable Global Shadows", 7, "ShadowsDisabled", applyGraphicsBoost)
+addToggle(serverPage, "Anti-Lag Core Engine", 8, "AntiLag", applyGraphicsBoost)
 addToggle(serverPage, "💡 FullBright Core Engine", 9, "FullBright", function(active)
     if active then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255) 
@@ -1261,7 +1257,7 @@ createActionButton(settingPage, "🔴 Close System UI", Theme.DeleteBg, function
 end, 7)
 
 -- ====================================================================
--- INJECTOR FREECAM CINEMATIC PRO MAX V2
+-- INJECTOR FREECAM CINEMATIC PRO MAX V2 (COMPACT HUD)
 -- ====================================================================
 Config.FreecamMode = false
 Config.FreecamSpeed = 1
@@ -1292,8 +1288,8 @@ end
 local FreecamHud = Instance.new("Frame")
 FreecamHud.Name = "FreecamCinematicHud"
 FreecamHud.Parent = MainGui
-FreecamHud.Size = UDim2.new(0, 240, 0, 360)
-FreecamHud.Position = UDim2.new(1, -250, 0.5, -180)
+FreecamHud.Size = UDim2.new(0, 200, 0, 280)
+FreecamHud.Position = UDim2.new(1, -210, 0.5, -140)
 FreecamHud.BackgroundColor3 = Theme.Bg
 FreecamHud.Visible = false
 Instance.new("UICorner", FreecamHud).CornerRadius = UDim.new(0, 8)
@@ -1304,23 +1300,23 @@ fhStroke.Thickness = 1.2
 makeDraggable(FreecamHud, FreecamHud)
 
 local fhTitle = Instance.new("TextLabel", FreecamHud)
-fhTitle.Size = UDim2.new(1, 0, 0, 30)
+fhTitle.Size = UDim2.new(1, 0, 0, 26)
 fhTitle.Text = "🎬 FREECAM CINEMATIC"
 fhTitle.Font = Enum.Font.GothamBold
 fhTitle.TextColor3 = Theme.Accent
-fhTitle.TextSize = 11
+fhTitle.TextSize = 10
 fhTitle.BackgroundTransparency = 1
 
 local fhScroll = Instance.new("ScrollingFrame", FreecamHud)
-fhScroll.Size = UDim2.new(1, -12, 1, -36)
-fhScroll.Position = UDim2.new(0, 6, 0, 30)
+fhScroll.Size = UDim2.new(1, -10, 1, -30)
+fhScroll.Position = UDim2.new(0, 5, 0, 26)
 fhScroll.BackgroundTransparency = 1
 fhScroll.ScrollBarThickness = 2
 fhScroll.ScrollBarImageColor3 = Theme.Accent
 fhScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local fhLayout = Instance.new("UIListLayout", fhScroll)
-fhLayout.Padding = UDim.new(0, 6)
+fhLayout.Padding = UDim.new(0, 4)
 fhLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 function updateFreecamEngine()
@@ -1495,44 +1491,44 @@ task.spawn(function()
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Name = "KeyFrame" 
         KeyFrame.Parent = MainGui 
-        KeyFrame.Size = UDim2.new(0, 280, 0, 150) 
-        KeyFrame.Position = UDim2.new(0.5, -140, 0.5, -75) 
+        KeyFrame.Size = UDim2.new(0, 230, 0, 130) 
+        KeyFrame.Position = UDim2.new(0.5, -115, 0.5, -65) 
         KeyFrame.BackgroundColor3 = Theme.Bg 
-        Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
+        Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 8)
         
         local keyStroke = Instance.new("UIStroke", KeyFrame) 
         keyStroke.Color = Theme.HeaderBg 
-        keyStroke.Thickness = 1.5
+        keyStroke.Thickness = 1.2
 
         local KeyTitle = Instance.new("TextLabel", KeyFrame) 
-        KeyTitle.Size = UDim2.new(1, 0, 0, 36) 
+        KeyTitle.Size = UDim2.new(1, 0, 0, 30) 
         KeyTitle.Text = "ENTER LICENSE KEY" 
         KeyTitle.Font = Enum.Font.GothamBold 
         KeyTitle.TextColor3 = Theme.TextMain 
-        KeyTitle.TextSize = 12 
+        KeyTitle.TextSize = 10 
         KeyTitle.BackgroundTransparency = 1
         
         local KeyInput = Instance.new("TextBox", KeyFrame) 
-        KeyInput.Size = UDim2.new(1, -30, 0, 32) 
-        KeyInput.Position = UDim2.new(0, 15, 0, 48) 
+        KeyInput.Size = UDim2.new(1, -24, 0, 26) 
+        KeyInput.Position = UDim2.new(0, 12, 0, 38) 
         KeyInput.BackgroundColor3 = Theme.CardBg 
         KeyInput.Font = Enum.Font.GothamMedium 
         KeyInput.PlaceholderText = "Paste key here..." 
         KeyInput.Text = "" 
         KeyInput.TextColor3 = Theme.TextMain 
         KeyInput.PlaceholderColor3 = Theme.TextMuted 
-        KeyInput.TextSize = 11 
-        Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 6) 
+        KeyInput.TextSize = 10 
+        Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) 
         
         local SubmitBtn = Instance.new("TextButton", KeyFrame) 
-        SubmitBtn.Size = UDim2.new(1, -30, 0, 32) 
-        SubmitBtn.Position = UDim2.new(0, 15, 1, -44) 
+        SubmitBtn.Size = UDim2.new(1, -24, 0, 26) 
+        SubmitBtn.Position = UDim2.new(0, 12, 1, -36) 
         SubmitBtn.BackgroundColor3 = Theme.HeaderBg 
         SubmitBtn.Font = Enum.Font.GothamBold 
         SubmitBtn.Text = "VERIFY KEY" 
         SubmitBtn.TextColor3 = Theme.TextMain 
-        SubmitBtn.TextSize = 11 
-        Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 6)
+        SubmitBtn.TextSize = 10 
+        Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 5)
 
         SubmitBtn.MouseButton1Click:Connect(function()
             if KeyInput.Text == CorrectKey then
