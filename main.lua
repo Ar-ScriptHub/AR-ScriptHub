@@ -37,7 +37,7 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
 end
 
 -- ====================================================================
--- GUI CORE INSTANCE & THEME CONFIGURATION (COMPACT MINT)
+-- GUI CORE INSTANCE & THEME CONFIGURATION
 -- ====================================================================
 local MainGui = Instance.new("ScreenGui")
 MainGui.Name = "AR_Script_Hub"
@@ -53,7 +53,7 @@ local Theme = {
     Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
     SidebarBg = Color3.fromRGB(32, 35, 38),      -- Sidebar Kiri
     CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
-    Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline
+    Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline / Divider
     Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
     AccentHover = Color3.fromRGB(42, 169, 103),  
     TextMain = Color3.fromRGB(245, 245, 245),
@@ -88,7 +88,15 @@ local Config = {
     UiTransparency = 0,
     TweenTeleport = false,
     TweenSpeed = 350,
-    FullBright = false
+    FullBright = false,
+    
+    -- AUTOMATION CONFIGS
+    FastAttack = false,
+    AttackDelay = 0.05,
+    ExpandProximity = false,
+    ProximityDistance = 50,
+    InstantProximityHold = false,
+    ProximityLineOfSight = false
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -216,6 +224,45 @@ local function handleFlyEngine()
         stopFlying()
     end)
 end
+
+-- ====================================================================
+-- AUTOMATION ENGINE WORKERS (FAST ATTACK & PROXIMITY)
+-- ====================================================================
+-- Fast Attack Engine
+task.spawn(function()
+    while true do
+        task.wait(Config.AttackDelay)
+        if Config.FastAttack and Player.Character then
+            local tool = Player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                pcall(function()
+                    tool:Activate()
+                end)
+            end
+        end
+    end
+end)
+
+-- Proximity Prompt Expander Engine
+task.spawn(function()
+    while task.wait(1) do
+        if Config.ExpandProximity then
+            for _, prompt in pairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") then
+                    pcall(function()
+                        prompt.MaxActivationDistance = Config.ProximityDistance
+                        if Config.InstantProximityHold then
+                            prompt.HoldDuration = 0
+                        end
+                        if Config.ProximityLineOfSight then
+                            prompt.RequiresLineOfSight = false
+                        end
+                    end)
+                end
+            end
+        end
+    end
+end)
 
 -- ====================================================================
 -- MOVEMENT PROPERTY WORKERS
@@ -447,7 +494,7 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- ====================================================================
--- POPUP CONFIRMATION FRAME (COMPACT)
+-- POPUP CONFIRMATION FRAME
 -- ====================================================================
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame" 
@@ -515,7 +562,7 @@ PopupNo.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- MAIN INTERFACE FRAME (COMPACT DIMENSIONS)
+-- MAIN INTERFACE FRAME
 -- ====================================================================
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton" 
@@ -537,14 +584,13 @@ EyeRestoreButton.Parent = MainGui
 EyeRestoreButton.Size = UDim2.new(0, 34, 0, 34)
 EyeRestoreButton.Position = UDim2.new(1, -45, 0, 10)
 EyeRestoreButton.BackgroundColor3 = Theme.HeaderBg
-EyeRestoreButton.Image = "rbxassetid://3926313437" -- Eye Icon ID
+EyeRestoreButton.Image = "rbxassetid://3926313437"
 EyeRestoreButton.ImageColor3 = Theme.TextMain
 EyeRestoreButton.Visible = false
 EyeRestoreButton.ZIndex = 9999999
 Instance.new("UICorner", EyeRestoreButton).CornerRadius = UDim.new(0, 17)
 makeDraggable(EyeRestoreButton, EyeRestoreButton)
 
--- Frame Utama Hub (Diperkecil: 430 x 240)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
@@ -559,7 +605,6 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Stroke 
 mainStroke.Thickness = 1
 
--- Header Top Bar
 local Header = Instance.new("Frame", MainFrame) 
 Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 30) 
@@ -645,7 +690,7 @@ EyeRestoreButton.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- SIDEBAR NAVIGATION (COMPACT VERTICAL MENU)
+-- MINIMALIST SIDEBAR NAVIGATION (NO ICONS + DIVIDERS)
 -- ====================================================================
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Name = "Sidebar"
@@ -659,11 +704,10 @@ SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
 SidebarLayout.Padding = UDim.new(0, 3)
 
 local SidebarPadding = Instance.new("UIPadding", Sidebar)
-SidebarPadding.PaddingTop = UDim.new(0, 5)
+SidebarPadding.PaddingTop = UDim.new(0, 4)
 SidebarPadding.PaddingLeft = UDim.new(0, 4)
 SidebarPadding.PaddingRight = UDim.new(0, 4)
 
--- Area Konten Sebelah Kanan Navigasi
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
 ContentArea.Size = UDim2.new(1, -85, 1, -30)
@@ -697,6 +741,7 @@ local function createMenuPage(name, isVisible)
 end
 
 local playerPage = createMenuPage("Player", true)
+local autoPage = createMenuPage("Automation", false)
 local espPage = createMenuPage("ESP", false)
 local tpPage = createMenuPage("Teleportation", false)
 local serverPage = createMenuPage("Server", false)
@@ -711,36 +756,26 @@ local function switchTab(tabName)
         if name == tabName then
             btn.BackgroundColor3 = Theme.CardBg
             btn.TextColor3 = Theme.Accent
-            btn.Icon.ImageColor3 = Theme.Accent
         else
             btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             btn.BackgroundTransparency = 1
             btn.TextColor3 = Theme.TextMuted
-            btn.Icon.ImageColor3 = Theme.TextMuted
         end
     end
 end
 
-local function addSidebarButton(textDisplay, iconId, tabTarget, order)
+-- Generator Tombol Sidebar Tanpa Ikon
+local function addSidebarButton(textDisplay, tabTarget, order)
     local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Size = UDim2.new(1, 0, 0, 24)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
     btn.Text = textDisplay
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
-    btn.TextSize = 9
-    btn.TextYAlignment = Enum.TextYAlignment.Bottom
+    btn.TextSize = 10
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    
-    local icon = Instance.new("ImageLabel", btn)
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 14, 0, 14)
-    icon.Position = UDim2.new(0.5, -7, 0, 4)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconId
-    icon.ImageColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
     btn.MouseButton1Click:Connect(function()
         switchTab(tabTarget)
@@ -750,15 +785,31 @@ local function addSidebarButton(textDisplay, iconId, tabTarget, order)
     return btn
 end
 
--- Fixed & Correct Asset IDs for Navigation Icons
-addSidebarButton("Player", "rbxassetid://3926307971", "Player", 1)       -- Character Icon
-addSidebarButton("Visuals", "rbxassetid://3926313437", "ESP", 2)          -- Eye/Visual Icon
-addSidebarButton("Teleport", "rbxassetid://3926305904", "Teleportation", 3) -- Map Marker Icon
-addSidebarButton("Server", "rbxassetid://3926307248", "Server", 4)        -- Server/Globe Icon
-addSidebarButton("Settings", "rbxassetid://3926305080", "Setting", 5)     -- Gear/Setting Icon
+-- Generator Garis Pembatas (Divider)
+local function addSidebarDivider(order)
+    local divider = Instance.new("Frame", Sidebar)
+    divider.Size = UDim2.new(1, -8, 0, 1)
+    divider.Position = UDim2.new(0, 4, 0, 0)
+    divider.BackgroundColor3 = Theme.Stroke
+    divider.BorderSizePixel = 0
+    divider.LayoutOrder = order
+end
+
+-- Pemasangan Sidebar Teks + Pembatas
+addSidebarButton("Player", "Player", 1)
+addSidebarDivider(2)
+addSidebarButton("Auto", "Automation", 3)
+addSidebarDivider(4)
+addSidebarButton("Visuals", "ESP", 5)
+addSidebarDivider(6)
+addSidebarButton("Teleport", "Teleportation", 7)
+addSidebarDivider(8)
+addSidebarButton("Server", "Server", 9)
+addSidebarDivider(10)
+addSidebarButton("Settings", "Setting", 11)
 
 -- ====================================================================
--- CONTROL INTERFACE FRAME FACTORY (COMPACT COMPONENTS)
+-- CONTROL INTERFACE FRAME FACTORY
 -- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local card = Instance.new("Frame", parent)
@@ -945,7 +996,15 @@ addSliderWithInput(playerPage, "HipHeight Modifier", 0, 20, 2, 10, "HipHeight", 
     end 
 end)
 
--- 2. ESP PAGE
+-- 2. AUTOMATION PAGE (NEW TAB)
+addToggle(autoPage, "⚔️ Fast Attack / Auto Hit", 1, "FastAttack")
+addSliderWithInput(autoPage, "Attack Cooldown (s)", 0, 1, 0.05, 2, "AttackDelay")
+addToggle(autoPage, "🔘 Expand Proximity (Distance E)", 3, "ExpandProximity")
+addSliderWithInput(autoPage, "Proximity Distance (Studs)", 10, 200, 50, 4, "ProximityDistance")
+addToggle(autoPage, "⚡ Instant Hold E (No Delay)", 5, "InstantProximityHold")
+addToggle(autoPage, "🧱 Ignore Walls for E (No LineOfSight)", 6, "ProximityLineOfSight")
+
+-- 3. ESP PAGE
 addToggle(espPage, "👁️ Enable Master ESP", 1, "EnableESP")
 addToggle(espPage, "📦 Show 3D Bounding Boxes", 2, "ShowBoxes")
 addToggle(espPage, "🏷️ Show Name & Distance", 3, "ShowNames")
@@ -953,7 +1012,7 @@ addToggle(espPage, "✨ Show Chams Glow", 4, "ShowGlow")
 addToggle(espPage, "🛡️ Enable Team Check", 5, "TeamCheck")
 addSliderWithInput(espPage, "ESP Max Distance", 100, 5000, 1000, 6, "MaxDistance")
 
--- 3. TELEPORT PAGE
+-- 4. TELEPORT PAGE
 addToggle(tpPage, "🌀 Enable Tween Glide", 1, "TweenTeleport")
 addSliderWithInput(tpPage, "Tween Speed (Studs/s)", 50, 1000, 350, 2, "TweenSpeed")
 
@@ -1150,7 +1209,7 @@ task.spawn(function()
     refreshLandmarksUI()
 end)
 
--- 4. SERVER PAGE
+-- 5. SERVER PAGE
 local lblFps = createStatLabel(serverPage, "FPS: 00.0", 1)
 local lblPing = createStatLabel(serverPage, "Ping: 0.00 ms", 2)
 local lblTime = createStatLabel(serverPage, "Server Age: 00:00:00", 3)
@@ -1226,7 +1285,7 @@ addToggle(serverPage, "💡 FullBright Core Engine", 9, "FullBright", function(a
     end
 end)
 
--- 5. SETTINGS PAGE
+-- 6. SETTINGS PAGE
 createStatLabel(settingPage, "User: " .. Player.Name .. " (" .. Player.UserId .. ")", 1)
 createStatLabel(settingPage, "Executor: " .. CurrentExecutor, 2)
 createStatLabel(settingPage, "Map: " .. CurrentMapName, 3)
@@ -1257,7 +1316,7 @@ createActionButton(settingPage, "🔴 Close System UI", Theme.DeleteBg, function
 end, 7)
 
 -- ====================================================================
--- INJECTOR FREECAM CINEMATIC PRO MAX V2 (COMPACT HUD)
+-- FREECAM CINEMATIC PRO ENGINE
 -- ====================================================================
 Config.FreecamMode = false
 Config.FreecamSpeed = 1
