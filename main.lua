@@ -51,7 +51,7 @@ MainGui:SetAttribute("ScriptContent", rawSource)
 local Theme = {
     HeaderBg = Color3.fromRGB(46, 125, 90),     -- Hijau Header Top Bar
     Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
-    SidebarBg = Color3.fromRGB(32, 35, 38),      -- Sidebar Kiri
+    SidebarBg = Color3.fromRGB(32, 35, 38),      -- Background Menu
     CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
     Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline / Divider
     Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
@@ -228,22 +228,18 @@ end
 -- ====================================================================
 -- AUTOMATION ENGINE WORKERS (FAST ATTACK & PROXIMITY)
 -- ====================================================================
--- Fast Attack Engine
 task.spawn(function()
     while true do
         task.wait(Config.AttackDelay)
         if Config.FastAttack and Player.Character then
             local tool = Player.Character:FindFirstChildOfClass("Tool")
             if tool then
-                pcall(function()
-                    tool:Activate()
-                end)
+                pcall(function() tool:Activate() end)
             end
         end
     end
 end)
 
--- Proximity Prompt Expander Engine
 task.spawn(function()
     while task.wait(1) do
         if Config.ExpandProximity then
@@ -251,12 +247,8 @@ task.spawn(function()
                 if prompt:IsA("ProximityPrompt") then
                     pcall(function()
                         prompt.MaxActivationDistance = Config.ProximityDistance
-                        if Config.InstantProximityHold then
-                            prompt.HoldDuration = 0
-                        end
-                        if Config.ProximityLineOfSight then
-                            prompt.RequiresLineOfSight = false
-                        end
+                        if Config.InstantProximityHold then prompt.HoldDuration = 0 end
+                        if Config.ProximityLineOfSight then prompt.RequiresLineOfSight = false end
                     end)
                 end
             end
@@ -270,18 +262,14 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then 
-            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
-        end
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then 
-                part.CanCollide = false 
-            end
+            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
         end
     end
 end)
@@ -327,9 +315,7 @@ local function bypassTeleportWithTween(targetCFrame)
         
         local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
         tween:Play()
-        tween.Completed:Connect(function() 
-            bodyVelocity:Destroy() 
-        end)
+        tween.Completed:Connect(function() bodyVelocity:Destroy() end)
         return true
     end
     return false
@@ -364,14 +350,8 @@ local function buildESP(target)
         local _, onScreen = camera:WorldToViewportPoint(tHrp.Position)
         local distance = (pHrp.Position - tHrp.Position).Magnitude
 
-        if Config.TeamCheck and target.Team == Player.Team then 
-            cleanESP(target) 
-            return 
-        end
-        if distance > Config.MaxDistance then 
-            cleanESP(target) 
-            return 
-        end
+        if Config.TeamCheck and target.Team == Player.Team then cleanESP(target) return end
+        if distance > Config.MaxDistance then cleanESP(target) return end
         
         if not espCache[target] then espCache[target] = {} end
 
@@ -437,22 +417,18 @@ for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
 local function applyGraphicsBoost()
     game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
-    if Config.AntiLag then 
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 
-    end
+    if Config.AntiLag then settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end
 end
 
 -- ====================================================================
--- LOCAL WAYPOINT STORAGE SYSTEM
+-- LOCAL WAYPOINT STORAGE & TRACER LINE SYSTEM
 -- ====================================================================
 local function loadWaypointsFromStorage()
     AllWaypoints = {}
     local success, content = pcall(function() return readfile(FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-        if decodeSuccess and type(decodedData) == "table" then 
-            AllWaypoints = decodedData 
-        end
+        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
     else
         pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
     end
@@ -464,6 +440,63 @@ local function saveWaypointsToStorage()
 end
 
 loadWaypointsFromStorage()
+
+-- TRACER / BENANG WAYPOINT ENGINE
+local waypointLines = {}
+
+local function removeWaypointLine(wpName)
+    if waypointLines[wpName] then
+        if waypointLines[wpName].Attachment0 then waypointLines[wpName].Attachment0:Destroy() end
+        if waypointLines[wpName].Attachment1 then waypointLines[wpName].Attachment1:Destroy() end
+        if waypointLines[wpName].Beam then waypointLines[wpName].Beam:Destroy() end
+        waypointLines[wpName] = nil
+    end
+end
+
+local function drawWaypointLine(wpName, targetPos)
+    local char = Player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if waypointLines[wpName] then
+        if waypointLines[wpName].Attachment1 then
+            waypointLines[wpName].Attachment1.WorldPosition = targetPos
+        end
+        return
+    end
+
+    local att0 = Instance.new("Attachment", hrp)
+    local att1 = Instance.new("Attachment", workspace.Terrain)
+    att1.WorldPosition = targetPos
+
+    local beam = Instance.new("Beam", hrp)
+    beam.Attachment0 = att0
+    beam.Attachment1 = att1
+    beam.Width0 = 0.15
+    beam.Width1 = 0.15
+    beam.Color = ColorSequence.new(Theme.Accent)
+    beam.FaceCamera = true
+    beam.AlwaysOnTop = true
+
+    waypointLines[wpName] = {
+        Attachment0 = att0,
+        Attachment1 = att1,
+        Beam = beam
+    }
+end
+
+RunService.RenderStepped:Connect(function()
+    if not AllWaypoints[CurrentPlaceId] then return end
+    
+    for wpName, coord in pairs(AllWaypoints[CurrentPlaceId]) do
+        if type(coord) == "table" and coord.LineVisible then
+            local targetPos = Vector3.new(coord.X or 0, coord.Y or 0, coord.Z or 0)
+            drawWaypointLine(wpName, targetPos)
+        else
+            removeWaypointLine(wpName)
+        end
+    end
+end)
 
 -- ====================================================================
 -- DRAG ENGINE BUILDER
@@ -594,8 +627,8 @@ makeDraggable(EyeRestoreButton, EyeRestoreButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 430, 0, 240) 
-MainFrame.Position = UDim2.new(0.5, -215, 0.5, -120) 
+MainFrame.Size = UDim2.new(0, 380, 0, 260) 
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -130) 
 MainFrame.BackgroundColor3 = Theme.Bg 
 MainFrame.Visible = false 
 MainFrame.ClipsDescendants = true
@@ -685,33 +718,42 @@ local function toggleCleanGuiView(hide)
     end
 end
 
-EyeRestoreButton.MouseButton1Click:Connect(function()
-    toggleCleanGuiView(false)
-end)
+EyeRestoreButton.MouseButton1Click:Connect(function() toggleCleanGuiView(false) end)
 
 -- ====================================================================
--- MINIMALIST SIDEBAR NAVIGATION (NO ICONS + DIVIDERS)
+-- SCROLLABLE TOPBAR NAVIGATION (SWIPEABLE HORIZONTAL MENU)
 -- ====================================================================
-local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 85, 1, -30)
-Sidebar.Position = UDim2.new(0, 0, 0, 30)
-Sidebar.BackgroundColor3 = Theme.SidebarBg
-Sidebar.BorderSizePixel = 0
+local TopbarContainer = Instance.new("Frame", MainFrame)
+TopbarContainer.Name = "TopbarContainer"
+TopbarContainer.Size = UDim2.new(1, 0, 0, 32)
+TopbarContainer.Position = UDim2.new(0, 0, 0, 30)
+TopbarContainer.BackgroundColor3 = Theme.SidebarBg
+TopbarContainer.BorderSizePixel = 0
 
-local SidebarLayout = Instance.new("UIListLayout", Sidebar)
-SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SidebarLayout.Padding = UDim.new(0, 3)
+local TopbarScroll = Instance.new("ScrollingFrame", TopbarContainer)
+TopbarScroll.Name = "TopbarScroll"
+TopbarScroll.Size = UDim2.new(1, 0, 1, 0)
+TopbarScroll.BackgroundTransparency = 1
+TopbarScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+TopbarScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+TopbarScroll.ScrollBarThickness = 2
+TopbarScroll.ScrollBarImageColor3 = Theme.Accent
+TopbarScroll.ScrollingDirection = Enum.ScrollingDirection.Horizontal
 
-local SidebarPadding = Instance.new("UIPadding", Sidebar)
-SidebarPadding.PaddingTop = UDim.new(0, 4)
-SidebarPadding.PaddingLeft = UDim.new(0, 4)
-SidebarPadding.PaddingRight = UDim.new(0, 4)
+local TopbarLayout = Instance.new("UIListLayout", TopbarScroll)
+TopbarLayout.FillDirection = Enum.FillDirection.Horizontal
+TopbarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TopbarLayout.Padding = UDim.new(0, 6)
+TopbarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+local TopbarPadding = Instance.new("UIPadding", TopbarScroll)
+TopbarPadding.PaddingLeft = UDim.new(0, 8)
+TopbarPadding.PaddingRight = UDim.new(0, 8)
 
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -85, 1, -30)
-ContentArea.Position = UDim2.new(0, 85, 0, 30)
+ContentArea.Size = UDim2.new(1, 0, 1, -62)
+ContentArea.Position = UDim2.new(0, 0, 0, 62)
 ContentArea.BackgroundTransparency = 1
 
 local menuContainers = {}
@@ -727,9 +769,9 @@ local function createMenuPage(name, isVisible)
     scroll.Visible = isVisible 
     
     local pad = Instance.new("UIPadding", scroll)
-    pad.PaddingTop = UDim.new(0, 6)
-    pad.PaddingLeft = UDim.new(0, 6)
-    pad.PaddingRight = UDim.new(0, 6)
+    pad.PaddingTop = UDim.new(0, 8)
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
     pad.PaddingBottom = UDim.new(0, 10)
 
     local layout = Instance.new("UIListLayout", scroll)
@@ -764,10 +806,9 @@ local function switchTab(tabName)
     end
 end
 
--- Generator Tombol Sidebar Tanpa Ikon
-local function addSidebarButton(textDisplay, tabTarget, order)
-    local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 24)
+local function addTopbarButton(textDisplay, tabTarget, order)
+    local btn = Instance.new("TextButton", TopbarScroll)
+    btn.Size = UDim2.new(0, 70, 0, 22)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
@@ -775,6 +816,12 @@ local function addSidebarButton(textDisplay, tabTarget, order)
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
     btn.TextSize = 10
     btn.LayoutOrder = order
+    btn.AutomaticSize = Enum.AutomaticSize.X
+    
+    local pad = Instance.new("UIPadding", btn)
+    pad.PaddingLeft = UDim.new(0, 10)
+    pad.PaddingRight = UDim.new(0, 10)
+
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
     btn.MouseButton1Click:Connect(function()
@@ -785,28 +832,12 @@ local function addSidebarButton(textDisplay, tabTarget, order)
     return btn
 end
 
--- Generator Garis Pembatas (Divider)
-local function addSidebarDivider(order)
-    local divider = Instance.new("Frame", Sidebar)
-    divider.Size = UDim2.new(1, -8, 0, 1)
-    divider.Position = UDim2.new(0, 4, 0, 0)
-    divider.BackgroundColor3 = Theme.Stroke
-    divider.BorderSizePixel = 0
-    divider.LayoutOrder = order
-end
-
--- Pemasangan Sidebar Teks + Pembatas
-addSidebarButton("Player", "Player", 1)
-addSidebarDivider(2)
-addSidebarButton("Auto", "Automation", 3)
-addSidebarDivider(4)
-addSidebarButton("Visuals", "ESP", 5)
-addSidebarDivider(6)
-addSidebarButton("Teleport", "Teleportation", 7)
-addSidebarDivider(8)
-addSidebarButton("Server", "Server", 9)
-addSidebarDivider(10)
-addSidebarButton("Settings", "Setting", 11)
+addTopbarButton("Player", "Player", 1)
+addTopbarButton("Auto", "Automation", 2)
+addTopbarButton("Visuals", "ESP", 3)
+addTopbarButton("Teleport", "Teleportation", 4)
+addTopbarButton("Server", "Server", 5)
+addTopbarButton("Settings", "Setting", 6)
 
 -- ====================================================================
 -- CONTROL INTERFACE FRAME FACTORY
@@ -996,7 +1027,7 @@ addSliderWithInput(playerPage, "HipHeight Modifier", 0, 20, 2, 10, "HipHeight", 
     end 
 end)
 
--- 2. AUTOMATION PAGE (NEW TAB)
+-- 2. AUTOMATION PAGE
 addToggle(autoPage, "⚔️ Fast Attack / Auto Hit", 1, "FastAttack")
 addSliderWithInput(autoPage, "Attack Cooldown (s)", 0, 1, 0.05, 2, "AttackDelay")
 addToggle(autoPage, "🔘 Expand Proximity (Distance E)", 3, "ExpandProximity")
@@ -1092,6 +1123,7 @@ local refreshLandmarksUI
 
 local function deleteWaypoint(wpName)
     if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
+        removeWaypointLine(wpName)
         AllWaypoints[CurrentPlaceId][wpName] = nil 
         saveWaypointsToStorage() 
         refreshLandmarksUI()
@@ -1119,8 +1151,9 @@ task.spawn(function()
         rowFrame.BackgroundTransparency = 1 
         rowFrame.LayoutOrder = orderIndex
         
+        -- Tombol Utama Nama Waypoint (Teleport)
         local btn = Instance.new("TextButton", rowFrame) 
-        btn.Size = UDim2.new(1, -28, 1, 0) 
+        btn.Size = UDim2.new(1, -56, 1, 0) 
         btn.BackgroundColor3 = Theme.CardBg 
         btn.Font = Enum.Font.GothamMedium 
         btn.Text = "📌 " .. wpName 
@@ -1135,6 +1168,28 @@ task.spawn(function()
             end
         end)
         
+        -- Tombol Mata (Toggle Benang/Tracer)
+        local eyeBtn = Instance.new("TextButton", rowFrame)
+        eyeBtn.Size = UDim2.new(0, 24, 1, 0)
+        eyeBtn.Position = UDim2.new(1, -52, 0, 0)
+        eyeBtn.BackgroundColor3 = Theme.CardBg
+        eyeBtn.Font = Enum.Font.GothamBold
+        eyeBtn.Text = "👁"
+        
+        local isVisible = AllWaypoints[CurrentPlaceId][wpName] and AllWaypoints[CurrentPlaceId][wpName].LineVisible or false
+        eyeBtn.TextColor3 = isVisible and Theme.Accent or Theme.TextMuted
+        Instance.new("UICorner", eyeBtn).CornerRadius = UDim.new(0, 5)
+
+        eyeBtn.MouseButton1Click:Connect(function()
+            if AllWaypoints[CurrentPlaceId][wpName] then
+                local currentData = AllWaypoints[CurrentPlaceId][wpName]
+                currentData.LineVisible = not currentData.LineVisible
+                eyeBtn.TextColor3 = currentData.LineVisible and Theme.Accent or Theme.TextMuted
+                saveWaypointsToStorage()
+            end
+        end)
+
+        -- Tombol Hapus Waypoint
         local delBtn = Instance.new("TextButton", rowFrame) 
         delBtn.Size = UDim2.new(0, 24, 1, 0) 
         delBtn.Position = UDim2.new(1, -24, 0, 0) 
@@ -1197,7 +1252,8 @@ task.spawn(function()
                 AllWaypoints[CurrentPlaceId][name] = {
                     X = math.round(currentPos.X * 100) / 100, 
                     Y = math.round(currentPos.Y * 100) / 100, 
-                    Z = math.round(currentPos.Z * 100) / 100
+                    Z = math.round(currentPos.Z * 100) / 100,
+                    LineVisible = false
                 }
                 saveWaypointsToStorage() 
                 wpNameInput.Text = "" 
