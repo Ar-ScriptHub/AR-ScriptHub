@@ -37,34 +37,7 @@ if SafeGuiTarget and SafeGuiTarget:FindFirstChild("AR_Script_Hub") then
 end
 
 -- ====================================================================
--- GUI CORE INSTANCE & THEME CONFIGURATION
--- ====================================================================
-local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "AR_Script_Hub"
-MainGui.Parent = SafeGuiTarget
-MainGui.ResetOnSpawn = false
-MainGui.DisplayOrder = 2147483647
-
-local rawSource = debug.infos and debug.infos() or "" 
-MainGui:SetAttribute("ScriptContent", rawSource)
-
-local Theme = {
-    HeaderBg = Color3.fromRGB(46, 125, 90),     -- Hijau Header Top Bar
-    Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
-    SidebarBg = Color3.fromRGB(32, 35, 38),      -- Background Menu
-    CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
-    Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline / Divider
-    Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
-    AccentHover = Color3.fromRGB(42, 169, 103),  
-    TextMain = Color3.fromRGB(245, 245, 245),
-    TextMuted = Color3.fromRGB(160, 165, 170),
-    DeleteRed = Color3.fromRGB(255, 90, 90),
-    DeleteBg = Color3.fromRGB(60, 30, 35),
-    ConfirmGreen = Color3.fromRGB(52, 199, 123)
-}
-
--- ====================================================================
--- STATE MANAGEMENT CONFIGURATION
+-- CONFIGURATION & STATE MANAGEMENT
 -- ====================================================================
 local Config = {
     FlyMode = false,
@@ -96,7 +69,29 @@ local Config = {
     ExpandProximity = false,
     ProximityDistance = 50,
     InstantProximityHold = false,
-    ProximityLineOfSight = false
+    ProximityLineOfSight = false,
+
+    -- FREECAM CONFIGS
+    FreecamMode = false,
+    FreecamSpeed = 1,
+    FreecamSmoothness = 0.15,
+    FreecamFov = 70,
+    FreecamFreezeChar = false
+}
+
+local Theme = {
+    HeaderBg = Color3.fromRGB(46, 125, 90),     -- Hijau Header Top Bar
+    Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
+    SidebarBg = Color3.fromRGB(32, 35, 38),      -- Sidebar Kiri
+    CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
+    Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline / Divider
+    Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
+    AccentHover = Color3.fromRGB(42, 169, 103),  
+    TextMain = Color3.fromRGB(245, 245, 245),
+    TextMuted = Color3.fromRGB(160, 165, 170),
+    DeleteRed = Color3.fromRGB(255, 90, 90),
+    DeleteBg = Color3.fromRGB(60, 30, 35),
+    ConfirmGreen = Color3.fromRGB(52, 199, 123)
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -147,6 +142,49 @@ pcall(function()
 end)
 
 local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
+
+-- ====================================================================
+-- HELPER & ENGINE UTILITIES (DEFINED FIRST)
+-- ====================================================================
+local function applyGraphicsBoost()
+    Lighting.GlobalShadows = not Config.ShadowsDisabled
+    if Config.AntiLag then 
+        pcall(function()
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 
+        end)
+    end
+end
+
+local function enforceHumanoidProperties()
+    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
+        hum.WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
+        hum.JumpPower = Config.SuperJump and Config.SuperJumpVal or 50
+        hum.UseJumpPower = true
+    end
+end
+
+local function bypassTeleportWithTween(targetCFrame)
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
+    local hrp = Player.Character.HumanoidRootPart
+    if Config.TweenTeleport then
+        local distance = (hrp.Position - targetCFrame.Position).Magnitude
+        local duration = distance / math.max(Config.TweenSpeed, 50)
+        local bodyVelocity = Instance.new("BodyVelocity")
+        
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Parent = hrp
+        
+        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+        tween:Play()
+        tween.Completed:Connect(function() 
+            bodyVelocity:Destroy() 
+        end)
+        return true
+    end
+    return false
+end
 
 -- ====================================================================
 -- MOVEMENT BACKGROUND CORE ENGINE
@@ -234,7 +272,9 @@ task.spawn(function()
         if Config.FastAttack and Player.Character then
             local tool = Player.Character:FindFirstChildOfClass("Tool")
             if tool then
-                pcall(function() tool:Activate() end)
+                pcall(function()
+                    tool:Activate()
+                end)
             end
         end
     end
@@ -247,8 +287,12 @@ task.spawn(function()
                 if prompt:IsA("ProximityPrompt") then
                     pcall(function()
                         prompt.MaxActivationDistance = Config.ProximityDistance
-                        if Config.InstantProximityHold then prompt.HoldDuration = 0 end
-                        if Config.ProximityLineOfSight then prompt.RequiresLineOfSight = false end
+                        if Config.InstantProximityHold then
+                            prompt.HoldDuration = 0
+                        end
+                        if Config.ProximityLineOfSight then
+                            prompt.RequiresLineOfSight = false
+                        end
                     end)
                 end
             end
@@ -262,26 +306,21 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        if hum then 
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
     end
 end)
 
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            if part:IsA("BasePart") and part.CanCollide then 
+                part.CanCollide = false 
+            end
         end
     end
 end)
-
-local function enforceHumanoidProperties()
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        hum.WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
-        hum.JumpPower = Config.SuperJump and Config.SuperJumpVal or 50
-        hum.UseJumpPower = true
-    end
-end
 
 Player.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid", 5)
@@ -301,28 +340,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local function bypassTeleportWithTween(targetCFrame)
-    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return false end
-    local hrp = Player.Character.HumanoidRootPart
-    if Config.TweenTeleport then
-        local distance = (hrp.Position - targetCFrame.Position).Magnitude
-        local duration = distance / math.max(Config.TweenSpeed, 50)
-        local bodyVelocity = Instance.new("BodyVelocity")
-        
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVelocity.Parent = hrp
-        
-        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-        tween:Play()
-        tween.Completed:Connect(function() bodyVelocity:Destroy() end)
-        return true
-    end
-    return false
-end
-
 -- ====================================================================
--- ESP RENDER CHAMS ENGINE
+-- ESP RENDER CHAMS ENGINE (FIXED MEMORY LEAK & RE-CONNECTIONS)
 -- ====================================================================
 local espCache = {}
 
@@ -331,15 +350,23 @@ local function cleanESP(target)
         if espCache[target].Box then espCache[target].Box:Destroy() end
         if espCache[target].Label then espCache[target].Label:Destroy() end
         if espCache[target].Highlight then espCache[target].Highlight:Destroy() end
+        if espCache[target].Connection then espCache[target].Connection:Disconnect() end
         espCache[target] = nil
-   end
+    end
 end
 
 local function buildESP(target)
     if target == Player then return end
-    RunService.RenderStepped:Connect(function()
+    cleanESP(target)
+    
+    local data = {}
+    espCache[target] = data
+
+    data.Connection = RunService.RenderStepped:Connect(function()
         if not Config.EnableESP or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-            cleanESP(target) 
+            if data.Box then data.Box:Destroy() data.Box = nil end
+            if data.Label then data.Label:Destroy() data.Label = nil end
+            if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
             return
         end
         
@@ -350,28 +377,30 @@ local function buildESP(target)
         local _, onScreen = camera:WorldToViewportPoint(tHrp.Position)
         local distance = (pHrp.Position - tHrp.Position).Magnitude
 
-        if Config.TeamCheck and target.Team == Player.Team then cleanESP(target) return end
-        if distance > Config.MaxDistance then cleanESP(target) return end
-        
-        if not espCache[target] then espCache[target] = {} end
+        if (Config.TeamCheck and target.Team == Player.Team) or (distance > Config.MaxDistance) then 
+            if data.Box then data.Box:Destroy() data.Box = nil end
+            if data.Label then data.Label:Destroy() data.Label = nil end
+            if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
+            return 
+        end
 
         if Config.ShowBoxes and onScreen then
-            if not espCache[target].Box then
+            if not data.Box then
                 local b = Instance.new("BoxHandleAdornment") 
                 b.Size = Vector3.new(4, 5.5, 4) 
                 b.Color3 = Theme.Accent 
                 b.AlwaysOnTop = true 
                 b.Transparency = 0.6 
-                espCache[target].Box = b
+                data.Box = b
             end
-            espCache[target].Box.Adornee = tChar 
-            espCache[target].Box.Parent = SafeGuiTarget
+            data.Box.Adornee = tChar 
+            data.Box.Parent = SafeGuiTarget
         else
-            if espCache[target].Box then espCache[target].Box:Destroy() espCache[target].Box = nil end
+            if data.Box then data.Box:Destroy() data.Box = nil end
         end
 
         if Config.ShowNames and onScreen then
-            if not espCache[target].Label then
+            if not data.Label then
                 local bgui = Instance.new("BillboardGui") 
                 bgui.Size = UDim2.new(0, 150, 0, 40) 
                 bgui.AlwaysOnTop = true 
@@ -384,51 +413,49 @@ local function buildESP(target)
                 txt.Font = Enum.Font.GothamBold 
                 txt.TextSize = 10 
                 
-                espCache[target].Label = bgui 
-                espCache[target].TxtObject = txt
+                data.Label = bgui 
+                data.TxtObject = txt
             end
-            espCache[target].TxtObject.Text = string.format("%s\n[%d m]", target.DisplayName, math.round(distance))
-            espCache[target].Label.Adornee = tHrp 
-            espCache[target].Label.Parent = SafeGuiTarget
+            data.TxtObject.Text = string.format("%s\n[%d m]", target.DisplayName, math.round(distance))
+            data.Label.Adornee = tHrp 
+            data.Label.Parent = SafeGuiTarget
         else
-            if espCache[target].Label then espCache[target].Label:Destroy() espCache[target].Label = nil end
+            if data.Label then data.Label:Destroy() data.Label = nil end
         end
 
         if Config.ShowGlow then
-            if not espCache[target].Highlight then
+            if not data.Highlight then
                 local hl = Instance.new("Highlight") 
                 hl.FillColor = Theme.Accent 
                 hl.FillTransparency = 0.4 
                 hl.OutlineColor = Theme.TextMain 
                 hl.OutlineTransparency = 0.1 
                 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop 
-                espCache[target].Highlight = hl
+                data.Highlight = hl
             end
-            espCache[target].Highlight.Adornee = tChar 
-            espCache[target].Highlight.Parent = SafeGuiTarget
+            data.Highlight.Adornee = tChar 
+            data.Highlight.Parent = SafeGuiTarget
         else
-            if espCache[target].Highlight then espCache[target].Highlight:Destroy() espCache[target].Highlight = nil end
+            if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
         end
     end)
 end
 
 Players.PlayerAdded:Connect(buildESP)
+Players.PlayerRemoving:Connect(cleanESP)
 for _, p in pairs(Players:GetPlayers()) do buildESP(p) end
 
-local function applyGraphicsBoost()
-    game:GetService("Lighting").GlobalShadows = not Config.ShadowsDisabled
-    if Config.AntiLag then settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end
-end
-
 -- ====================================================================
--- LOCAL WAYPOINT STORAGE & TRACER LINE SYSTEM
+-- LOCAL WAYPOINT STORAGE SYSTEM
 -- ====================================================================
 local function loadWaypointsFromStorage()
     AllWaypoints = {}
     local success, content = pcall(function() return readfile(FILE_NAME) end)
     if success and content then
         local decodeSuccess, decodedData = pcall(function() return HttpService:JSONDecode(content) end)
-        if decodeSuccess and type(decodedData) == "table" then AllWaypoints = decodedData end
+        if decodeSuccess and type(decodedData) == "table" then 
+            AllWaypoints = decodedData 
+        end
     else
         pcall(function() writefile(FILE_NAME, HttpService:JSONEncode({})) end)
     end
@@ -440,63 +467,6 @@ local function saveWaypointsToStorage()
 end
 
 loadWaypointsFromStorage()
-
--- TRACER / BENANG WAYPOINT ENGINE
-local waypointLines = {}
-
-local function removeWaypointLine(wpName)
-    if waypointLines[wpName] then
-        if waypointLines[wpName].Attachment0 then waypointLines[wpName].Attachment0:Destroy() end
-        if waypointLines[wpName].Attachment1 then waypointLines[wpName].Attachment1:Destroy() end
-        if waypointLines[wpName].Beam then waypointLines[wpName].Beam:Destroy() end
-        waypointLines[wpName] = nil
-    end
-end
-
-local function drawWaypointLine(wpName, targetPos)
-    local char = Player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    if waypointLines[wpName] then
-        if waypointLines[wpName].Attachment1 then
-            waypointLines[wpName].Attachment1.WorldPosition = targetPos
-        end
-        return
-    end
-
-    local att0 = Instance.new("Attachment", hrp)
-    local att1 = Instance.new("Attachment", workspace.Terrain)
-    att1.WorldPosition = targetPos
-
-    local beam = Instance.new("Beam", hrp)
-    beam.Attachment0 = att0
-    beam.Attachment1 = att1
-    beam.Width0 = 0.15
-    beam.Width1 = 0.15
-    beam.Color = ColorSequence.new(Theme.Accent)
-    beam.FaceCamera = true
-    beam.AlwaysOnTop = true
-
-    waypointLines[wpName] = {
-        Attachment0 = att0,
-        Attachment1 = att1,
-        Beam = beam
-    }
-end
-
-RunService.RenderStepped:Connect(function()
-    if not AllWaypoints[CurrentPlaceId] then return end
-    
-    for wpName, coord in pairs(AllWaypoints[CurrentPlaceId]) do
-        if type(coord) == "table" and coord.LineVisible then
-            local targetPos = Vector3.new(coord.X or 0, coord.Y or 0, coord.Z or 0)
-            drawWaypointLine(wpName, targetPos)
-        else
-            removeWaypointLine(wpName)
-        end
-    end
-end)
 
 -- ====================================================================
 -- DRAG ENGINE BUILDER
@@ -527,8 +497,18 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- ====================================================================
--- POPUP CONFIRMATION FRAME
+-- GUI CORE INSTANCE INITIALIZATION
 -- ====================================================================
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "AR_Script_Hub"
+MainGui.Parent = SafeGuiTarget
+MainGui.ResetOnSpawn = false
+MainGui.DisplayOrder = 2147483647
+
+local rawSource = debug.infos and debug.infos() or "" 
+MainGui:SetAttribute("ScriptContent", rawSource)
+
+-- POPUP CONFIRMATION FRAME
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame" 
 PopupFrame.Parent = MainGui 
@@ -595,7 +575,7 @@ PopupNo.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- MAIN INTERFACE FRAME
+-- MAIN INTERFACE FRAME & TOGGLES
 -- ====================================================================
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton" 
@@ -627,8 +607,8 @@ makeDraggable(EyeRestoreButton, EyeRestoreButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 380, 0, 260) 
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -130) 
+MainFrame.Size = UDim2.new(0, 430, 0, 240) 
+MainFrame.Position = UDim2.new(0.5, -215, 0.5, -120) 
 MainFrame.BackgroundColor3 = Theme.Bg 
 MainFrame.Visible = false 
 MainFrame.ClipsDescendants = true
@@ -718,42 +698,33 @@ local function toggleCleanGuiView(hide)
     end
 end
 
-EyeRestoreButton.MouseButton1Click:Connect(function() toggleCleanGuiView(false) end)
+EyeRestoreButton.MouseButton1Click:Connect(function()
+    toggleCleanGuiView(false)
+end)
 
 -- ====================================================================
--- SCROLLABLE TOPBAR NAVIGATION (SWIPEABLE HORIZONTAL MENU)
+-- SIDEBAR NAVIGATION & PAGES
 -- ====================================================================
-local TopbarContainer = Instance.new("Frame", MainFrame)
-TopbarContainer.Name = "TopbarContainer"
-TopbarContainer.Size = UDim2.new(1, 0, 0, 32)
-TopbarContainer.Position = UDim2.new(0, 0, 0, 30)
-TopbarContainer.BackgroundColor3 = Theme.SidebarBg
-TopbarContainer.BorderSizePixel = 0
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 85, 1, -30)
+Sidebar.Position = UDim2.new(0, 0, 0, 30)
+Sidebar.BackgroundColor3 = Theme.SidebarBg
+Sidebar.BorderSizePixel = 0
 
-local TopbarScroll = Instance.new("ScrollingFrame", TopbarContainer)
-TopbarScroll.Name = "TopbarScroll"
-TopbarScroll.Size = UDim2.new(1, 0, 1, 0)
-TopbarScroll.BackgroundTransparency = 1
-TopbarScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-TopbarScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
-TopbarScroll.ScrollBarThickness = 2
-TopbarScroll.ScrollBarImageColor3 = Theme.Accent
-TopbarScroll.ScrollingDirection = Enum.ScrollingDirection.Horizontal
+local SidebarLayout = Instance.new("UIListLayout", Sidebar)
+SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarLayout.Padding = UDim.new(0, 3)
 
-local TopbarLayout = Instance.new("UIListLayout", TopbarScroll)
-TopbarLayout.FillDirection = Enum.FillDirection.Horizontal
-TopbarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TopbarLayout.Padding = UDim.new(0, 6)
-TopbarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-
-local TopbarPadding = Instance.new("UIPadding", TopbarScroll)
-TopbarPadding.PaddingLeft = UDim.new(0, 8)
-TopbarPadding.PaddingRight = UDim.new(0, 8)
+local SidebarPadding = Instance.new("UIPadding", Sidebar)
+SidebarPadding.PaddingTop = UDim.new(0, 4)
+SidebarPadding.PaddingLeft = UDim.new(0, 4)
+SidebarPadding.PaddingRight = UDim.new(0, 4)
 
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, 0, 1, -62)
-ContentArea.Position = UDim2.new(0, 0, 0, 62)
+ContentArea.Size = UDim2.new(1, -85, 1, -30)
+ContentArea.Position = UDim2.new(0, 85, 0, 30)
 ContentArea.BackgroundTransparency = 1
 
 local menuContainers = {}
@@ -769,9 +740,9 @@ local function createMenuPage(name, isVisible)
     scroll.Visible = isVisible 
     
     local pad = Instance.new("UIPadding", scroll)
-    pad.PaddingTop = UDim.new(0, 8)
-    pad.PaddingLeft = UDim.new(0, 8)
-    pad.PaddingRight = UDim.new(0, 8)
+    pad.PaddingTop = UDim.new(0, 6)
+    pad.PaddingLeft = UDim.new(0, 6)
+    pad.PaddingRight = UDim.new(0, 6)
     pad.PaddingBottom = UDim.new(0, 10)
 
     local layout = Instance.new("UIListLayout", scroll)
@@ -806,9 +777,9 @@ local function switchTab(tabName)
     end
 end
 
-local function addTopbarButton(textDisplay, tabTarget, order)
-    local btn = Instance.new("TextButton", TopbarScroll)
-    btn.Size = UDim2.new(0, 70, 0, 22)
+local function addSidebarButton(textDisplay, tabTarget, order)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(1, 0, 0, 24)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
@@ -816,12 +787,6 @@ local function addTopbarButton(textDisplay, tabTarget, order)
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
     btn.TextSize = 10
     btn.LayoutOrder = order
-    btn.AutomaticSize = Enum.AutomaticSize.X
-    
-    local pad = Instance.new("UIPadding", btn)
-    pad.PaddingLeft = UDim.new(0, 10)
-    pad.PaddingRight = UDim.new(0, 10)
-
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
     btn.MouseButton1Click:Connect(function()
@@ -832,12 +797,26 @@ local function addTopbarButton(textDisplay, tabTarget, order)
     return btn
 end
 
-addTopbarButton("Player", "Player", 1)
-addTopbarButton("Auto", "Automation", 2)
-addTopbarButton("Visuals", "ESP", 3)
-addTopbarButton("Teleport", "Teleportation", 4)
-addTopbarButton("Server", "Server", 5)
-addTopbarButton("Settings", "Setting", 6)
+local function addSidebarDivider(order)
+    local divider = Instance.new("Frame", Sidebar)
+    divider.Size = UDim2.new(1, -8, 0, 1)
+    divider.Position = UDim2.new(0, 4, 0, 0)
+    divider.BackgroundColor3 = Theme.Stroke
+    divider.BorderSizePixel = 0
+    divider.LayoutOrder = order
+end
+
+addSidebarButton("Player", "Player", 1)
+addSidebarDivider(2)
+addSidebarButton("Auto", "Automation", 3)
+addSidebarDivider(4)
+addSidebarButton("Visuals", "ESP", 5)
+addSidebarDivider(6)
+addSidebarButton("Teleport", "Teleportation", 7)
+addSidebarDivider(8)
+addSidebarButton("Server", "Server", 9)
+addSidebarDivider(10)
+addSidebarButton("Settings", "Setting", 11)
 
 -- ====================================================================
 -- CONTROL INTERFACE FRAME FACTORY
@@ -1008,378 +987,8 @@ local function createStatLabel(parent, labelText, order)
 end
 
 -- ====================================================================
--- POPULATING MENU PAGES
+-- FREECAM CINEMATIC ENGINE (DEFINED BEFORE SETTINGS USAGE)
 -- ====================================================================
-
--- 1. PLAYER PAGE
-addToggle(playerPage, "🚀 Fly Mode", 1, "FlyMode", handleFlyEngine)
-addSliderWithInput(playerPage, "Fly Speed", 1, 20, 5, 2, "FlySpeed")
-addToggle(playerPage, "👻 Noclip Mode", 3, "Noclip")
-addToggle(playerPage, "⚡ Super Speed", 4, "SuperSpeed", enforceHumanoidProperties)
-addSliderWithInput(playerPage, "Speed Value", 16, 250, 16, 5, "SuperSpeedVal", enforceHumanoidProperties)
-addToggle(playerPage, "🦘 Super Jump", 6, "SuperJump", enforceHumanoidProperties)
-addSliderWithInput(playerPage, "Jump Power", 50, 500, 50, 7, "SuperJumpVal", enforceHumanoidProperties)
-addToggle(playerPage, "🦘 Infinite Jump", 8, "InfiniteJump")
-addSliderWithInput(playerPage, "Global Gravity", 0, 196, 196, 9, "Gravity", function(val) workspace.Gravity = val end)
-addSliderWithInput(playerPage, "HipHeight Modifier", 0, 20, 2, 10, "HipHeight", function(val) 
-    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then 
-        Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val 
-    end 
-end)
-
--- 2. AUTOMATION PAGE
-addToggle(autoPage, "⚔️ Fast Attack / Auto Hit", 1, "FastAttack")
-addSliderWithInput(autoPage, "Attack Cooldown (s)", 0, 1, 0.05, 2, "AttackDelay")
-addToggle(autoPage, "🔘 Expand Proximity (Distance E)", 3, "ExpandProximity")
-addSliderWithInput(autoPage, "Proximity Distance (Studs)", 10, 200, 50, 4, "ProximityDistance")
-addToggle(autoPage, "⚡ Instant Hold E (No Delay)", 5, "InstantProximityHold")
-addToggle(autoPage, "🧱 Ignore Walls for E (No LineOfSight)", 6, "ProximityLineOfSight")
-
--- 3. ESP PAGE
-addToggle(espPage, "👁️ Enable Master ESP", 1, "EnableESP")
-addToggle(espPage, "📦 Show 3D Bounding Boxes", 2, "ShowBoxes")
-addToggle(espPage, "🏷️ Show Name & Distance", 3, "ShowNames")
-addToggle(espPage, "✨ Show Chams Glow", 4, "ShowGlow")
-addToggle(espPage, "🛡️ Enable Team Check", 5, "TeamCheck")
-addSliderWithInput(espPage, "ESP Max Distance", 100, 5000, 1000, 6, "MaxDistance")
-
--- 4. TELEPORT PAGE
-addToggle(tpPage, "🌀 Enable Tween Glide", 1, "TweenTeleport")
-addSliderWithInput(tpPage, "Tween Speed (Studs/s)", 50, 1000, 350, 2, "TweenSpeed")
-
-local playerTpInputCard = Instance.new("Frame", tpPage)
-playerTpInputCard.Size = UDim2.new(1, 0, 0, 26)
-playerTpInputCard.BackgroundColor3 = Theme.CardBg
-playerTpInputCard.LayoutOrder = 3
-Instance.new("UICorner", playerTpInputCard).CornerRadius = UDim.new(0, 5)
-
-local tpPlayerInput = Instance.new("TextBox", playerTpInputCard)
-tpPlayerInput.Size = UDim2.new(1, -16, 1, 0)
-tpPlayerInput.Position = UDim2.new(0, 8, 0, 0)
-tpPlayerInput.BackgroundTransparency = 1
-tpPlayerInput.Font = Enum.Font.GothamMedium
-tpPlayerInput.PlaceholderText = "Masukkan nama player..."
-tpPlayerInput.TextColor3 = Theme.TextMain
-tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
-tpPlayerInput.TextSize = 10
-tpPlayerInput.TextXAlignment = Enum.TextXAlignment.Left
-
-createActionButton(tpPage, "⚡ Teleport ke Player", Theme.HeaderBg, function()
-    local targetText = tpPlayerInput.Text:lower():gsub("%s+", "")
-    if targetText == "" then return end
-    local targetPlayer = nil
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= Player then
-            local pName = p.Name:lower()
-            local pDisplay = p.DisplayName:lower()
-            if pName:sub(1, #targetText) == targetText or pDisplay:sub(1, #targetText) == targetText or pName:find(targetText) or pDisplay:find(targetText) then
-                targetPlayer = p
-                break
-            end
-        end
-    end
-    if targetPlayer and targetPlayer.Character then
-        local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local myHrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-        if targetHrp and myHrp then
-            local targetCF = targetHrp.CFrame * CFrame.new(0, 2, 0)
-            if not bypassTeleportWithTween(targetCF) then 
-                myHrp.CFrame = targetCF 
-            end
-        end
-    end
-end, 4)
-
-local wpInputCard = Instance.new("Frame", tpPage)
-wpInputCard.Size = UDim2.new(1, 0, 0, 26)
-wpInputCard.BackgroundColor3 = Theme.CardBg
-wpInputCard.LayoutOrder = 5
-Instance.new("UICorner", wpInputCard).CornerRadius = UDim.new(0, 5)
-
-local wpNameInput = Instance.new("TextBox", wpInputCard)
-wpNameInput.Size = UDim2.new(1, -16, 1, 0)
-wpNameInput.Position = UDim2.new(0, 8, 0, 0)
-wpNameInput.BackgroundTransparency = 1
-wpNameInput.Font = Enum.Font.GothamMedium
-wpNameInput.PlaceholderText = "Nama waypoint baru..."
-wpNameInput.TextColor3 = Theme.TextMain
-wpNameInput.PlaceholderColor3 = Theme.TextMuted
-wpNameInput.TextSize = 10
-wpNameInput.TextXAlignment = Enum.TextXAlignment.Left
-
-local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(35, 55, 45), function() end, 6)
-
-local waypointsListFrame = Instance.new("Frame", tpPage)
-waypointsListFrame.Size = UDim2.new(1, 0, 0, 0)
-waypointsListFrame.AutomaticSize = Enum.AutomaticSize.Y
-waypointsListFrame.BackgroundTransparency = 1
-waypointsListFrame.LayoutOrder = 7
-
-local wpLayout = Instance.new("UIListLayout", waypointsListFrame)
-wpLayout.Padding = UDim.new(0, 4)
-wpLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local refreshLandmarksUI
-
-local function deleteWaypoint(wpName)
-    if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
-        removeWaypointLine(wpName)
-        AllWaypoints[CurrentPlaceId][wpName] = nil 
-        saveWaypointsToStorage() 
-        refreshLandmarksUI()
-    end
-end
-
--- Waypoints System Task
-task.spawn(function()
-    repeat task.wait(0.5) until Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid")
-    local hrp = Player.Character.HumanoidRootPart 
-    local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-    
-    for i = 1, 30 do
-        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
-        task.wait(0.5)
-    end
-    task.wait(1.5)
-    
-    local spawnPos = hrp.Position
-    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
-
-    local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
-        local rowFrame = Instance.new("Frame", waypointsListFrame) 
-        rowFrame.Size = UDim2.new(1, 0, 0, 24) 
-        rowFrame.BackgroundTransparency = 1 
-        rowFrame.LayoutOrder = orderIndex
-        
-        -- Tombol Utama Nama Waypoint (Teleport)
-        local btn = Instance.new("TextButton", rowFrame) 
-        btn.Size = UDim2.new(1, -56, 1, 0) 
-        btn.BackgroundColor3 = Theme.CardBg 
-        btn.Font = Enum.Font.GothamMedium 
-        btn.Text = "📌 " .. wpName 
-        btn.TextColor3 = Theme.TextMain 
-        btn.TextSize = 10 
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
-        
-        btn.MouseButton1Click:Connect(function()
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                local targetCF = CFrame.new(tonumber(targetX) or 0, tonumber(targetY) or 0, tonumber(targetZ) or 0)
-                if not bypassTeleportWithTween(targetCF) then Player.Character.HumanoidRootPart.CFrame = targetCF end
-            end
-        end)
-        
-        -- Tombol Mata (Toggle Benang/Tracer)
-        local eyeBtn = Instance.new("TextButton", rowFrame)
-        eyeBtn.Size = UDim2.new(0, 24, 1, 0)
-        eyeBtn.Position = UDim2.new(1, -52, 0, 0)
-        eyeBtn.BackgroundColor3 = Theme.CardBg
-        eyeBtn.Font = Enum.Font.GothamBold
-        eyeBtn.Text = "👁"
-        
-        local isVisible = AllWaypoints[CurrentPlaceId][wpName] and AllWaypoints[CurrentPlaceId][wpName].LineVisible or false
-        eyeBtn.TextColor3 = isVisible and Theme.Accent or Theme.TextMuted
-        Instance.new("UICorner", eyeBtn).CornerRadius = UDim.new(0, 5)
-
-        eyeBtn.MouseButton1Click:Connect(function()
-            if AllWaypoints[CurrentPlaceId][wpName] then
-                local currentData = AllWaypoints[CurrentPlaceId][wpName]
-                currentData.LineVisible = not currentData.LineVisible
-                eyeBtn.TextColor3 = currentData.LineVisible and Theme.Accent or Theme.TextMuted
-                saveWaypointsToStorage()
-            end
-        end)
-
-        -- Tombol Hapus Waypoint
-        local delBtn = Instance.new("TextButton", rowFrame) 
-        delBtn.Size = UDim2.new(0, 24, 1, 0) 
-        delBtn.Position = UDim2.new(1, -24, 0, 0) 
-        delBtn.BackgroundColor3 = Theme.DeleteBg 
-        delBtn.Font = Enum.Font.GothamBold 
-        delBtn.Text = "✕" 
-        delBtn.TextColor3 = Theme.DeleteRed 
-        delBtn.TextSize = 10 
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
-        
-        delBtn.MouseButton1Click:Connect(function() 
-            showConfirmation("Hapus posisi \"" .. wpName .. "\"?", function() deleteWaypoint(wpName) end) 
-        end)
-    end
-
-    function refreshLandmarksUI()
-        for _, child in pairs(waypointsListFrame:GetChildren()) do 
-            if child:IsA("Frame") then child:Destroy() end 
-        end
-        
-        local rowFrameSpawn = Instance.new("Frame", waypointsListFrame) 
-        rowFrameSpawn.Size = UDim2.new(1, 0, 0, 24) 
-        rowFrameSpawn.BackgroundTransparency = 1 
-        rowFrameSpawn.LayoutOrder = 0
-        
-        local btnSpawn = Instance.new("TextButton", rowFrameSpawn) 
-        btnSpawn.Size = UDim2.new(1, 0, 1, 0) 
-        btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 45, 36) 
-        btnSpawn.Font = Enum.Font.GothamBold 
-        btnSpawn.Text = "📍 Initial Spawn Point" 
-        btnSpawn.TextColor3 = Theme.ConfirmGreen 
-        btnSpawn.TextSize = 10 
-        Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) 
-        
-        btnSpawn.MouseButton1Click:Connect(function()
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                if not bypassTeleportWithTween(initialSpawnCFrame) then Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame end
-            end
-        end)
-        
-        if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-        local currentMapData = AllWaypoints[CurrentPlaceId]
-        local indexOrder = 1
-        
-        for wpName, coord in pairs(currentMapData) do
-            if type(coord) == "table" then
-                makeTeleportRow(wpName, coord.X or 0, coord.Y or 0, coord.Z or 0, indexOrder)
-                indexOrder = indexOrder + 1
-            end
-        end
-    end
-
-    btnSavePos.MouseButton1Click:Connect(function()
-        local name = wpNameInput.Text
-        if name ~= "" and name ~= "Initial Spawn Point" then
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                local currentPos = Player.Character.HumanoidRootPart.Position
-                if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
-                
-                AllWaypoints[CurrentPlaceId][name] = {
-                    X = math.round(currentPos.X * 100) / 100, 
-                    Y = math.round(currentPos.Y * 100) / 100, 
-                    Z = math.round(currentPos.Z * 100) / 100,
-                    LineVisible = false
-                }
-                saveWaypointsToStorage() 
-                wpNameInput.Text = "" 
-                refreshLandmarksUI()
-             end
-        end
-    end)
-
-    refreshLandmarksUI()
-end)
-
--- 5. SERVER PAGE
-local lblFps = createStatLabel(serverPage, "FPS: 00.0", 1)
-local lblPing = createStatLabel(serverPage, "Ping: 0.00 ms", 2)
-local lblTime = createStatLabel(serverPage, "Server Age: 00:00:00", 3)
-
-task.spawn(function()
-    local lastTime = os.clock() 
-    local frameCount = 0 
-    local currentFps = 60
-
-    while task.wait(0.1) do
-        if not MainGui or not MainGui.Parent then break end
-        frameCount = frameCount + 1 
-        local now = os.clock()
-        
-        if now - lastTime >= 0.5 then 
-            currentFps = math.round(frameCount / (now - lastTime)) 
-            frameCount = 0 
-            lastTime = now 
-        end
-        
-        local pingVal = 0 
-        pcall(function() pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
-        if pingVal <= 0 then pingVal = math.round(Player:GetNetworkPing() * 2000) end
-        if pingVal <= 0 then pingVal = 15 end
-        
-        local sTime = math.round(workspace.DistributedGameTime)
-        local hours = string.format("%02d", math.floor(sTime / 3600)) 
-        local minutes = string.format("%02d", math.floor((sTime % 3600) / 60)) 
-        local seconds = string.format("%02d", sTime % 60)
-        
-        lblFps.Text = "FPS: " .. tostring(currentFps) .. " FPS" 
-        lblPing.Text = "Ping: " .. tostring(pingVal) .. " ms" 
-        lblTime.Text = "Server Age: " .. hours .. ":" .. minutes .. ":" .. seconds
-    end
-end)
-
-createActionButton(serverPage, "🔄 Rejoin Current Instance", Theme.CardBg, function()
-    showConfirmation("Rejoin ke server saat ini?", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end)
-end, 4)
-
-createActionButton(serverPage, "🚀 Matchmaking Server Hop", Theme.CardBg, function()
-    showConfirmation("Cari dan pindah server?", function()
-        local success, servers = pcall(function() return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")) end)
-        if success and servers and servers.data then
-            for _, s in pairs(servers.data) do
-                if s.playing < s.maxPlayers and s.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, Player) break end
-            end
-        end
-    end)
-end, 5)
-
-createActionButton(serverPage, "🗑️ Purge Environmental Memory", Color3.fromRGB(45, 35, 30), function()
-    local c = 0 
-    for _, o in pairs(workspace:GetDescendants()) do 
-        if o:IsA("VisualEffect") or o:IsA("Decal") or o:IsA("Texture") then o:Destroy() c = c + 1 end 
-    end
-    showConfirmation("Berhasil membersihkan " .. tostring(c) .. " objek lag.", function() end)
-end, 6)
-
-addToggle(serverPage, "Disable Global Shadows", 7, "ShadowsDisabled", applyGraphicsBoost)
-addToggle(serverPage, "Anti-Lag Core Engine", 8, "AntiLag", applyGraphicsBoost)
-addToggle(serverPage, "💡 FullBright Core Engine", 9, "FullBright", function(active)
-    if active then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255) 
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) 
-        Lighting.Brightness = 2 
-        Lighting.ClockTime = 14
-    else
-        Lighting.Ambient = origAmbient 
-        Lighting.OutdoorAmbient = origOutdoorAmbient 
-        Lighting.Brightness = origBrightness 
-        Lighting.ClockTime = origClockTime
-    end
-end)
-
--- 6. SETTINGS PAGE
-createStatLabel(settingPage, "User: " .. Player.Name .. " (" .. Player.UserId .. ")", 1)
-createStatLabel(settingPage, "Executor: " .. CurrentExecutor, 2)
-createStatLabel(settingPage, "Map: " .. CurrentMapName, 3)
-
-createActionButton(settingPage, "👁️ Hide All GUIs (Clean View)", Theme.CardBg, function()
-    toggleCleanGuiView(true)
-end, 4)
-
-createActionButton(settingPage, "🎥 Open Freecam Cinematic Engine", Theme.HeaderBg, function()
-    Config.FreecamMode = true
-    updateFreecamEngine()
-end, 5)
-
-createActionButton(settingPage, "🔄 Reload System UI", Theme.CardBg, function()
-    showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
-        if Config.FlyMode then Config.FlyMode = false pcall(handleFlyEngine) end
-        local currentScript = MainGui:GetAttribute("ScriptContent") or ""
-        MainGui:Destroy()
-        task.wait(0.15)
-        if loadstring and currentScript ~= "" then
-            pcall(function() loadstring(currentScript)() end)
-        end
-    end)
-end, 6)
-
-createActionButton(settingPage, "🔴 Close System UI", Theme.DeleteBg, function()
-    showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
-end, 7)
-
--- ====================================================================
--- FREECAM CINEMATIC PRO ENGINE
--- ====================================================================
-Config.FreecamMode = false
-Config.FreecamSpeed = 1
-Config.FreecamSmoothness = 0.15
-Config.FreecamFov = 70
-Config.FreecamFreezeChar = false
-
 local CurrentCinematicMode = "Manual"
 local FreecamConnection = nil
 local targetFC_CFrame = workspace.CurrentCamera.CFrame
@@ -1434,7 +1043,7 @@ local fhLayout = Instance.new("UIListLayout", fhScroll)
 fhLayout.Padding = UDim.new(0, 4)
 fhLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-function updateFreecamEngine()
+local function updateFreecamEngine()
     if not Config.FreecamMode then
         if FreecamConnection then FreecamConnection:Disconnect() FreecamConnection = nil end
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
@@ -1596,7 +1205,348 @@ createActionButton(fhScroll, "✕ EXIT FREECAM", Theme.DeleteBg, function()
 end, 12)
 
 -- ====================================================================
--- INITIALIZATION ENGINE
+-- POPULATING MENU PAGES
+-- ====================================================================
+
+-- 1. PLAYER PAGE
+addToggle(playerPage, "🚀 Fly Mode", 1, "FlyMode", handleFlyEngine)
+addSliderWithInput(playerPage, "Fly Speed", 1, 20, 5, 2, "FlySpeed")
+addToggle(playerPage, "👻 Noclip Mode", 3, "Noclip")
+addToggle(playerPage, "⚡ Super Speed", 4, "SuperSpeed", enforceHumanoidProperties)
+addSliderWithInput(playerPage, "Speed Value", 16, 250, 16, 5, "SuperSpeedVal", enforceHumanoidProperties)
+addToggle(playerPage, "🦘 Super Jump", 6, "SuperJump", enforceHumanoidProperties)
+addSliderWithInput(playerPage, "Jump Power", 50, 500, 50, 7, "SuperJumpVal", enforceHumanoidProperties)
+addToggle(playerPage, "🦘 Infinite Jump", 8, "InfiniteJump")
+addSliderWithInput(playerPage, "Global Gravity", 0, 196, 196, 9, "Gravity", function(val) workspace.Gravity = val end)
+addSliderWithInput(playerPage, "HipHeight Modifier", 0, 20, 2, 10, "HipHeight", function(val) 
+    if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then 
+        Player.Character:FindFirstChildOfClass("Humanoid").HipHeight = val 
+    end 
+end)
+
+-- 2. AUTOMATION PAGE
+addToggle(autoPage, "⚔️ Fast Attack / Auto Hit", 1, "FastAttack")
+addSliderWithInput(autoPage, "Attack Cooldown (s)", 0, 1, 0.05, 2, "AttackDelay")
+addToggle(autoPage, "🔘 Expand Proximity (Distance E)", 3, "ExpandProximity")
+addSliderWithInput(autoPage, "Proximity Distance (Studs)", 10, 200, 50, 4, "ProximityDistance")
+addToggle(autoPage, "⚡ Instant Hold E (No Delay)", 5, "InstantProximityHold")
+addToggle(autoPage, "🧱 Ignore Walls for E (No LineOfSight)", 6, "ProximityLineOfSight")
+
+-- 3. ESP PAGE
+addToggle(espPage, "👁️ Enable Master ESP", 1, "EnableESP")
+addToggle(espPage, "📦 Show 3D Bounding Boxes", 2, "ShowBoxes")
+addToggle(espPage, "🏷️ Show Name & Distance", 3, "ShowNames")
+addToggle(espPage, "✨ Show Chams Glow", 4, "ShowGlow")
+addToggle(espPage, "🛡️ Enable Team Check", 5, "TeamCheck")
+addSliderWithInput(espPage, "ESP Max Distance", 100, 5000, 1000, 6, "MaxDistance")
+
+-- 4. TELEPORT PAGE
+addToggle(tpPage, "🌀 Enable Tween Glide", 1, "TweenTeleport")
+addSliderWithInput(tpPage, "Tween Speed (Studs/s)", 50, 1000, 350, 2, "TweenSpeed")
+
+local playerTpInputCard = Instance.new("Frame", tpPage)
+playerTpInputCard.Size = UDim2.new(1, 0, 0, 26)
+playerTpInputCard.BackgroundColor3 = Theme.CardBg
+playerTpInputCard.LayoutOrder = 3
+Instance.new("UICorner", playerTpInputCard).CornerRadius = UDim.new(0, 5)
+
+local tpPlayerInput = Instance.new("TextBox", playerTpInputCard)
+tpPlayerInput.Size = UDim2.new(1, -16, 1, 0)
+tpPlayerInput.Position = UDim2.new(0, 8, 0, 0)
+tpPlayerInput.BackgroundTransparency = 1
+tpPlayerInput.Font = Enum.Font.GothamMedium
+tpPlayerInput.PlaceholderText = "Masukkan nama player..."
+tpPlayerInput.TextColor3 = Theme.TextMain
+tpPlayerInput.PlaceholderColor3 = Theme.TextMuted
+tpPlayerInput.TextSize = 10
+tpPlayerInput.TextXAlignment = Enum.TextXAlignment.Left
+
+createActionButton(tpPage, "⚡ Teleport ke Player", Theme.HeaderBg, function()
+    local targetText = tpPlayerInput.Text:lower():gsub("%s+", "")
+    if targetText == "" then return end
+    local targetPlayer = nil
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Player then
+            local pName = p.Name:lower()
+            local pDisplay = p.DisplayName:lower()
+            if pName:sub(1, #targetText) == targetText or pDisplay:sub(1, #targetText) == targetText or pName:find(targetText) or pDisplay:find(targetText) then
+                targetPlayer = p
+                break
+            end
+        end
+    end
+    if targetPlayer and targetPlayer.Character then
+        local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myHrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+        if targetHrp and myHrp then
+            local targetCF = targetHrp.CFrame * CFrame.new(0, 2, 0)
+            if not bypassTeleportWithTween(targetCF) then 
+                myHrp.CFrame = targetCF 
+            end
+        end
+    end
+end, 4)
+
+local wpInputCard = Instance.new("Frame", tpPage)
+wpInputCard.Size = UDim2.new(1, 0, 0, 26)
+wpInputCard.BackgroundColor3 = Theme.CardBg
+wpInputCard.LayoutOrder = 5
+Instance.new("UICorner", wpInputCard).CornerRadius = UDim.new(0, 5)
+
+local wpNameInput = Instance.new("TextBox", wpInputCard)
+wpNameInput.Size = UDim2.new(1, -16, 1, 0)
+wpNameInput.Position = UDim2.new(0, 8, 0, 0)
+wpNameInput.BackgroundTransparency = 1
+wpNameInput.Font = Enum.Font.GothamMedium
+wpNameInput.PlaceholderText = "Nama waypoint baru..."
+wpNameInput.TextColor3 = Theme.TextMain
+wpNameInput.PlaceholderColor3 = Theme.TextMuted
+wpNameInput.TextSize = 10
+wpNameInput.TextXAlignment = Enum.TextXAlignment.Left
+
+local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(35, 55, 45), function() end, 6)
+
+local waypointsListFrame = Instance.new("Frame", tpPage)
+waypointsListFrame.Size = UDim2.new(1, 0, 0, 0)
+waypointsListFrame.AutomaticSize = Enum.AutomaticSize.Y
+waypointsListFrame.BackgroundTransparency = 1
+waypointsListFrame.LayoutOrder = 7
+
+local wpLayout = Instance.new("UIListLayout", waypointsListFrame)
+wpLayout.Padding = UDim.new(0, 4)
+wpLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local refreshLandmarksUI
+
+local function deleteWaypoint(wpName)
+    if AllWaypoints[CurrentPlaceId] and AllWaypoints[CurrentPlaceId][wpName] then
+        AllWaypoints[CurrentPlaceId][wpName] = nil 
+        saveWaypointsToStorage() 
+        refreshLandmarksUI()
+    end
+end
+
+-- Waypoints System Task
+task.spawn(function()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart", 10)
+    local hum = char:WaitForChild("Humanoid", 10)
+    
+    if not hrp or not hum then return end
+    
+    for i = 1, 30 do
+        if hum.FloorMaterial ~= Enum.Material.Air or hrp.Velocity.Magnitude < 0.1 then break end
+        task.wait(0.5)
+    end
+    task.wait(1.5)
+    
+    local spawnPos = hrp.Position
+    local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
+
+    local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
+        local rowFrame = Instance.new("Frame", waypointsListFrame) 
+        rowFrame.Size = UDim2.new(1, 0, 0, 24) 
+        rowFrame.BackgroundTransparency = 1 
+        rowFrame.LayoutOrder = orderIndex
+        
+        local btn = Instance.new("TextButton", rowFrame) 
+        btn.Size = UDim2.new(1, -28, 1, 0) 
+        btn.BackgroundColor3 = Theme.CardBg 
+        btn.Font = Enum.Font.GothamMedium 
+        btn.Text = "📌 " .. wpName 
+        btn.TextColor3 = Theme.TextMain 
+        btn.TextSize = 10 
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
+        
+        btn.MouseButton1Click:Connect(function()
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local targetCF = CFrame.new(tonumber(targetX) or 0, tonumber(targetY) or 0, tonumber(targetZ) or 0)
+                if not bypassTeleportWithTween(targetCF) then Player.Character.HumanoidRootPart.CFrame = targetCF end
+            end
+        end)
+        
+        local delBtn = Instance.new("TextButton", rowFrame) 
+        delBtn.Size = UDim2.new(0, 24, 1, 0) 
+        delBtn.Position = UDim2.new(1, -24, 0, 0) 
+        delBtn.BackgroundColor3 = Theme.DeleteBg 
+        delBtn.Font = Enum.Font.GothamBold 
+        delBtn.Text = "✕" 
+        delBtn.TextColor3 = Theme.DeleteRed 
+        delBtn.TextSize = 10 
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
+        
+        delBtn.MouseButton1Click:Connect(function() 
+            showConfirmation("Hapus posisi \"" .. wpName .. "\"? ", function() deleteWaypoint(wpName) end) 
+        end)
+    end
+
+    function refreshLandmarksUI()
+        for _, child in pairs(waypointsListFrame:GetChildren()) do 
+            if child:IsA("Frame") then child:Destroy() end 
+        end
+        
+        local rowFrameSpawn = Instance.new("Frame", waypointsListFrame) 
+        rowFrameSpawn.Size = UDim2.new(1, 0, 0, 24) 
+        rowFrameSpawn.BackgroundTransparency = 1 
+        rowFrameSpawn.LayoutOrder = 0
+        
+        local btnSpawn = Instance.new("TextButton", rowFrameSpawn) 
+        btnSpawn.Size = UDim2.new(1, 0, 1, 0) 
+        btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 45, 36) 
+        btnSpawn.Font = Enum.Font.GothamBold 
+        btnSpawn.Text = "📍 Initial Spawn Point" 
+        btnSpawn.TextColor3 = Theme.ConfirmGreen 
+        btnSpawn.TextSize = 10 
+        Instance.new("UICorner", btnSpawn).CornerRadius = UDim.new(0, 5) 
+        
+        btnSpawn.MouseButton1Click:Connect(function()
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                if not bypassTeleportWithTween(initialSpawnCFrame) then Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame end
+            end
+        end)
+        
+        if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
+        local currentMapData = AllWaypoints[CurrentPlaceId]
+        local indexOrder = 1
+        
+        for wpName, coord in pairs(currentMapData) do
+            if type(coord) == "table" then
+                makeTeleportRow(wpName, coord.X or 0, coord.Y or 0, coord.Z or 0, indexOrder)
+                indexOrder = indexOrder + 1
+            end
+        end
+    end
+
+    btnSavePos.MouseButton1Click:Connect(function()
+        local name = wpNameInput.Text
+        if name ~= "" and name ~= "Initial Spawn Point" then
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local currentPos = Player.Character.HumanoidRootPart.Position
+                if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
+                
+                AllWaypoints[CurrentPlaceId][name] = {
+                    X = math.round(currentPos.X * 100) / 100, 
+                    Y = math.round(currentPos.Y * 100) / 100, 
+                    Z = math.round(currentPos.Z * 100) / 100
+                }
+                saveWaypointsToStorage() 
+                wpNameInput.Text = "" 
+                refreshLandmarksUI()
+             end
+        end
+    end)
+
+    refreshLandmarksUI()
+end)
+
+-- 5. SERVER PAGE
+local lblFps = createStatLabel(serverPage, "FPS: 00.0", 1)
+local lblPing = createStatLabel(serverPage, "Ping: 0.00 ms", 2)
+local lblTime = createStatLabel(serverPage, "Server Age: 00:00:00", 3)
+
+task.spawn(function()
+    local lastTime = os.clock() 
+    local frameCount = 0 
+    local currentFps = 60
+
+    while task.wait(0.1) do
+        if not MainGui or not MainGui.Parent then break end
+        frameCount = frameCount + 1 
+        local now = os.clock()
+        
+        if now - lastTime >= 0.5 then 
+            currentFps = math.round(frameCount / (now - lastTime)) 
+            frameCount = 0 
+            lastTime = now 
+        end
+        
+        local pingVal = 0 
+        pcall(function() pingVal = math.round(Stats.Network.ServerToClientPingPerSecond:GetLastValue() * 1000) end)
+        if pingVal <= 0 then pingVal = math.round(Player:GetNetworkPing() * 2000) end
+        if pingVal <= 0 then pingVal = 15 end
+        
+        local sTime = math.round(workspace.DistributedGameTime)
+        local hours = string.format("%02d", math.floor(sTime / 3600)) 
+        local minutes = string.format("%02d", math.floor((sTime % 3600) / 60)) 
+        local seconds = string.format("%02d", sTime % 60)
+        
+        lblFps.Text = "FPS: " .. tostring(currentFps) .. " FPS" 
+        lblPing.Text = "Ping: " .. tostring(pingVal) .. " ms" 
+        lblTime.Text = "Server Age: " .. hours .. ":" .. minutes .. ":" .. seconds
+    end
+end)
+
+createActionButton(serverPage, "🔄 Rejoin Current Instance", Theme.CardBg, function()
+    showConfirmation("Rejoin ke server saat ini?", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player) end)
+end, 4)
+
+createActionButton(serverPage, "🚀 Matchmaking Server Hop", Theme.CardBg, function()
+    showConfirmation("Cari dan pindah server?", function()
+        local success, servers = pcall(function() return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")) end)
+        if success and servers and servers.data then
+            for _, s in pairs(servers.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, Player) break end
+            end
+        end
+    end)
+end, 5)
+
+createActionButton(serverPage, "🗑️ Purge Environmental Memory", Color3.fromRGB(45, 35, 30), function()
+    local c = 0 
+    for _, o in pairs(workspace:GetDescendants()) do 
+        if o:IsA("VisualEffect") or o:IsA("Decal") or o:IsA("Texture") then o:Destroy() c = c + 1 end 
+    end
+    showConfirmation("Berhasil membersihkan " .. tostring(c) .. " objek lag.", function() end)
+end, 6)
+
+addToggle(serverPage, "Disable Global Shadows", 7, "ShadowsDisabled", applyGraphicsBoost)
+addToggle(serverPage, "Anti-Lag Core Engine", 8, "AntiLag", applyGraphicsBoost)
+addToggle(serverPage, "💡 FullBright Core Engine", 9, "FullBright", function(active)
+    if active then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255) 
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) 
+        Lighting.Brightness = 2 
+        Lighting.ClockTime = 14
+    else
+        Lighting.Ambient = origAmbient 
+        Lighting.OutdoorAmbient = origOutdoorAmbient 
+        Lighting.Brightness = origBrightness 
+        Lighting.ClockTime = origClockTime
+    end
+end)
+
+-- 6. SETTINGS PAGE
+createStatLabel(settingPage, "User: " .. Player.Name .. " (" .. Player.UserId .. ")", 1)
+createStatLabel(settingPage, "Executor: " .. CurrentExecutor, 2)
+createStatLabel(settingPage, "Map: " .. CurrentMapName, 3)
+
+createActionButton(settingPage, "👁️ Hide All GUIs (Clean View)", Theme.CardBg, function()
+    toggleCleanGuiView(true)
+end, 4)
+
+createActionButton(settingPage, "🎥 Open Freecam Cinematic Engine", Theme.HeaderBg, function()
+    Config.FreecamMode = true
+    updateFreecamEngine()
+end, 5)
+
+createActionButton(settingPage, "🔄 Reload System UI", Theme.CardBg, function()
+    showConfirmation("Apakah kamu ingin memuat ulang UI?", function()
+        if Config.FlyMode then Config.FlyMode = false pcall(handleFlyEngine) end
+        local currentScript = MainGui:GetAttribute("ScriptContent") or ""
+        MainGui:Destroy()
+        task.wait(0.15)
+        if loadstring and currentScript ~= "" then
+            pcall(function() loadstring(currentScript)() end)
+        end
+    end)
+end, 6)
+
+createActionButton(settingPage, "🔴 Close System UI", Theme.DeleteBg, function()
+    showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
+end, 7)
+
+-- ====================================================================
+-- INITIALIZATION ENGINE & LICENSE KEY VERIFICATION
 -- ====================================================================
 task.spawn(function()
     if KeyVerified then
