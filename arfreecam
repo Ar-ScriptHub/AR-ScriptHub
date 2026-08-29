@@ -1,5 +1,5 @@
 -- ====================================================================
--- FREECAM MOBILE (MINI DRAGGABLE MENU + CLOSE BUTTON + JOYSTICK FIX)
+-- FREECAM MOBILE (FIX: STICK & CAMERA TOUCH ISOLATION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -48,16 +48,15 @@ Gui.Name = "Freecam_Mobile_Advanced"
 Gui.ResetOnSpawn = false
 Gui.Parent = SafeGui
 
--- TOP BAR CONTAINER (DRAGGABLE & MINI)
+-- TOP BAR CONTAINER
 local TopContainer = Instance.new("Frame", Gui)
 TopContainer.Name = "TopContainer"
 TopContainer.Size = UDim2.new(0, 185, 0, 30)
 TopContainer.Position = UDim2.new(0.02, 0, 0.05, 0)
 TopContainer.BackgroundTransparency = 1
 TopContainer.Active = true
-TopContainer.Draggable = true -- BISA DIGESER KE MANA SAJA
+TopContainer.Draggable = true
 
--- MINI MAIN TOGGLE BUTTON (FREE CAM ON/OFF)
 local MainToggle = Instance.new("TextButton", TopContainer)
 MainToggle.Name = "MainToggle"
 MainToggle.Size = UDim2.new(0, 80, 0, 30)
@@ -71,7 +70,6 @@ Instance.new("UICorner", MainToggle).CornerRadius = UDim.new(0, 6)
 local toggleStroke = Instance.new("UIStroke", MainToggle)
 toggleStroke.Color = Color3.fromRGB(55, 60, 65)
 
--- SETTINGS BUTTON
 local SettingToggle = Instance.new("TextButton", TopContainer)
 SettingToggle.Name = "SettingToggle"
 SettingToggle.Size = UDim2.new(0, 30, 0, 30)
@@ -84,7 +82,6 @@ Instance.new("UICorner", SettingToggle).CornerRadius = UDim.new(0, 6)
 local setBtnStroke = Instance.new("UIStroke", SettingToggle)
 setBtnStroke.Color = Color3.fromRGB(55, 60, 65)
 
--- HIDE UI BUTTON
 local HideUiToggle = Instance.new("TextButton", TopContainer)
 HideUiToggle.Name = "HideUiToggle"
 HideUiToggle.Size = UDim2.new(0, 30, 0, 30)
@@ -97,7 +94,6 @@ Instance.new("UICorner", HideUiToggle).CornerRadius = UDim.new(0, 6)
 local hideBtnStroke = Instance.new("UIStroke", HideUiToggle)
 hideBtnStroke.Color = Color3.fromRGB(55, 60, 65)
 
--- CLOSE / DESTROY SCRIPT BUTTON (TOMBOL SILANG)
 local CloseScriptBtn = Instance.new("TextButton", TopContainer)
 CloseScriptBtn.Name = "CloseScriptBtn"
 CloseScriptBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -371,8 +367,43 @@ HideUiToggle.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- INPUT MOVEMENT & CAMERA ROTATION
+-- BOUNDS & TOUCH FILTERING SYSTEM
 -- ====================================================================
+local function isTouchInGui(pos, guiObject)
+    if not guiObject or not guiObject.Visible then return false end
+    local guiPos = guiObject.AbsolutePosition
+    local guiSize = guiObject.AbsoluteSize
+    return pos.X >= guiPos.X and pos.X <= guiPos.X + guiSize.X and
+           pos.Y >= guiPos.Y and pos.Y <= guiPos.Y + guiSize.Y
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not FreecamConfig.Enabled then return end
+
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        local pos = Vector2.new(input.Position.X, input.Position.Y)
+
+        -- PERIKSA APABILA SENTUHAN ADA DI AREA UI (JOYSTICK, RIGHT BUTTONS, MENUS)
+        if gameProcessed or 
+           isTouchInGui(pos, JoystickBase) or 
+           isTouchInGui(pos, RightControls) or 
+           isTouchInGui(pos, TopContainer) or 
+           isTouchInGui(pos, SettingsFrame) then
+            return -- Blokir rotasi kamera jika menyentuh elemen UI!
+        end
+
+        -- HANYA SENTUHAN DI LAYAR KOSONG YANG BOLEH MEMUTAR KAMERA
+        isCameraDragging = true
+        cameraTouchInput = input
+
+        local now = os.clock()
+        if now - lastTapTime < 0.35 and FreecamConfig.UiHidden then
+            setUiVisibility(true)
+        end
+        lastTapTime = now
+    end
+end)
+
 UserInputService.InputChanged:Connect(function(input)
     if draggingJoy and input == joystickTouchInput then
         local touchPos = Vector2.new(input.Position.X, input.Position.Y)
@@ -390,23 +421,6 @@ UserInputService.InputChanged:Connect(function(input)
         cameraRot = cameraRot - Vector2.new(math.rad(mouseDelta.X), math.rad(mouseDelta.Y))
         local maxPitch = math.rad(89)
         cameraRot = Vector2.new(cameraRot.X, math.clamp(cameraRot.Y, -maxPitch, maxPitch))
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not FreecamConfig.Enabled then return end
-
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
-        if gameProcessed then return end
-
-        isCameraDragging = true
-        cameraTouchInput = input
-
-        local now = os.clock()
-        if now - lastTapTime < 0.35 and FreecamConfig.UiHidden then
-            setUiVisibility(true)
-        end
-        lastTapTime = now
     end
 end)
 
@@ -492,7 +506,6 @@ end
 
 MainToggle.MouseButton1Click:Connect(toggleFreecam)
 
--- FUNGSI HAPUS SCRIPT / CLOSE PERMANEN
 CloseScriptBtn.MouseButton1Click:Connect(function()
     disableFreecam()
     Gui:Destroy()
