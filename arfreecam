@@ -1,10 +1,9 @@
 -- ====================================================================
--- FREECAM CUSTOM MOBILE LAYOUT (JOYSTICK + CAM SAVER + HIDE UI)
+-- FREECAM MOBILE (MINI DRAGGABLE MENU + CLOSE BUTTON + JOYSTICK FIX)
 -- ====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -27,7 +26,11 @@ local VerticalInput = 0
 
 local cameraCFrame = Camera.CFrame
 local cameraRot = Vector2.new()
-local isTouchDragging = false
+
+-- TOUCH ISOLATION TRACKING
+local isCameraDragging = false
+local cameraTouchInput = nil
+local joystickTouchInput = nil
 local renderConnection = nil
 local lastTapTime = 0
 
@@ -45,52 +48,68 @@ Gui.Name = "Freecam_Mobile_Advanced"
 Gui.ResetOnSpawn = false
 Gui.Parent = SafeGui
 
--- TOP BAR CONTAINER
+-- TOP BAR CONTAINER (DRAGGABLE & MINI)
 local TopContainer = Instance.new("Frame", Gui)
 TopContainer.Name = "TopContainer"
-TopContainer.Size = UDim2.new(0, 210, 0, 36)
+TopContainer.Size = UDim2.new(0, 185, 0, 30)
 TopContainer.Position = UDim2.new(0.02, 0, 0.05, 0)
 TopContainer.BackgroundTransparency = 1
+TopContainer.Active = true
+TopContainer.Draggable = true -- BISA DIGESER KE MANA SAJA
 
--- MAIN TOGGLE BUTTON
+-- MINI MAIN TOGGLE BUTTON (FREE CAM ON/OFF)
 local MainToggle = Instance.new("TextButton", TopContainer)
 MainToggle.Name = "MainToggle"
-MainToggle.Size = UDim2.new(0, 110, 0, 36)
+MainToggle.Size = UDim2.new(0, 80, 0, 30)
 MainToggle.Position = UDim2.new(0, 0, 0, 0)
 MainToggle.BackgroundColor3 = Color3.fromRGB(30, 32, 36)
 MainToggle.Font = Enum.Font.GothamBold
-MainToggle.Text = "Freecam: OFF"
+MainToggle.Text = "CAM: OFF"
 MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
-MainToggle.TextSize = 11
-Instance.new("UICorner", MainToggle).CornerRadius = UDim.new(0, 8)
+MainToggle.TextSize = 10
+Instance.new("UICorner", MainToggle).CornerRadius = UDim.new(0, 6)
 local toggleStroke = Instance.new("UIStroke", MainToggle)
 toggleStroke.Color = Color3.fromRGB(55, 60, 65)
 
--- SETTINGS PANEL TOGGLE BUTTON
+-- SETTINGS BUTTON
 local SettingToggle = Instance.new("TextButton", TopContainer)
 SettingToggle.Name = "SettingToggle"
-SettingToggle.Size = UDim2.new(0, 36, 0, 36)
-SettingToggle.Position = UDim2.new(0, 118, 0, 0)
+SettingToggle.Size = UDim2.new(0, 30, 0, 30)
+SettingToggle.Position = UDim2.new(0, 85, 0, 0)
 SettingToggle.BackgroundColor3 = Color3.fromRGB(30, 32, 36)
 SettingToggle.Font = Enum.Font.GothamBold
 SettingToggle.Text = "⚙️"
-SettingToggle.TextSize = 14
-Instance.new("UICorner", SettingToggle).CornerRadius = UDim.new(0, 8)
+SettingToggle.TextSize = 12
+Instance.new("UICorner", SettingToggle).CornerRadius = UDim.new(0, 6)
 local setBtnStroke = Instance.new("UIStroke", SettingToggle)
 setBtnStroke.Color = Color3.fromRGB(55, 60, 65)
 
--- HIDE UI TOGGLE BUTTON
+-- HIDE UI BUTTON
 local HideUiToggle = Instance.new("TextButton", TopContainer)
 HideUiToggle.Name = "HideUiToggle"
-HideUiToggle.Size = UDim2.new(0, 36, 0, 36)
-HideUiToggle.Position = UDim2.new(0, 160, 0, 0)
+HideUiToggle.Size = UDim2.new(0, 30, 0, 30)
+HideUiToggle.Position = UDim2.new(0, 120, 0, 0)
 HideUiToggle.BackgroundColor3 = Color3.fromRGB(30, 32, 36)
 HideUiToggle.Font = Enum.Font.GothamBold
 HideUiToggle.Text = "👁️"
-HideUiToggle.TextSize = 14
-Instance.new("UICorner", HideUiToggle).CornerRadius = UDim.new(0, 8)
+HideUiToggle.TextSize = 12
+Instance.new("UICorner", HideUiToggle).CornerRadius = UDim.new(0, 6)
 local hideBtnStroke = Instance.new("UIStroke", HideUiToggle)
 hideBtnStroke.Color = Color3.fromRGB(55, 60, 65)
+
+-- CLOSE / DESTROY SCRIPT BUTTON (TOMBOL SILANG)
+local CloseScriptBtn = Instance.new("TextButton", TopContainer)
+CloseScriptBtn.Name = "CloseScriptBtn"
+CloseScriptBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseScriptBtn.Position = UDim2.new(0, 155, 0, 0)
+CloseScriptBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+CloseScriptBtn.Font = Enum.Font.GothamBold
+CloseScriptBtn.Text = "✕"
+CloseScriptBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseScriptBtn.TextSize = 12
+Instance.new("UICorner", CloseScriptBtn).CornerRadius = UDim.new(0, 6)
+local closeBtnStroke = Instance.new("UIStroke", CloseScriptBtn)
+closeBtnStroke.Color = Color3.fromRGB(220, 60, 60)
 
 -- ====================================================================
 -- LEFT JOYSTICK CONTROLS
@@ -114,40 +133,22 @@ JoystickKnob.BackgroundColor3 = Color3.fromRGB(52, 199, 123)
 JoystickKnob.BackgroundTransparency = 0.2
 Instance.new("UICorner", JoystickKnob).CornerRadius = UDim.new(1, 0)
 
--- LOGIKA TOUCH JOYSTICK ANALOG
 local draggingJoy = false
 local joyCenter = Vector2.new()
 local maxRadius = 45
 
-JoystickBase.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingJoy = true
-        joyCenter = JoystickBase.AbsolutePosition + (JoystickBase.AbsoluteSize / 2)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingJoy and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local touchPos = Vector2.new(input.Position.X, input.Position.Y)
-        local delta = touchPos - joyCenter
-        local distance = math.min(delta.Magnitude, maxRadius)
-        local direction = delta.Magnitude > 0 and delta.Unit or Vector2.new()
-        
-        local knobPos = direction * distance
-        JoystickKnob.Position = UDim2.new(0.5, knobPos.X - 25, 0.5, knobPos.Y - 25)
-        JoystickInput = Vector2.new(knobPos.X / maxRadius, knobPos.Y / maxRadius)
-    end
-end)
-
 local function resetJoystick()
     draggingJoy = false
+    joystickTouchInput = nil
     JoystickKnob.Position = UDim2.new(0.5, -25, 0.5, -25)
     JoystickInput = Vector2.new(0, 0)
 end
 
-UserInputService.InputEnded:Connect(function(input)
+JoystickBase.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        resetJoystick()
+        draggingJoy = true
+        joystickTouchInput = input
+        joyCenter = JoystickBase.AbsolutePosition + (JoystickBase.AbsoluteSize / 2)
     end
 end)
 
@@ -233,7 +234,6 @@ SettingToggle.MouseButton1Click:Connect(function()
     SettingsFrame.Visible = not SettingsFrame.Visible
 end)
 
--- SPEED CONTROL SLIDER
 local SpeedLabel = Instance.new("TextLabel", SettingsFrame)
 SpeedLabel.Text = "Kecepatan: 1.5x"
 SpeedLabel.Size = UDim2.new(1, -20, 0, 18)
@@ -272,7 +272,6 @@ SpeedBtnPlus.MouseButton1Click:Connect(function()
     SpeedLabel.Text = "Kecepatan: " .. FreecamConfig.Speed .. "x"
 end)
 
--- CAMERA SAVER LIST
 local SaveCamBtn = Instance.new("TextButton", SettingsFrame)
 SaveCamBtn.Text = "💾 Simpan Posisi Kamera"
 SaveCamBtn.Size = UDim2.new(1, -20, 0, 24)
@@ -359,9 +358,6 @@ SaveCamBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ====================================================================
--- HIDE UI & CLEAN VIEW LOGIC
--- ====================================================================
 local function setUiVisibility(visible)
     FreecamConfig.UiHidden = not visible
     TopContainer.Visible = visible
@@ -375,6 +371,55 @@ HideUiToggle.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
+-- INPUT MOVEMENT & CAMERA ROTATION
+-- ====================================================================
+UserInputService.InputChanged:Connect(function(input)
+    if draggingJoy and input == joystickTouchInput then
+        local touchPos = Vector2.new(input.Position.X, input.Position.Y)
+        local delta = touchPos - joyCenter
+        local distance = math.min(delta.Magnitude, maxRadius)
+        local direction = delta.Magnitude > 0 and delta.Unit or Vector2.new()
+        
+        local knobPos = direction * distance
+        JoystickKnob.Position = UDim2.new(0.5, knobPos.X - 25, 0.5, knobPos.Y - 25)
+        JoystickInput = Vector2.new(knobPos.X / maxRadius, knobPos.Y / maxRadius)
+    end
+
+    if isCameraDragging and input == cameraTouchInput then
+        local mouseDelta = UserInputService:GetMouseDelta()
+        cameraRot = cameraRot - Vector2.new(math.rad(mouseDelta.X), math.rad(mouseDelta.Y))
+        local maxPitch = math.rad(89)
+        cameraRot = Vector2.new(cameraRot.X, math.clamp(cameraRot.Y, -maxPitch, maxPitch))
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not FreecamConfig.Enabled then return end
+
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        if gameProcessed then return end
+
+        isCameraDragging = true
+        cameraTouchInput = input
+
+        local now = os.clock()
+        if now - lastTapTime < 0.35 and FreecamConfig.UiHidden then
+            setUiVisibility(true)
+        end
+        lastTapTime = now
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input == joystickTouchInput then
+        resetJoystick()
+    elseif input == cameraTouchInput or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isCameraDragging = false
+        cameraTouchInput = nil
+    end
+end)
+
+-- ====================================================================
 -- FREECAM ENGINE CORE
 -- ====================================================================
 local function setCharacterFrozen(frozen)
@@ -385,7 +430,7 @@ end
 
 local function enableFreecam()
     FreecamConfig.Enabled = true
-    MainToggle.Text = "Freecam: ON"
+    MainToggle.Text = "CAM: ON"
     MainToggle.TextColor3 = Color3.fromRGB(52, 199, 123)
     setUiVisibility(true)
     
@@ -401,13 +446,6 @@ local function enableFreecam()
 
         Camera.FieldOfView = math.clamp(Camera.FieldOfView + (FreecamConfig.Fov - Camera.FieldOfView) * 0.15, FreecamConfig.MinFov, FreecamConfig.MaxFov)
 
-        if isTouchDragging then
-            local mouseDelta = UserInputService:GetMouseDelta()
-            cameraRot = cameraRot - Vector2.new(math.rad(mouseDelta.X), math.rad(mouseDelta.Y))
-            local maxPitch = math.rad(89)
-            cameraRot = Vector2.new(cameraRot.X, math.clamp(cameraRot.Y, -maxPitch, maxPitch))
-        end
-
         local rotCFrame = CFrame.Angles(0, cameraRot.X, 0) * CFrame.Angles(cameraRot.Y, 0, 0)
         local moveDir = Vector3.new(JoystickInput.X, VerticalInput, JoystickInput.Y)
         local currentSpeed = FreecamConfig.Speed
@@ -422,7 +460,7 @@ end
 
 local function disableFreecam()
     FreecamConfig.Enabled = false
-    MainToggle.Text = "Freecam: OFF"
+    MainToggle.Text = "CAM: OFF"
     MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
     
     TopContainer.Visible = true
@@ -437,6 +475,8 @@ local function disableFreecam()
 
     resetJoystick()
     VerticalInput = 0
+    isCameraDragging = false
+    cameraTouchInput = nil
     setCharacterFrozen(false)
     Camera.CameraType = Enum.CameraType.Custom
     Camera.FieldOfView = 70
@@ -450,30 +490,10 @@ local function toggleFreecam()
     end
 end
 
--- ====================================================================
--- TOUCH INPUT LISTENERS
--- ====================================================================
 MainToggle.MouseButton1Click:Connect(toggleFreecam)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2) and FreecamConfig.Enabled then
-        isTouchDragging = true
-        
-        -- Lakukan pengecekan Double-Tap untuk Mengembalikan UI yang Tersembunyi
-        local now = os.clock()
-        if now - lastTapTime < 0.35 then
-            if FreecamConfig.UiHidden then
-                setUiVisibility(true)
-            end
-        end
-        lastTapTime = now
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
-        isTouchDragging = false
-    end
+-- FUNGSI HAPUS SCRIPT / CLOSE PERMANEN
+CloseScriptBtn.MouseButton1Click:Connect(function()
+    disableFreecam()
+    Gui:Destroy()
 end)
