@@ -1,1 +1,269 @@
-tes
+-- ====================================================================
+-- STANDALONE FREECAM WITH ON-SCREEN TOUCH CONTROLS & ZOOM
+-- ====================================================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- CONFIGURATION
+local FreecamConfig = {
+    Enabled = false,
+    Speed = 1.2,
+    Smoothness = 0.2,
+    FreezeCharacter = true,
+    Fov = 70,
+    MinFov = 10,
+    MaxFov = 120
+}
+
+-- VIRTUAL INPUT STATES (Untuk Tombol Touch)
+local VirtualInput = {
+    Forward = false,
+    Backward = false,
+    Left = false,
+    Right = false,
+    Up = false,
+    Down = false
+}
+
+-- STATE VARIABLES
+local cameraCFrame = Camera.CFrame
+local cameraRot = Vector2.new()
+local isRightMouseDown = false
+local isTouchDragging = false
+local lastTouchPos = Vector2.new()
+local renderConnection = nil
+
+local SafeGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui")
+
+-- Clean up UI lama
+if SafeGui:FindFirstChild("Freecam_Touch_UI") then
+    SafeGui.Freecam_Touch_UI:Destroy()
+end
+
+-- ====================================================================
+-- GUI BUILDER
+-- ====================================================================
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "Freecam_Touch_UI"
+Gui.ResetOnSpawn = false
+Gui.Parent = SafeGui
+
+-- MAIN TOGGLE BUTTON
+local MainToggle = Instance.new("TextButton", Gui)
+MainToggle.Name = "MainToggle"
+MainToggle.Size = UDim2.new(0, 110, 0, 36)
+MainToggle.Position = UDim2.new(0.02, 0, 0.3, 0)
+MainToggle.BackgroundColor3 = Color3.fromRGB(30, 32, 36)
+MainToggle.Font = Enum.Font.GothamBold
+MainToggle.Text = "Freecam: OFF"
+MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
+MainToggle.TextSize = 11
+MainToggle.Active = true
+MainToggle.Draggable = true
+Instance.new("UICorner", MainToggle).CornerRadius = UDim.new(0, 8)
+local toggleStroke = Instance.new("UIStroke", MainToggle)
+toggleStroke.Color = Color3.fromRGB(55, 60, 65)
+toggleStroke.Thickness = 1.5
+
+-- PANEL CONTAINER FOR CONTROLS
+local ControlPanel = Instance.new("Frame", Gui)
+ControlPanel.Name = "ControlPanel"
+ControlPanel.Size = UDim2.new(0, 220, 0, 175)
+ControlPanel.Position = UDim2.new(0.02, 0, 0.38, 0)
+ControlPanel.BackgroundColor3 = Color3.fromRGB(24, 26, 28)
+ControlPanel.BackgroundTransparency = 0.2
+ControlPanel.Visible = false
+ControlPanel.Active = true
+ControlPanel.Draggable = true
+Instance.new("UICorner", ControlPanel).CornerRadius = UDim.new(0, 10)
+local panelStroke = Instance.new("UIStroke", ControlPanel)
+panelStroke.Color = Color3.fromRGB(55, 60, 65)
+
+-- HELPER: CREATING CONTROL BUTTONS
+local function createTouchBtn(parent, name, text, size, pos)
+    local btn = Instance.new("TextButton", parent)
+    btn.Name = name
+    btn.Text = text
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(40, 44, 48)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(245, 245, 245)
+    btn.TextSize = 12
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Color = Color3.fromRGB(65, 70, 75)
+    return btn
+end
+
+-- DIRECTIONAL MOVEMENT BUTTONS
+local BtnW = createTouchBtn(ControlPanel, "BtnW", "▲", UDim2.new(0, 36, 0, 36), UDim2.new(0, 48, 0, 10))
+local BtnS = createTouchBtn(ControlPanel, "BtnS", "▼", UDim2.new(0, 36, 0, 36), UDim2.new(0, 48, 0, 88))
+local BtnA = createTouchBtn(ControlPanel, "BtnA", "◄", UDim2.new(0, 36, 0, 36), UDim2.new(0, 10, 0, 49))
+local BtnD = createTouchBtn(ControlPanel, "BtnD", "►", UDim2.new(0, 36, 0, 36), UDim2.new(0, 86, 0, 49))
+
+-- VERTICAL MOVEMENT BUTTONS (UP / DOWN)
+local BtnUp = createTouchBtn(ControlPanel, "BtnUp", "NAIK", UDim2.new(0, 75, 0, 36), UDim2.new(0, 132, 0, 10))
+local BtnDown = createTouchBtn(ControlPanel, "BtnDown", "TURUN", UDim2.new(0, 75, 0, 36), UDim2.new(0, 132, 0, 49))
+
+-- ZOOM CONTROLS
+local BtnZoomIn = createTouchBtn(ControlPanel, "BtnZoomIn", "+ ZOOM", UDim2.new(0, 62, 0, 30), UDim2.new(0, 10, 0, 134))
+local BtnZoomReset = createTouchBtn(ControlPanel, "BtnZoomReset", "70°", UDim2.new(0, 40, 0, 30), UDim2.new(0, 78, 0, 134))
+local BtnZoomOut = createTouchBtn(ControlPanel, "BtnZoomOut", "- ZOOM", UDim2.new(0, 62, 0, 30), UDim2.new(0, 124, 0, 134))
+
+-- BIND BUTTON EVENTS (TOUCH/PRESS)
+local function setupHoldState(button, inputKey)
+    button.MouseButton1Down:Connect(function() VirtualInput[inputKey] = true end)
+    button.MouseButton1Up:Connect(function() VirtualInput[inputKey] = false end)
+    button.MouseLeave:Connect(function() VirtualInput[inputKey] = false end)
+end
+
+setupHoldState(BtnW, "Forward")
+setupHoldState(BtnS, "Backward")
+setupHoldState(BtnA, "Left")
+setupHoldState(BtnD, "Right")
+setupHoldState(BtnUp, "Up")
+setupHoldState(BtnDown, "Down")
+
+-- ZOOM EVENTS
+BtnZoomIn.MouseButton1Click:Connect(function()
+    FreecamConfig.Fov = math.clamp(FreecamConfig.Fov - 5, FreecamConfig.MinFov, FreecamConfig.MaxFov)
+    BtnZoomReset.Text = math.round(FreecamConfig.Fov) .. "°"
+end)
+
+BtnZoomOut.MouseButton1Click:Connect(function()
+    FreecamConfig.Fov = math.clamp(FreecamConfig.Fov + 5, FreecamConfig.MinFov, FreecamConfig.MaxFov)
+    BtnZoomReset.Text = math.round(FreecamConfig.Fov) .. "°"
+end)
+
+BtnZoomReset.MouseButton1Click:Connect(function()
+    FreecamConfig.Fov = 70
+    BtnZoomReset.Text = "70°"
+end)
+
+-- ====================================================================
+-- FREECAM ENGINE CORE
+-- ====================================================================
+local function setCharacterFrozen(frozen)
+    if not FreecamConfig.FreezeCharacter or not LocalPlayer.Character then return end
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then hrp.Anchored = frozen end
+end
+
+local function enableFreecam()
+    FreecamConfig.Enabled = true
+    MainToggle.Text = "Freecam: ON"
+    MainToggle.TextColor3 = Color3.fromRGB(52, 199, 123)
+    ControlPanel.Visible = true
+    
+    cameraCFrame = Camera.CFrame
+    local _, yaw, pitch = cameraCFrame:ToEulerAnglesYXZ()
+    cameraRot = Vector2.new(yaw, pitch)
+    
+    Camera.CameraType = Enum.CameraType.Scriptable
+    setCharacterFrozen(true)
+
+    renderConnection = RunService.RenderStepped:Connect(function(dt)
+        if not FreecamConfig.Enabled then return end
+
+        -- Dynamic FOV Update
+        Camera.FieldOfView = math.clamp(Camera.FieldOfView + (FreecamConfig.Fov - Camera.FieldOfView) * 0.15, FreecamConfig.MinFov, FreecamConfig.MaxFov)
+
+        -- Rotasi Kamera (Right Mouse / Touch Drag)
+        if isRightMouseDown or isTouchDragging then
+            local mouseDelta = UserInputService:GetMouseDelta()
+            cameraRot = cameraRot - Vector2.new(math.rad(mouseDelta.X), math.rad(mouseDelta.Y))
+            local maxPitch = math.rad(89)
+            cameraRot = Vector2.new(cameraRot.X, math.clamp(cameraRot.Y, -maxPitch, maxPitch))
+        end
+
+        local rotCFrame = CFrame.Angles(0, cameraRot.X, 0) * CFrame.Angles(cameraRot.Y, 0, 0)
+
+        -- Input Pergerakan (Kombinasi Keyboard + Tombol Virtual)
+        local moveDir = Vector3.new()
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or VirtualInput.Forward then moveDir = moveDir + Vector3.new(0, 0, -1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) or VirtualInput.Backward then moveDir = moveDir + Vector3.new(0, 0, 1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or VirtualInput.Left then moveDir = moveDir + Vector3.new(-1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) or VirtualInput.Right then moveDir = moveDir + Vector3.new(1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.E) or VirtualInput.Up then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Q) or VirtualInput.Down then moveDir = moveDir + Vector3.new(0, -1, 0) end
+
+        -- Speed Multiplier (Left Shift)
+        local currentSpeed = FreecamConfig.Speed
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            currentSpeed = currentSpeed * 2.5
+        end
+
+        -- Transformasi Posisi
+        local targetPosition = cameraCFrame.Position + (rotCFrame:VectorToWorldSpace(moveDir) * currentSpeed)
+        local targetCFrame = CFrame.new(targetPosition) * rotCFrame
+
+        -- Smoothing
+        cameraCFrame = cameraCFrame:Lerp(targetCFrame, math.clamp(dt / FreecamConfig.Smoothness, 0, 1))
+        Camera.CFrame = cameraCFrame
+    end)
+end
+
+local function disableFreecam()
+    FreecamConfig.Enabled = false
+    MainToggle.Text = "Freecam: OFF"
+    MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
+    ControlPanel.Visible = false
+
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+
+    -- Reset Input
+    for k in pairs(VirtualInput) do VirtualInput[k] = false end
+
+    setCharacterFrozen(false)
+    Camera.CameraType = Enum.CameraType.Custom
+    Camera.FieldOfView = 70
+end
+
+local function toggleFreecam()
+    if FreecamConfig.Enabled then
+        disableFreecam()
+    else
+        enableFreecam()
+    end
+end
+
+-- ====================================================================
+-- INPUT LISTENERS
+-- ====================================================================
+MainToggle.MouseButton1Click:Connect(toggleFreecam)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = true
+    elseif input.UserInputType == Enum.UserInputType.Touch and FreecamConfig.Enabled then
+        -- Rotasi Kamera untuk layar sentuh (Drag di area kosong)
+        if not UserInputService:GetFocusedTextBox() then
+            isTouchDragging = true
+        end
+    end
+
+    -- Shortcut Keybind Shift + F (Khusus PC)
+    if input.KeyCode == Enum.KeyCode.F and UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+        toggleFreecam()
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = false
+    elseif input.UserInputType == Enum.UserInputType.Touch then
+        isTouchDragging = false
+    end
+end)
