@@ -67,7 +67,7 @@ local Config = {
     FastAttack = false,
     AttackDelay = 0.05,
     ExpandProximity = false,
-    ProximityDistance = 50,
+    ProximityDistance = 10000,
     InstantProximityHold = false,
     ProximityLineOfSight = false,
 
@@ -96,7 +96,7 @@ local Theme = {
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
 local KEY_FILE_NAME = "AR_Hub_KeySystem.json"
-local CorrectKey = "AR_PREMIUM_KEY"
+local CorrectKey = "AR"
 
 local CurrentPlaceId = tostring(game.PlaceId)
 local AllWaypoints = {}
