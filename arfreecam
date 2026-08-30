@@ -1,5 +1,5 @@
 -- ====================================================================
--- FREECAM MOBILE (FIX: STICK & CAMERA TOUCH ISOLATION)
+-- FREECAM MOBILE (INCLUDES TELEPORT TO FREECAM POSITION)
 -- ====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -193,12 +193,12 @@ BtnZoomOut.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- MINI SETTINGS & CAM SAVER WINDOW
+-- SETTINGS & CAM SAVER WINDOW (+ TELEPORT)
 -- ====================================================================
 local SettingsFrame = Instance.new("Frame", Gui)
 SettingsFrame.Name = "SettingsFrame"
-SettingsFrame.Size = UDim2.new(0, 240, 0, 200)
-SettingsFrame.Position = UDim2.new(0.5, -120, 0.5, -100)
+SettingsFrame.Size = UDim2.new(0, 240, 0, 230) -- Ditingkatkan ukurannya untuk tombol Teleport
+SettingsFrame.Position = UDim2.new(0.5, -120, 0.5, -115)
 SettingsFrame.BackgroundColor3 = Color3.fromRGB(24, 26, 28)
 SettingsFrame.Visible = false
 SettingsFrame.Active = true
@@ -268,10 +268,21 @@ SpeedBtnPlus.MouseButton1Click:Connect(function()
     SpeedLabel.Text = "Kecepatan: " .. FreecamConfig.Speed .. "x"
 end)
 
+-- TOMBOL TELEPORT HASIL MODIFIKASI
+local TeleportBtn = Instance.new("TextButton", SettingsFrame)
+TeleportBtn.Text = "📍 Teleport Character ke Kamera"
+TeleportBtn.Size = UDim2.new(1, -20, 0, 24)
+TeleportBtn.Position = UDim2.new(0, 10, 0, 54)
+TeleportBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+TeleportBtn.Font = Enum.Font.GothamBold
+TeleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportBtn.TextSize = 10
+Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0, 5)
+
 local SaveCamBtn = Instance.new("TextButton", SettingsFrame)
 SaveCamBtn.Text = "💾 Simpan Posisi Kamera"
 SaveCamBtn.Size = UDim2.new(1, -20, 0, 24)
-SaveCamBtn.Position = UDim2.new(0, 10, 0, 56)
+SaveCamBtn.Position = UDim2.new(0, 10, 0, 82)
 SaveCamBtn.BackgroundColor3 = Color3.fromRGB(52, 199, 123)
 SaveCamBtn.Font = Enum.Font.GothamBold
 SaveCamBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -280,7 +291,7 @@ Instance.new("UICorner", SaveCamBtn).CornerRadius = UDim.new(0, 5)
 
 local CamScroll = Instance.new("ScrollingFrame", SettingsFrame)
 CamScroll.Size = UDim2.new(1, -20, 0, 105)
-CamScroll.Position = UDim2.new(0, 10, 0, 86)
+CamScroll.Position = UDim2.new(0, 10, 0, 112)
 CamScroll.BackgroundTransparency = 1
 CamScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 CamScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -383,16 +394,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
         local pos = Vector2.new(input.Position.X, input.Position.Y)
 
-        -- PERIKSA APABILA SENTUHAN ADA DI AREA UI (JOYSTICK, RIGHT BUTTONS, MENUS)
         if gameProcessed or 
            isTouchInGui(pos, JoystickBase) or 
            isTouchInGui(pos, RightControls) or 
            isTouchInGui(pos, TopContainer) or 
            isTouchInGui(pos, SettingsFrame) then
-            return -- Blokir rotasi kamera jika menyentuh elemen UI!
+            return
         end
 
-        -- HANYA SENTUHAN DI LAYAR KOSONG YANG BOLEH MEMUTAR KAMERA
         isCameraDragging = true
         cameraTouchInput = input
 
@@ -434,12 +443,36 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 -- ====================================================================
--- FREECAM ENGINE CORE
+-- FREECAM ENGINE CORE & TELEPORT LOGIC
 -- ====================================================================
 local function setCharacterFrozen(frozen)
     if not FreecamConfig.FreezeCharacter or not LocalPlayer.Character then return end
     local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if hrp then hrp.Anchored = frozen end
+end
+
+local function disableFreecam()
+    FreecamConfig.Enabled = false
+    MainToggle.Text = "CAM: OFF"
+    MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
+    
+    TopContainer.Visible = true
+    JoystickBase.Visible = false
+    RightControls.Visible = false
+    SettingsFrame.Visible = false
+
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+
+    resetJoystick()
+    VerticalInput = 0
+    isCameraDragging = false
+    cameraTouchInput = nil
+    setCharacterFrozen(false)
+    Camera.CameraType = Enum.CameraType.Custom
+    Camera.FieldOfView = 70
 end
 
 local function enableFreecam()
@@ -472,29 +505,22 @@ local function enableFreecam()
     end)
 end
 
-local function disableFreecam()
-    FreecamConfig.Enabled = false
-    MainToggle.Text = "CAM: OFF"
-    MainToggle.TextColor3 = Color3.fromRGB(255, 90, 90)
-    
-    TopContainer.Visible = true
-    JoystickBase.Visible = false
-    RightControls.Visible = false
-    SettingsFrame.Visible = false
-
-    if renderConnection then
-        renderConnection:Disconnect()
-        renderConnection = nil
+-- LOGIKA TELEPORT KARAKTER
+TeleportBtn.MouseButton1Click:Connect(function()
+    if FreecamConfig.Enabled and LocalPlayer.Character then
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- Buka un-anchor terlebih dahulu agar posisi karakter bisa dipindah
+            setCharacterFrozen(false)
+            
+            -- Memindahkan lokasi karakter persis ke lokasi kamera saat ini
+            hrp.CFrame = cameraCFrame
+            
+            -- Matikan freecam agar pemain kembali mengendalikan karakter
+            disableFreecam()
+        end
     end
-
-    resetJoystick()
-    VerticalInput = 0
-    isCameraDragging = false
-    cameraTouchInput = nil
-    setCharacterFrozen(false)
-    Camera.CameraType = Enum.CameraType.Custom
-    Camera.FieldOfView = 70
-end
+end)
 
 local function toggleFreecam()
     if FreecamConfig.Enabled then
