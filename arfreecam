@@ -1,12 +1,14 @@
 -- ====================================================================
--- FREECAM MOBILE (INCLUDES TELEPORT TO FREECAM POSITION)
+-- FREECAM MOBILE ADVANCED (WITH PER-MAP SAVER & REORDERING)
 -- ====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local PlaceId = game.PlaceId
 
 -- CONFIGURATION & STATE
 local FreecamConfig = {
@@ -20,7 +22,7 @@ local FreecamConfig = {
     UiHidden = false
 }
 
-local SavedCamPositions = {}
+local SavedCamPositions = {} -- Format: { {Name = "...", CFrame = {...}}, ... }
 local JoystickInput = Vector2.new(0, 0)
 local VerticalInput = 0
 
@@ -39,6 +41,50 @@ local SafeGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:Wa
 if SafeGui:FindFirstChild("Freecam_Mobile_Advanced") then
     SafeGui.Freecam_Mobile_Advanced:Destroy()
 end
+
+-- ====================================================================
+-- SYSTEM SAVE / LOAD DATA (PER MAP)
+-- ====================================================================
+local FileName = "Freecam_Positions_Map_" .. tostring(PlaceId) .. ".json"
+
+local function SaveDataToFile()
+    if not writefile then return end
+    local exportTable = {}
+    for _, item in ipairs(SavedCamPositions) do
+        local cf = item.CFrame
+        table.insert(exportTable, {
+            Name = item.Name,
+            CFrame = {cf:GetComponents()}
+        })
+    end
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(exportTable)
+    end)
+    if success then
+        writefile(FileName, encoded)
+    end
+end
+
+local function LoadDataFromFile()
+    if not (readfile and isfile and isfile(FileName)) then return end
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(readfile(FileName))
+    end)
+    if success and type(result) == "table" then
+        SavedCamPositions = {}
+        for _, item in ipairs(result) do
+            if item.CFrame and #item.CFrame == 12 then
+                table.insert(SavedCamPositions, {
+                    Name = item.Name or "Cam Pos",
+                    CFrame = CFrame.new(unpack(item.CFrame))
+                })
+            end
+        end
+    end
+end
+
+-- Load data saat skrip dijalankan
+LoadDataFromFile()
 
 -- ====================================================================
 -- GUI BUILDER
@@ -193,12 +239,12 @@ BtnZoomOut.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- SETTINGS & CAM SAVER WINDOW (+ TELEPORT)
+-- SETTINGS & CAM SAVER WINDOW
 -- ====================================================================
 local SettingsFrame = Instance.new("Frame", Gui)
 SettingsFrame.Name = "SettingsFrame"
-SettingsFrame.Size = UDim2.new(0, 240, 0, 230) -- Ditingkatkan ukurannya untuk tombol Teleport
-SettingsFrame.Position = UDim2.new(0.5, -120, 0.5, -115)
+SettingsFrame.Size = UDim2.new(0, 260, 0, 270)
+SettingsFrame.Position = UDim2.new(0.5, -130, 0.5, -135)
 SettingsFrame.BackgroundColor3 = Color3.fromRGB(24, 26, 28)
 SettingsFrame.Visible = false
 SettingsFrame.Active = true
@@ -208,12 +254,12 @@ local setFrameStroke = Instance.new("UIStroke", SettingsFrame)
 setFrameStroke.Color = Color3.fromRGB(55, 60, 65)
 
 local SetTitle = Instance.new("TextLabel", SettingsFrame)
-SetTitle.Text = "Freecam Settings"
+SetTitle.Text = "Freecam Settings (Map ID: " .. PlaceId .. ")"
 SetTitle.Size = UDim2.new(1, -30, 0, 28)
 SetTitle.Position = UDim2.new(0, 10, 0, 0)
 SetTitle.Font = Enum.Font.GothamBold
 SetTitle.TextColor3 = Color3.fromRGB(245, 245, 245)
-SetTitle.TextSize = 11
+SetTitle.TextSize = 10
 SetTitle.TextXAlignment = Enum.TextXAlignment.Left
 SetTitle.BackgroundTransparency = 1
 
@@ -233,7 +279,7 @@ end)
 local SpeedLabel = Instance.new("TextLabel", SettingsFrame)
 SpeedLabel.Text = "Kecepatan: 1.5x"
 SpeedLabel.Size = UDim2.new(1, -20, 0, 18)
-SpeedLabel.Position = UDim2.new(0, 10, 0, 30)
+SpeedLabel.Position = UDim2.new(0, 10, 0, 28)
 SpeedLabel.Font = Enum.Font.GothamMedium
 SpeedLabel.TextColor3 = Color3.fromRGB(180, 185, 190)
 SpeedLabel.TextSize = 10
@@ -242,7 +288,7 @@ SpeedLabel.BackgroundTransparency = 1
 
 local SpeedBtnMinus = Instance.new("TextButton", SettingsFrame)
 SpeedBtnMinus.Text = "-"
-SpeedBtnMinus.Size = UDim2.new(0, 24, 0, 20)
+SpeedBtnMinus.Size = UDim2.new(0, 24, 0, 18)
 SpeedBtnMinus.Position = UDim2.new(1, -60, 0, 28)
 SpeedBtnMinus.BackgroundColor3 = Color3.fromRGB(40, 44, 48)
 SpeedBtnMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -251,7 +297,7 @@ Instance.new("UICorner", SpeedBtnMinus).CornerRadius = UDim.new(0, 4)
 
 local SpeedBtnPlus = Instance.new("TextButton", SettingsFrame)
 SpeedBtnPlus.Text = "+"
-SpeedBtnPlus.Size = UDim2.new(0, 24, 0, 20)
+SpeedBtnPlus.Size = UDim2.new(0, 24, 0, 18)
 SpeedBtnPlus.Position = UDim2.new(1, -30, 0, 28)
 SpeedBtnPlus.BackgroundColor3 = Color3.fromRGB(40, 44, 48)
 SpeedBtnPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -268,30 +314,41 @@ SpeedBtnPlus.MouseButton1Click:Connect(function()
     SpeedLabel.Text = "Kecepatan: " .. FreecamConfig.Speed .. "x"
 end)
 
--- TOMBOL TELEPORT HASIL MODIFIKASI
 local TeleportBtn = Instance.new("TextButton", SettingsFrame)
 TeleportBtn.Text = "📍 Teleport Character ke Kamera"
-TeleportBtn.Size = UDim2.new(1, -20, 0, 24)
-TeleportBtn.Position = UDim2.new(0, 10, 0, 54)
+TeleportBtn.Size = UDim2.new(1, -20, 0, 22)
+TeleportBtn.Position = UDim2.new(0, 10, 0, 50)
 TeleportBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
 TeleportBtn.Font = Enum.Font.GothamBold
 TeleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportBtn.TextSize = 10
+TeleportBtn.TextSize = 9
 Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0, 5)
 
+-- INPUT NAMA POSISI KOMPONEN
+local NameBox = Instance.new("TextBox", SettingsFrame)
+NameBox.PlaceholderText = "Nama Posisi Kamera..."
+NameBox.Size = UDim2.new(1, -95, 0, 22)
+NameBox.Position = UDim2.new(0, 10, 0, 76)
+NameBox.BackgroundColor3 = Color3.fromRGB(36, 40, 44)
+NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameBox.PlaceholderColor3 = Color3.fromRGB(130, 135, 140)
+NameBox.Font = Enum.Font.GothamMedium
+NameBox.TextSize = 9
+Instance.new("UICorner", NameBox).CornerRadius = UDim.new(0, 5)
+
 local SaveCamBtn = Instance.new("TextButton", SettingsFrame)
-SaveCamBtn.Text = "💾 Simpan Posisi Kamera"
-SaveCamBtn.Size = UDim2.new(1, -20, 0, 24)
-SaveCamBtn.Position = UDim2.new(0, 10, 0, 82)
+SaveCamBtn.Text = "💾 Simpan"
+SaveCamBtn.Size = UDim2.new(0, 60, 0, 22)
+SaveCamBtn.Position = UDim2.new(1, -70, 0, 76)
 SaveCamBtn.BackgroundColor3 = Color3.fromRGB(52, 199, 123)
 SaveCamBtn.Font = Enum.Font.GothamBold
 SaveCamBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SaveCamBtn.TextSize = 10
+SaveCamBtn.TextSize = 9
 Instance.new("UICorner", SaveCamBtn).CornerRadius = UDim.new(0, 5)
 
 local CamScroll = Instance.new("ScrollingFrame", SettingsFrame)
-CamScroll.Size = UDim2.new(1, -20, 0, 105)
-CamScroll.Position = UDim2.new(0, 10, 0, 112)
+CamScroll.Size = UDim2.new(1, -20, 0, 155)
+CamScroll.Position = UDim2.new(0, 10, 0, 104)
 CamScroll.BackgroundTransparency = 1
 CamScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 CamScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -306,53 +363,96 @@ local function refreshCamList()
         if child:IsA("Frame") then child:Destroy() end
     end
     
-    for idx, cframe in ipairs(SavedCamPositions) do
+    for idx, data in ipairs(SavedCamPositions) do
         local card = Instance.new("Frame", CamScroll)
-        card.Size = UDim2.new(1, 0, 0, 24)
+        card.Size = UDim2.new(1, 0, 0, 26)
         card.BackgroundColor3 = Color3.fromRGB(36, 40, 44)
         Instance.new("UICorner", card).CornerRadius = UDim.new(0, 4)
 
         local lbl = Instance.new("TextLabel", card)
-        lbl.Text = "Cam Pos #" .. idx
-        lbl.Size = UDim2.new(0.5, 0, 1, 0)
+        lbl.Text = idx .. ". " .. data.Name
+        lbl.Size = UDim2.new(1, -115, 1, 0)
         lbl.Position = UDim2.new(0, 6, 0, 0)
         lbl.Font = Enum.Font.GothamMedium
         lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-        lbl.TextSize = 9
+        lbl.TextSize = 8
         lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.TextTruncate = Enum.TextTruncate.AtEnd
         lbl.BackgroundTransparency = 1
 
+        -- TOMBOL GO
         local btnGo = Instance.new("TextButton", card)
         btnGo.Text = "GO"
-        btnGo.Size = UDim2.new(0, 32, 0, 18)
-        btnGo.Position = UDim2.new(1, -66, 0.5, -9)
+        btnGo.Size = UDim2.new(0, 26, 0, 18)
+        btnGo.Position = UDim2.new(1, -108, 0.5, -9)
         btnGo.BackgroundColor3 = Color3.fromRGB(52, 199, 123)
         btnGo.Font = Enum.Font.GothamBold
         btnGo.TextColor3 = Color3.fromRGB(255, 255, 255)
         btnGo.TextSize = 8
         Instance.new("UICorner", btnGo).CornerRadius = UDim.new(0, 3)
 
+        -- TOMBOL ATAS (URUTAN)
+        local btnUp = Instance.new("TextButton", card)
+        btnUp.Text = "▲"
+        btnUp.Size = UDim2.new(0, 20, 0, 18)
+        btnUp.Position = UDim2.new(1, -78, 0.5, -9)
+        btnUp.BackgroundColor3 = Color3.fromRGB(60, 65, 70)
+        btnUp.Font = Enum.Font.GothamBold
+        btnUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btnUp.TextSize = 8
+        Instance.new("UICorner", btnUp).CornerRadius = UDim.new(0, 3)
+
+        -- TOMBOL BAWAH (URUTAN)
+        local btnDown = Instance.new("TextButton", card)
+        btnDown.Text = "▼"
+        btnDown.Size = UDim2.new(0, 20, 0, 18)
+        btnDown.Position = UDim2.new(1, -54, 0.5, -9)
+        btnDown.BackgroundColor3 = Color3.fromRGB(60, 65, 70)
+        btnDown.Font = Enum.Font.GothamBold
+        btnDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btnDown.TextSize = 8
+        Instance.new("UICorner", btnDown).CornerRadius = UDim.new(0, 3)
+
+        -- TOMBOL HAPUS
         local btnDel = Instance.new("TextButton", card)
         btnDel.Text = "✕"
-        btnDel.Size = UDim2.new(0, 24, 0, 18)
-        btnDel.Position = UDim2.new(1, -28, 0.5, -9)
+        btnDel.Size = UDim2.new(0, 20, 0, 18)
+        btnDel.Position = UDim2.new(1, -26, 0.5, -9)
         btnDel.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
         btnDel.Font = Enum.Font.GothamBold
         btnDel.TextColor3 = Color3.fromRGB(255, 255, 255)
         btnDel.TextSize = 8
         Instance.new("UICorner", btnDel).CornerRadius = UDim.new(0, 3)
 
+        -- EVENTS
         btnGo.MouseButton1Click:Connect(function()
             if FreecamConfig.Enabled then
-                cameraCFrame = cframe
+                cameraCFrame = data.CFrame
                 local _, yaw, pitch = cameraCFrame:ToEulerAnglesYXZ()
                 cameraRot = Vector2.new(yaw, pitch)
                 Camera.CFrame = cameraCFrame
             end
         end)
 
+        btnUp.MouseButton1Click:Connect(function()
+            if idx > 1 then
+                SavedCamPositions[idx], SavedCamPositions[idx - 1] = SavedCamPositions[idx - 1], SavedCamPositions[idx]
+                SaveDataToFile()
+                refreshCamList()
+            end
+        end)
+
+        btnDown.MouseButton1Click:Connect(function()
+            if idx < #SavedCamPositions then
+                SavedCamPositions[idx], SavedCamPositions[idx + 1] = SavedCamPositions[idx + 1], SavedCamPositions[idx]
+                SaveDataToFile()
+                refreshCamList()
+            end
+        end)
+
         btnDel.MouseButton1Click:Connect(function()
             table.remove(SavedCamPositions, idx)
+            SaveDataToFile()
             refreshCamList()
         end)
     end
@@ -360,10 +460,19 @@ end
 
 SaveCamBtn.MouseButton1Click:Connect(function()
     if FreecamConfig.Enabled then
-        table.insert(SavedCamPositions, cameraCFrame)
+        local posName = NameBox.Text ~= "" and NameBox.Text or ("Pos " .. (#SavedCamPositions + 1))
+        table.insert(SavedCamPositions, {
+            Name = posName,
+            CFrame = cameraCFrame
+        })
+        NameBox.Text = ""
+        SaveDataToFile()
         refreshCamList()
     end
 end)
+
+-- Initial Load Render
+refreshCamList()
 
 local function setUiVisibility(visible)
     FreecamConfig.UiHidden = not visible
@@ -505,18 +614,12 @@ local function enableFreecam()
     end)
 end
 
--- LOGIKA TELEPORT KARAKTER
 TeleportBtn.MouseButton1Click:Connect(function()
     if FreecamConfig.Enabled and LocalPlayer.Character then
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            -- Buka un-anchor terlebih dahulu agar posisi karakter bisa dipindah
             setCharacterFrozen(false)
-            
-            -- Memindahkan lokasi karakter persis ke lokasi kamera saat ini
             hrp.CFrame = cameraCFrame
-            
-            -- Matikan freecam agar pemain kembali mengendalikan karakter
             disableFreecam()
         end
     end
