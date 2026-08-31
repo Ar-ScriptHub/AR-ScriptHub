@@ -280,10 +280,9 @@ task.spawn(function()
     end
 end)
 
--- Fungsi untuk mengunci properti ProximityPrompt
-local function forcePromptSettings(prompt)
+-- Engine Proximity Prompt (Update Real-Time)
+local function applyPromptSettings(prompt)
     if not prompt:IsA("ProximityPrompt") then return end
-
     pcall(function()
         if Config.ExpandProximity then
             prompt.MaxActivationDistance = Config.ProximityDistance
@@ -297,34 +296,30 @@ local function forcePromptSettings(prompt)
     end)
 end
 
--- 1. Terapkan ke semua Prompt yang sudah ada + Kunci nilainya jika game mencoba mengubahnya
-for _, prompt in pairs(workspace:GetDescendants()) do
-    if prompt:IsA("ProximityPrompt") then
-        forcePromptSettings(prompt)
-        
-        -- Kunci: Jika game mengembalikan nilainya ke True, paksa balik ke False!
-        prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
-            if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
-                prompt.RequiresLineOfSight = false
+-- Continuous Loop: Memastikan semua Proximity Prompt ter-update secara berkala saat Toggle ON
+task.spawn(function()
+    while task.wait(1) do
+        if Config.ExpandProximity or Config.InstantProximityHold or Config.ProximityLineOfSight then
+            for _, prompt in pairs(workspace:GetDescendants()) do
+                applyPromptSettings(prompt)
             end
-        end)
+        end
     end
-end
+end)
 
--- 2. Terapkan secara instant begitu ada Prompt baru yang dimuat (Spawned)
+-- Event Listener: Menangani LineOfSight & Object Baru yang di-spawn game
 workspace.DescendantAdded:Connect(function(prompt)
     if prompt:IsA("ProximityPrompt") then
-        task.wait() -- jeda micro agar prompt terinisialisasi sempurna oleh game
-        forcePromptSettings(prompt)
+        task.wait(0.1)
+        applyPromptSettings(prompt)
         
         prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
-            if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
+            if Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
                 prompt.RequiresLineOfSight = false
             end
         end)
     end
 end)
-
 -- ====================================================================
 -- MOVEMENT PROPERTY WORKERS
 -- ====================================================================
