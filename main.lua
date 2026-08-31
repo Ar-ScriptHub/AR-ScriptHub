@@ -67,7 +67,7 @@ local Config = {
     FastAttack = false,
     AttackDelay = 0.05,
     ExpandProximity = false,
-    ProximityDistance = 10000,
+    ProximityDistance = 50,
     InstantProximityHold = false,
     ProximityLineOfSight = false,
 
