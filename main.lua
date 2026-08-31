@@ -1228,7 +1228,7 @@ end)
 addToggle(autoPage, "⚔️ Fast Attack / Auto Hit", 1, "FastAttack")
 addSliderWithInput(autoPage, "Attack Cooldown (s)", 0, 1, 0.05, 2, "AttackDelay")
 addToggle(autoPage, "🔘 Expand Proximity (Distance E)", 3, "ExpandProximity")
-addSliderWithInput(autoPage, "Proximity Distance (Studs)", 10, 200, 50, 4, "ProximityDistance")
+addSliderWithInput(autoPage, "Proximity Distance (Studs)", 10, 1000, 50, 4, "ProximityDistance")
 addToggle(autoPage, "⚡ Instant Hold E (No Delay)", 5, "InstantProximityHold")
 addToggle(autoPage, "🧱 Ignore Walls for E (No LineOfSight)", 6, "ProximityLineOfSight")
 
