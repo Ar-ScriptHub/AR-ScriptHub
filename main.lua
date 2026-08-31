@@ -280,23 +280,48 @@ task.spawn(function()
     end
 end)
 
-task.spawn(function()
-    while task.wait(1) do
+-- Fungsi untuk mengunci properti ProximityPrompt
+local function forcePromptSettings(prompt)
+    if not prompt:IsA("ProximityPrompt") then return end
+
+    pcall(function()
         if Config.ExpandProximity then
-            for _, prompt in pairs(workspace:GetDescendants()) do
-                if prompt:IsA("ProximityPrompt") then
-                    pcall(function()
-                        prompt.MaxActivationDistance = Config.ProximityDistance
-                        if Config.InstantProximityHold then
-                            prompt.HoldDuration = 0
-                        end
-                        if Config.ProximityLineOfSight then
-                            prompt.RequiresLineOfSight = false
-                        end
-                    end)
-                end
-            end
+            prompt.MaxActivationDistance = Config.ProximityDistance
         end
+        if Config.InstantProximityHold then
+            prompt.HoldDuration = 0
+        end
+        if Config.ProximityLineOfSight then
+            prompt.RequiresLineOfSight = false
+        end
+    end)
+end
+
+-- 1. Terapkan ke semua Prompt yang sudah ada + Kunci nilainya jika game mencoba mengubahnya
+for _, prompt in pairs(workspace:GetDescendants()) do
+    if prompt:IsA("ProximityPrompt") then
+        forcePromptSettings(prompt)
+        
+        -- Kunci: Jika game mengembalikan nilainya ke True, paksa balik ke False!
+        prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
+            if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
+                prompt.RequiresLineOfSight = false
+            end
+        end)
+    end
+end
+
+-- 2. Terapkan secara instant begitu ada Prompt baru yang dimuat (Spawned)
+workspace.DescendantAdded:Connect(function(prompt)
+    if prompt:IsA("ProximityPrompt") then
+        task.wait() -- jeda micro agar prompt terinisialisasi sempurna oleh game
+        forcePromptSettings(prompt)
+        
+        prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
+            if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
+                prompt.RequiresLineOfSight = false
+            end
+        end)
     end
 end)
 
