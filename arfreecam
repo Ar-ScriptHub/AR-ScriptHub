@@ -1,5 +1,5 @@
 -- ====================================================================
--- FREECAM MOBILE ADVANCED + SPECTATOR ENGINE
+-- FREECAM MOBILE ADVANCED + SEPARATE SPECTATE MENU ENGINE
 -- ====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -25,7 +25,7 @@ local FreecamConfig = {
 local SpectateConfig = {
     Enabled = false,
     TargetPlayer = nil,
-    Offset = Vector3.new(0, 3, 10) -- Jarak kamera dari belakang target
+    Offset = Vector3.new(0, 3, 10)
 }
 
 local SavedCamPositions = {}
@@ -106,8 +106,8 @@ LockIcon.TextSize = 10
 -- FRAME UTAMA
 local MainFrame = Instance.new("Frame", Gui)
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 250, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -170)
+MainFrame.Size = UDim2.new(0, 250, 0, 260)
+MainFrame.Position = UDim2.new(0.3, -125, 0.5, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 25)
 MainFrame.Visible = false
 MainFrame.Active = true
@@ -122,7 +122,7 @@ Header.Size = UDim2.new(1, 0, 0, 32)
 Header.BackgroundTransparency = 1
 
 local Title = Instance.new("TextLabel", Header)
-Title.Text = "FREECAM & SPECTATOR"
+Title.Text = "FREECAM MENU"
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.Font = Enum.Font.GothamBold
@@ -196,7 +196,7 @@ Instance.new("UICorner", SpdPlus).CornerRadius = UDim.new(0, 4)
 
 -- 3. Teleport Button (To Freecam Pos)
 local TeleportBtn = Instance.new("TextButton", Body)
-TeleportBtn.Text = "📍 Teleport Karakter ke Kamera Freecam"
+TeleportBtn.Text = "📍 Teleport Karakter ke Freecam"
 TeleportBtn.Size = UDim2.new(1, 0, 0, 22)
 TeleportBtn.Position = UDim2.new(0, 0, 0, 56)
 TeleportBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
@@ -205,44 +205,22 @@ TeleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TeleportBtn.TextSize = 8.5
 Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0, 5)
 
--- 4. SPECTATE SECTION
-local SpecTitle = Instance.new("TextLabel", Body)
-SpecTitle.Text = "── SPECTATE PLAYER ──"
-SpecTitle.Size = UDim2.new(1, 0, 0, 16)
-SpecTitle.Position = UDim2.new(0, 0, 0, 82)
-SpecTitle.Font = Enum.Font.GothamBold
-SpecTitle.TextColor3 = Color3.fromRGB(140, 145, 150)
-SpecTitle.TextSize = 8
-SpecTitle.BackgroundTransparency = 1
-
-local PlayerScroll = Instance.new("ScrollingFrame", Body)
-PlayerScroll.Size = UDim2.new(1, 0, 0, 75)
-PlayerScroll.Position = UDim2.new(0, 0, 0, 100)
-PlayerScroll.BackgroundColor3 = Color3.fromRGB(15, 17, 19)
-PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-PlayerScroll.ScrollBarThickness = 2
-Instance.new("UICorner", PlayerScroll).CornerRadius = UDim.new(0, 5)
-
-local playerListLayout = Instance.new("UIListLayout", PlayerScroll)
-playerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-playerListLayout.Padding = UDim.new(0, 3)
-
-local TeleportToSpecBtn = Instance.new("TextButton", Body)
-TeleportToSpecBtn.Text = "📍 Teleport Ke Player (Spectated)"
-TeleportToSpecBtn.Size = UDim2.new(1, 0, 0, 22)
-TeleportToSpecBtn.Position = UDim2.new(0, 0, 0, 180)
-TeleportToSpecBtn.BackgroundColor3 = Color3.fromRGB(130, 60, 200)
-TeleportToSpecBtn.Font = Enum.Font.GothamBold
-TeleportToSpecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportToSpecBtn.TextSize = 8.5
-Instance.new("UICorner", TeleportToSpecBtn).CornerRadius = UDim.new(0, 5)
+-- 4. OPEN SPECTATE BUTTON
+local OpenSpectateBtn = Instance.new("TextButton", Body)
+OpenSpectateBtn.Text = "👁️ OPEN SPECTATE"
+OpenSpectateBtn.Size = UDim2.new(1, 0, 0, 24)
+OpenSpectateBtn.Position = UDim2.new(0, 0, 0, 84)
+OpenSpectateBtn.BackgroundColor3 = Color3.fromRGB(130, 60, 200)
+OpenSpectateBtn.Font = Enum.Font.GothamBold
+OpenSpectateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenSpectateBtn.TextSize = 9
+Instance.new("UICorner", OpenSpectateBtn).CornerRadius = UDim.new(0, 5)
 
 -- 5. Map Saver Section
 local SaveTitle = Instance.new("TextLabel", Body)
 SaveTitle.Text = "── POSISI TERSEMPAN ──"
 SaveTitle.Size = UDim2.new(1, 0, 0, 16)
-SaveTitle.Position = UDim2.new(0, 0, 0, 206)
+SaveTitle.Position = UDim2.new(0, 0, 0, 114)
 SaveTitle.Font = Enum.Font.GothamBold
 SaveTitle.TextColor3 = Color3.fromRGB(140, 145, 150)
 SaveTitle.TextSize = 8
@@ -251,7 +229,7 @@ SaveTitle.BackgroundTransparency = 1
 local NameBox = Instance.new("TextBox", Body)
 NameBox.PlaceholderText = "Nama Posisi..."
 NameBox.Size = UDim2.new(1, -65, 0, 20)
-NameBox.Position = UDim2.new(0, 0, 0, 224)
+NameBox.Position = UDim2.new(0, 0, 0, 132)
 NameBox.BackgroundColor3 = Color3.fromRGB(30, 33, 36)
 NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 NameBox.PlaceholderColor3 = Color3.fromRGB(120, 125, 130)
@@ -262,7 +240,7 @@ Instance.new("UICorner", NameBox).CornerRadius = UDim.new(0, 4)
 local SaveCamBtn = Instance.new("TextButton", Body)
 SaveCamBtn.Text = "💾 Simpan"
 SaveCamBtn.Size = UDim2.new(0, 60, 0, 20)
-SaveCamBtn.Position = UDim2.new(1, -60, 0, 224)
+SaveCamBtn.Position = UDim2.new(1, -60, 0, 132)
 SaveCamBtn.BackgroundColor3 = Color3.fromRGB(46, 175, 105)
 SaveCamBtn.Font = Enum.Font.GothamBold
 SaveCamBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -270,8 +248,8 @@ SaveCamBtn.TextSize = 8.5
 Instance.new("UICorner", SaveCamBtn).CornerRadius = UDim.new(0, 4)
 
 local CamScroll = Instance.new("ScrollingFrame", Body)
-CamScroll.Size = UDim2.new(1, 0, 0, 52)
-CamScroll.Position = UDim2.new(0, 0, 0, 248)
+CamScroll.Size = UDim2.new(1, 0, 0, 58)
+CamScroll.Position = UDim2.new(0, 0, 0, 156)
 CamScroll.BackgroundTransparency = 1
 CamScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 CamScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -280,6 +258,76 @@ CamScroll.ScrollBarThickness = 2
 local scrollLayout = Instance.new("UIListLayout", CamScroll)
 scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
 scrollLayout.Padding = UDim.new(0, 3)
+
+-- ====================================================================
+-- SPECTATE SIDE PANEL (SUB-MENU SEBELAH KANAN)
+-- ====================================================================
+local SpecFrame = Instance.new("Frame", Gui)
+SpecFrame.Name = "SpecFrame"
+SpecFrame.Size = UDim2.new(0, 210, 0, 260)
+SpecFrame.Position = UDim2.new(1, 10, 0, 0) -- Menempel di kanan MainFrame
+SpecFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 25)
+SpecFrame.Visible = false
+Instance.new("UICorner", SpecFrame).CornerRadius = UDim.new(0, 12)
+local specStroke = Instance.new("UIStroke", SpecFrame)
+specStroke.Color = Color3.fromRGB(130, 60, 200)
+
+-- Connect posisi SpecFrame agar selalu menempel di kanan MainFrame
+MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+    SpecFrame.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X + 10, 0, MainFrame.AbsolutePosition.Y)
+end)
+
+local SpecHeader = Instance.new("Frame", SpecFrame)
+SpecHeader.Size = UDim2.new(1, 0, 0, 32)
+SpecHeader.BackgroundTransparency = 1
+
+local SpecTitle = Instance.new("TextLabel", SpecHeader)
+SpecTitle.Text = "SPECTATE PLAYER"
+SpecTitle.Size = UDim2.new(1, -10, 1, 0)
+SpecTitle.Position = UDim2.new(0, 10, 0, 0)
+SpecTitle.Font = Enum.Font.GothamBold
+SpecTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
+SpecTitle.TextSize = 10
+SpecTitle.TextXAlignment = Enum.TextXAlignment.Left
+SpecTitle.BackgroundTransparency = 1
+
+local SpecBody = Instance.new("Frame", SpecFrame)
+SpecBody.Size = UDim2.new(1, -16, 1, -40)
+SpecBody.Position = UDim2.new(0, 8, 0, 34)
+SpecBody.BackgroundTransparency = 1
+
+local PlayerScroll = Instance.new("ScrollingFrame", SpecBody)
+PlayerScroll.Size = UDim2.new(1, 0, 0, 140)
+PlayerScroll.Position = UDim2.new(0, 0, 0, 0)
+PlayerScroll.BackgroundColor3 = Color3.fromRGB(15, 17, 19)
+PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+PlayerScroll.ScrollBarThickness = 2
+Instance.new("UICorner", PlayerScroll).CornerRadius = UDim.new(0, 5)
+
+local playerListLayout = Instance.new("UIListLayout", PlayerScroll)
+playerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playerListLayout.Padding = UDim.new(0, 3)
+
+local TeleportToSpecBtn = Instance.new("TextButton", SpecBody)
+TeleportToSpecBtn.Text = "📍 Teleport Ke Player"
+TeleportToSpecBtn.Size = UDim2.new(1, 0, 0, 24)
+TeleportToSpecBtn.Position = UDim2.new(0, 0, 0, 148)
+TeleportToSpecBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+TeleportToSpecBtn.Font = Enum.Font.GothamBold
+TeleportToSpecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportToSpecBtn.TextSize = 8.5
+Instance.new("UICorner", TeleportToSpecBtn).CornerRadius = UDim.new(0, 5)
+
+local BackFromSpecBtn = Instance.new("TextButton", SpecBody)
+BackFromSpecBtn.Text = "⬅️ Kembali (Tutup Spectate)"
+BackFromSpecBtn.Size = UDim2.new(1, 0, 0, 24)
+BackFromSpecBtn.Position = UDim2.new(0, 0, 0, 178)
+BackFromSpecBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+BackFromSpecBtn.Font = Enum.Font.GothamBold
+BackFromSpecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BackFromSpecBtn.TextSize = 8.5
+Instance.new("UICorner", BackFromSpecBtn).CornerRadius = UDim.new(0, 5)
 
 -- ====================================================================
 -- CONTROLS ON-SCREEN
@@ -326,14 +374,29 @@ local BtnZoomIn = createRightBtn("BtnZoomIn", "+ ZOOM", UDim2.new(0, 60, 0, 40),
 local BtnZoomOut = createRightBtn("BtnZoomOut", "- ZOOM", UDim2.new(0, 60, 0, 40), UDim2.new(0, 0, 0, 45))
 
 -- ====================================================================
--- SPECTATOR & FREECAM LOGICS
+-- SPECTATOR LOGIC & NAVIGATION
 -- ====================================================================
-local stopSpectating -- Forward declaration
+local disableFreecam -- Forward declaration
+
+local function getPlayerPivot(plr)
+    if not plr or not plr.Character then return nil end
+    local char = plr.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+    if hrp then return hrp.CFrame end
+    return char:GetPivot()
+end
+
+local function stopSpectating()
+    SpectateConfig.Enabled = false
+    SpectateConfig.TargetPlayer = nil
+    if not FreecamConfig.Enabled then
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end
 
 local function startSpectating(targetPlayer)
     if not targetPlayer or targetPlayer == LocalPlayer then return end
     
-    -- Matikan freecam jika sedang aktif
     if FreecamConfig.Enabled then
         disableFreecam()
     end
@@ -344,15 +407,7 @@ local function startSpectating(targetPlayer)
     Camera.CameraType = Enum.CameraType.Scriptable
 end
 
-stopSpectating = function()
-    SpectateConfig.Enabled = false
-    SpectateConfig.TargetPlayer = nil
-    if not FreecamConfig.Enabled then
-        Camera.CameraType = Enum.CameraType.Custom
-    end
-end
-
--- Refresh List Player untuk Spectate
+-- Refresh List Player Spectate
 local function refreshPlayerList()
     for _, child in pairs(PlayerScroll:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -361,7 +416,7 @@ local function refreshPlayerList()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer then
             local pBtn = Instance.new("TextButton", PlayerScroll)
-            pBtn.Size = UDim2.new(1, -6, 0, 22)
+            pBtn.Size = UDim2.new(1, -6, 0, 24)
             pBtn.BackgroundColor3 = (SpectateConfig.TargetPlayer == plr) and Color3.fromRGB(130, 60, 200) or Color3.fromRGB(28, 30, 34)
             pBtn.Font = Enum.Font.GothamMedium
             pBtn.Text = "  " .. plr.DisplayName .. " (@" .. plr.Name .. ")"
@@ -392,32 +447,43 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 refreshPlayerList()
 
--- Teleport ke Player yang lagi di Spectate
+-- Teleport ke Player Spectate
 TeleportToSpecBtn.MouseButton1Click:Connect(function()
-    if SpectateConfig.Enabled and SpectateConfig.TargetPlayer then
-        local targetChar = SpectateConfig.TargetPlayer.Character
+    if SpectateConfig.TargetPlayer then
+        local targetCFrame = getPlayerPivot(SpectateConfig.TargetPlayer)
         local myChar = LocalPlayer.Character
-        if targetChar and myChar then
-            local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+        if targetCFrame and myChar then
             local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-            if targetHrp and myHrp then
-                myHrp.CFrame = targetHrp.CFrame * CFrame.new(2, 0, 2)
+            if myHrp then
+                myHrp.Anchored = false
+                myHrp.CFrame = targetCFrame * CFrame.new(2, 0, 2)
+            else
+                myChar:PivotTo(targetCFrame * CFrame.new(2, 0, 2))
             end
         end
     end
 end)
 
--- Main Loop (Camera Spectate & Freecam handling)
+-- Tombol Open Spectate & Back
+OpenSpectateBtn.MouseButton1Click:Connect(function()
+    SpecFrame.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X + 10, 0, MainFrame.AbsolutePosition.Y)
+    SpecFrame.Visible = true
+    refreshPlayerList()
+end)
+
+BackFromSpecBtn.MouseButton1Click:Connect(function()
+    stopSpectating()
+    SpecFrame.Visible = false
+    refreshPlayerList()
+end)
+
+-- Loop Spectator Engine
 RunService.RenderStepped:Connect(function(dt)
     if SpectateConfig.Enabled and SpectateConfig.TargetPlayer then
-        local char = SpectateConfig.TargetPlayer.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
-            if hrp then
-                -- Posisi Belakang Player
-                local targetCFrame = hrp.CFrame * CFrame.new(SpectateConfig.Offset)
-                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(targetCFrame.Position, hrp.Position), 0.2)
-            end
+        local targetCFrame = getPlayerPivot(SpectateConfig.TargetPlayer)
+        if targetCFrame then
+            local camPos = targetCFrame * CFrame.new(SpectateConfig.Offset)
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(camPos.Position, targetCFrame.Position), 0.2)
         else
             stopSpectating()
             refreshPlayerList()
@@ -426,7 +492,7 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 -- ====================================================================
--- SYSTEM LOCK & BASIC CONTROLS
+-- FREECAM & SYSTEM LOCKS
 -- ====================================================================
 local function updateLockState()
     FloatBtn.Draggable = not FreecamConfig.FloatLocked
@@ -441,10 +507,14 @@ end)
 
 FloatBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
+    if not MainFrame.Visible then
+        SpecFrame.Visible = false
+    end
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
+    SpecFrame.Visible = false
 end)
 
 SpdMinus.MouseButton1Click:Connect(function()
@@ -574,7 +644,7 @@ end)
 refreshCamList()
 
 -- ====================================================================
--- INPUT TOUCH FILTERING & ENGINE FREECAM
+-- TOUCH INPUTS & FREECAM ENGINE
 -- ====================================================================
 local function isTouchInGui(pos, guiObject)
     if not guiObject or not guiObject.Visible then return false end
@@ -587,7 +657,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not FreecamConfig.Enabled then return end
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton2 then
         local pos = Vector2.new(input.Position.X, input.Position.Y)
-        if gameProcessed or isTouchInGui(pos, JoystickBase) or isTouchInGui(pos, RightControls) or isTouchInGui(pos, MainFrame) or isTouchInGui(pos, FloatBtn) then
+        if gameProcessed or isTouchInGui(pos, JoystickBase) or isTouchInGui(pos, RightControls) or isTouchInGui(pos, MainFrame) or isTouchInGui(pos, SpecFrame) or isTouchInGui(pos, FloatBtn) then
             return
         end
         isCameraDragging = true
@@ -629,7 +699,7 @@ local function setCharacterFrozen(frozen)
     if hrp then hrp.Anchored = frozen end
 end
 
-function disableFreecam()
+disableFreecam = function()
     FreecamConfig.Enabled = false
     CamToggle.Text = "FREECAM: OFF"
     CamToggle.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
@@ -652,7 +722,7 @@ function disableFreecam()
     Camera.FieldOfView = 70
 end
 
-function enableFreecam()
+local function enableFreecam()
     if SpectateConfig.Enabled then
         stopSpectating()
         refreshPlayerList()
