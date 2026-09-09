@@ -144,7 +144,7 @@ end)
 local CurrentExecutor = (identifyexecutor or getexecutorname or function() return "Unknown Executor" end)()
 
 -- ====================================================================
--- HELPER & ENGINE UTILITIES
+-- HELPER & ENGINE UTILITIES (DEFINED FIRST)
 -- ====================================================================
 local function applyGraphicsBoost()
     Lighting.GlobalShadows = not Config.ShadowsDisabled
@@ -264,7 +264,7 @@ local function handleFlyEngine()
 end
 
 -- ====================================================================
--- AUTOMATION ENGINE WORKERS
+-- AUTOMATION ENGINE WORKERS (FAST ATTACK & PROXIMITY)
 -- ====================================================================
 task.spawn(function()
     while true do
@@ -272,24 +272,37 @@ task.spawn(function()
         if Config.FastAttack and Player.Character then
             local tool = Player.Character:FindFirstChildOfClass("Tool")
             if tool then
-                pcall(function() tool:Activate() end)
+                pcall(function()
+                    tool:Activate()
+                end)
             end
         end
     end
 end)
 
+-- Fungsi untuk mengunci properti ProximityPrompt
 local function forcePromptSettings(prompt)
     if not prompt:IsA("ProximityPrompt") then return end
+
     pcall(function()
-        if Config.ExpandProximity then prompt.MaxActivationDistance = Config.ProximityDistance end
-        if Config.InstantProximityHold then prompt.HoldDuration = 0 end
-        if Config.ProximityLineOfSight then prompt.RequiresLineOfSight = false end
+        if Config.ExpandProximity then
+            prompt.MaxActivationDistance = Config.ProximityDistance
+        end
+        if Config.InstantProximityHold then
+            prompt.HoldDuration = 0
+        end
+        if Config.ProximityLineOfSight then
+            prompt.RequiresLineOfSight = false
+        end
     end)
 end
 
+-- 1. Terapkan ke semua Prompt yang sudah ada + Kunci nilainya jika game mencoba mengubahnya
 for _, prompt in pairs(workspace:GetDescendants()) do
     if prompt:IsA("ProximityPrompt") then
         forcePromptSettings(prompt)
+        
+        -- Kunci: Jika game mengembalikan nilainya ke True, paksa balik ke False!
         prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
             if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
                 prompt.RequiresLineOfSight = false
@@ -298,10 +311,12 @@ for _, prompt in pairs(workspace:GetDescendants()) do
     end
 end
 
+-- 2. Terapkan secara instant begitu ada Prompt baru yang dimuat (Spawned)
 workspace.DescendantAdded:Connect(function(prompt)
     if prompt:IsA("ProximityPrompt") then
-        task.wait()
+        task.wait() -- jeda micro agar prompt terinisialisasi sempurna oleh game
         forcePromptSettings(prompt)
+        
         prompt:GetPropertyChangedSignal("RequiresLineOfSight"):Connect(function()
             if Config.ExpandProximity and Config.ProximityLineOfSight and prompt.RequiresLineOfSight == true then
                 prompt.RequiresLineOfSight = false
@@ -316,14 +331,18 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump and Player.Character then
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        if hum then 
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
     end
 end)
 
 RunService.Stepped:Connect(function()
     if Config.Noclip and Player.Character then
         for _, part in pairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            if part:IsA("BasePart") and part.CanCollide then 
+                part.CanCollide = false 
+            end
         end
     end
 end)
@@ -331,7 +350,10 @@ end)
 Player.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid", 5)
     enforceHumanoidProperties()
-    if Config.FlyMode then task.wait(0.1) handleFlyEngine() end
+    if Config.FlyMode then 
+        task.wait(0.1) 
+        handleFlyEngine() 
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
@@ -344,7 +366,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ====================================================================
--- ESP RENDER CHAMS ENGINE
+-- ESP RENDER CHAMS ENGINE (FIXED MEMORY LEAK & RE-CONNECTIONS)
 -- ====================================================================
 local espCache = {}
 
@@ -510,19 +532,6 @@ MainGui.DisplayOrder = 2147483647
 
 local rawSource = debug.infos and debug.infos() or "" 
 MainGui:SetAttribute("ScriptContent", rawSource)
-
--- FLOATING BUTTONS CONTAINER (PERSISTENT LAYER)
-local FloatingContainer = Instance.new("Frame", MainGui)
-FloatingContainer.Name = "FloatingContainer"
-FloatingContainer.Size = UDim2.new(0, 150, 0, 0)
-FloatingContainer.Position = UDim2.new(0.01, 0, 0.3, 0)
-FloatingContainer.BackgroundTransparency = 1
-
-local floatingLayout = Instance.new("UIListLayout", FloatingContainer)
-floatingLayout.SortOrder = Enum.SortOrder.LayoutOrder
-floatingLayout.Padding = UDim.new(0, 5)
-
-local registeredToggles = {}
 
 -- POPUP CONFIRMATION FRAME
 local PopupFrame = Instance.new("Frame")
@@ -835,9 +844,9 @@ addSidebarDivider(10)
 addSidebarButton("Settings", "Setting", 11)
 
 -- ====================================================================
--- CONTROL INTERFACE FRAME FACTORY (WITH FLOATING TOGGLE SUPPORT)
+-- CONTROL INTERFACE FRAME FACTORY
 -- ====================================================================
-local function addToggle(parent, labelText, order, configKey, callback, customAction)
+local function addToggle(parent, labelText, order, configKey, callback)
     local card = Instance.new("Frame", parent)
     card.Size = UDim2.new(1, 0, 0, 28)
     card.BackgroundColor3 = Theme.CardBg
@@ -846,7 +855,7 @@ local function addToggle(parent, labelText, order, configKey, callback, customAc
 
     local lbl = Instance.new("TextLabel", card)
     lbl.Text = labelText
-    lbl.Size = UDim2.new(1, -95, 1, 0)
+    lbl.Size = UDim2.new(1, -55, 1, 0)
     lbl.Position = UDim2.new(0, 8, 0, 0)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextColor3 = Theme.TextMain
@@ -856,14 +865,13 @@ local function addToggle(parent, labelText, order, configKey, callback, customAc
 
     local track = Instance.new("TextButton", card)
     track.Size = UDim2.new(0, 38, 0, 18)
-    track.Position = UDim2.new(1, -84, 0.5, -9)
-    local isInitialActive = configKey and Config[configKey] or false
-    track.BackgroundColor3 = isInitialActive and Theme.Accent or Color3.fromRGB(25, 28, 30)
-    track.Text = isInitialActive and "ON" or "OFF"
+    track.Position = UDim2.new(1, -44, 0.5, -9)
+    track.BackgroundColor3 = Config[configKey] and Theme.Accent or Color3.fromRGB(25, 28, 30)
+    track.Text = Config[configKey] and "ON" or "OFF"
     track.Font = Enum.Font.GothamBold
     track.TextSize = 8
     track.TextColor3 = Theme.TextMain
-    track.TextXAlignment = isInitialActive and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+    track.TextXAlignment = Config[configKey] and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
     Instance.new("UICorner", track).CornerRadius = UDim.new(0, 9)
 
     local pad = Instance.new("UIPadding", track)
@@ -872,94 +880,22 @@ local function addToggle(parent, labelText, order, configKey, callback, customAc
 
     local knob = Instance.new("Frame", track)
     knob.Size = UDim2.new(0, 12, 0, 12)
-    knob.Position = UDim2.new(isInitialActive and 1 or 0, isInitialActive and -12 or 0, 0.5, -6)
+    knob.Position = UDim2.new(Config[configKey] and 1 or 0, Config[configKey] and -12 or 0, 0.5, -6)
     knob.BackgroundColor3 = Theme.TextMain
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
-    -- FLOATING PIN BUTTON (SEBELAH KANAN)
-    local floatPinBtn = Instance.new("TextButton", card)
-    floatPinBtn.Size = UDim2.new(0, 36, 0, 18)
-    floatPinBtn.Position = UDim2.new(1, -40, 0.5, -9)
-    floatPinBtn.BackgroundColor3 = Color3.fromRGB(25, 28, 30)
-    floatPinBtn.Text = "📌 OFF"
-    floatPinBtn.Font = Enum.Font.GothamBold
-    floatPinBtn.TextSize = 7
-    floatPinBtn.TextColor3 = Theme.TextMuted
-    Instance.new("UICorner", floatPinBtn).CornerRadius = UDim.new(0, 4)
-
-    local floatBtnFrame = nil
-
-    local function updateToggleState(active)
-        if configKey then Config[configKey] = active end
+    track.MouseButton1Click:Connect(function()
+        if not configKey then return end
+        Config[configKey] = not Config[configKey]
+        local active = Config[configKey]
+        
         track.Text = active and "ON" or "OFF"
         track.TextXAlignment = active and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+        
         TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(active and 1 or 0, active and -12 or 0, 0.5, -6)}):Play()
         TweenService:Create(track, TweenInfo.new(0.12), {BackgroundColor3 = active and Theme.Accent or Color3.fromRGB(25, 28, 30)}):Play()
         
-        if floatBtnFrame then
-            local fBtn = floatBtnFrame:FindFirstChildOfClass("TextButton")
-            if fBtn and not customAction then
-                fBtn.BackgroundColor3 = active and Theme.Accent or Theme.CardBg
-                fBtn.Text = labelText .. (active and " [ON]" or " [OFF]")
-            end
-        end
-
         if callback then callback(active) end
-    end
-
-    track.MouseButton1Click:Connect(function()
-        local nextState = configKey and not Config[configKey] or true
-        updateToggleState(nextState)
-    end)
-
-    if configKey then registeredToggles[configKey] = updateToggleState end
-
-    -- HANDLE CREATING FLOATING BUTTON
-    local isPinned = false
-    floatPinBtn.MouseButton1Click:Connect(function()
-        isPinned = not isPinned
-        if isPinned then
-            floatPinBtn.Text = "📌 ON"
-            floatPinBtn.TextColor3 = Theme.Accent
-            floatPinBtn.BackgroundColor3 = Color3.fromRGB(35, 55, 45)
-
-            floatBtnFrame = Instance.new("Frame", FloatingContainer)
-            floatBtnFrame.Size = UDim2.new(1, 0, 0, 26)
-            floatBtnFrame.BackgroundColor3 = Theme.Bg
-            Instance.new("UICorner", floatBtnFrame).CornerRadius = UDim.new(0, 6)
-            local fStroke = Instance.new("UIStroke", floatBtnFrame)
-            fStroke.Color = Theme.Accent
-            fStroke.Thickness = 1
-
-            local fBtn = Instance.new("TextButton", floatBtnFrame)
-            fBtn.Size = UDim2.new(1, 0, 1, 0)
-            local curState = configKey and Config[configKey] or false
-            fBtn.BackgroundColor3 = customAction and Theme.CardBg or (curState and Theme.Accent or Theme.CardBg)
-            fBtn.Text = labelText .. (customAction and "" or (curState and " [ON]" or " [OFF]"))
-            fBtn.Font = Enum.Font.GothamBold
-            fBtn.TextColor3 = Theme.TextMain
-            fBtn.TextSize = 8
-            Instance.new("UICorner", fBtn).CornerRadius = UDim.new(0, 6)
-
-            fBtn.MouseButton1Click:Connect(function()
-                if customAction then
-                    customAction()
-                else
-                    local active = not Config[configKey]
-                    updateToggleState(active)
-                end
-            end)
-
-            makeDraggable(floatBtnFrame, floatBtnFrame)
-        else
-            floatPinBtn.Text = "📌 OFF"
-            floatPinBtn.TextColor3 = Theme.TextMuted
-            floatPinBtn.BackgroundColor3 = Color3.fromRGB(25, 28, 30)
-            if floatBtnFrame then
-                floatBtnFrame:Destroy()
-                floatBtnFrame = nil
-            end
-        end
     end)
 end
 
@@ -1076,7 +1012,7 @@ local function createStatLabel(parent, labelText, order)
 end
 
 -- ====================================================================
--- FREECAM CINEMATIC ENGINE
+-- FREECAM CINEMATIC ENGINE (DEFINED BEFORE SETTINGS USAGE)
 -- ====================================================================
 local CurrentCinematicMode = "Manual"
 local FreecamConnection = nil
@@ -1395,88 +1331,6 @@ wpNameInput.TextXAlignment = Enum.TextXAlignment.Left
 
 local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(35, 55, 45), function() end, 6)
 
--- QUICK FLOATING WAYPOINT MINI-MENU
-local MiniWpFrame = Instance.new("Frame", MainGui)
-MiniWpFrame.Name = "MiniWpFrame"
-MiniWpFrame.Size = UDim2.new(0, 220, 0, 180)
-MiniWpFrame.Position = UDim2.new(0.5, -110, 0.4, -90)
-MiniWpFrame.BackgroundColor3 = Theme.Bg
-MiniWpFrame.Visible = false
-MiniWpFrame.ZIndex = 2000
-Instance.new("UICorner", MiniWpFrame).CornerRadius = UDim.new(0, 8)
-local miniWpStroke = Instance.new("UIStroke", MiniWpFrame)
-miniWpStroke.Color = Theme.Accent
-miniWpStroke.Thickness = 1.2
-
-makeDraggable(MiniWpFrame, MiniWpFrame)
-
-local miniHeader = Instance.new("Frame", MiniWpFrame)
-miniHeader.Size = UDim2.new(1, 0, 0, 24)
-miniHeader.BackgroundColor3 = Theme.HeaderBg
-Instance.new("UICorner", miniHeader).CornerRadius = UDim.new(0, 8)
-
-local miniTitle = Instance.new("TextLabel", miniHeader)
-miniTitle.Size = UDim2.new(1, -30, 1, 0)
-miniTitle.Position = UDim2.new(0, 8, 0, 0)
-miniTitle.Text = "📌 Waypoints Quick Menu"
-miniTitle.Font = Enum.Font.GothamBold
-miniTitle.TextColor3 = Theme.TextMain
-miniTitle.TextSize = 9
-miniTitle.TextXAlignment = Enum.TextXAlignment.Left
-miniTitle.BackgroundTransparency = 1
-
-local miniCloseBtn = Instance.new("TextButton", miniHeader)
-miniCloseBtn.Size = UDim2.new(0, 24, 1, 0)
-miniCloseBtn.Position = UDim2.new(1, -24, 0, 0)
-miniCloseBtn.Text = "✕"
-miniCloseBtn.Font = Enum.Font.GothamBold
-miniCloseBtn.TextColor3 = Theme.TextMain
-miniCloseBtn.TextSize = 10
-miniCloseBtn.BackgroundTransparency = 1
-miniCloseBtn.MouseButton1Click:Connect(function() MiniWpFrame.Visible = false end)
-
-local miniInputCard = Instance.new("Frame", MiniWpFrame)
-miniInputCard.Size = UDim2.new(1, -16, 0, 22)
-miniInputCard.Position = UDim2.new(0, 8, 0, 30)
-miniInputCard.BackgroundColor3 = Theme.CardBg
-Instance.new("UICorner", miniInputCard).CornerRadius = UDim.new(0, 4)
-
-local miniWpNameInput = Instance.new("TextBox", miniInputCard)
-miniWpNameInput.Size = UDim2.new(1, -12, 1, 0)
-miniWpNameInput.Position = UDim2.new(0, 6, 0, 0)
-miniWpNameInput.BackgroundTransparency = 1
-miniWpNameInput.Font = Enum.Font.GothamMedium
-miniWpNameInput.PlaceholderText = "Nama pos baru..."
-miniWpNameInput.TextColor3 = Theme.TextMain
-miniWpNameInput.PlaceholderColor3 = Theme.TextMuted
-miniWpNameInput.TextSize = 9
-miniWpNameInput.TextXAlignment = Enum.TextXAlignment.Left
-
-local miniSaveBtn = Instance.new("TextButton", MiniWpFrame)
-miniSaveBtn.Size = UDim2.new(1, -16, 0, 20)
-miniSaveBtn.Position = UDim2.new(0, 8, 0, 56)
-miniSaveBtn.BackgroundColor3 = Color3.fromRGB(35, 55, 45)
-miniSaveBtn.Text = "💾 Simpan Posisi"
-miniSaveBtn.Font = Enum.Font.GothamBold
-miniSaveBtn.TextColor3 = Theme.ConfirmGreen
-miniSaveBtn.TextSize = 9
-Instance.new("UICorner", miniSaveBtn).CornerRadius = UDim.new(0, 4)
-
-local miniScroll = Instance.new("ScrollingFrame", MiniWpFrame)
-miniScroll.Size = UDim2.new(1, -16, 1, -84)
-miniScroll.Position = UDim2.new(0, 8, 0, 80)
-miniScroll.BackgroundTransparency = 1
-miniScroll.ScrollBarThickness = 2
-miniScroll.ScrollBarImageColor3 = Theme.Accent
-miniScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local miniLayout = Instance.new("UIListLayout", miniScroll)
-miniLayout.Padding = UDim.new(0, 4)
-
-addToggle(tpPage, "📌 Floating Waypoint Menu", 6.5, nil, nil, function()
-    MiniWpFrame.Visible = not MiniWpFrame.Visible
-end)
-
 local waypointsListFrame = Instance.new("Frame", tpPage)
 waypointsListFrame.Size = UDim2.new(1, 0, 0, 0)
 waypointsListFrame.AutomaticSize = Enum.AutomaticSize.Y
@@ -1514,20 +1368,20 @@ task.spawn(function()
     local spawnPos = hrp.Position
     local initialSpawnCFrame = CFrame.new(spawnPos.X, spawnPos.Y + 3.5, spawnPos.Z)
 
-    local function makeTeleportRow(parentObj, wpName, targetX, targetY, targetZ, orderIndex, isMini)
-        local rowFrame = Instance.new("Frame", parentObj) 
-        rowFrame.Size = UDim2.new(1, 0, 0, isMini and 20 or 24) 
+    local function makeTeleportRow(wpName, targetX, targetY, targetZ, orderIndex)
+        local rowFrame = Instance.new("Frame", waypointsListFrame) 
+        rowFrame.Size = UDim2.new(1, 0, 0, 24) 
         rowFrame.BackgroundTransparency = 1 
         rowFrame.LayoutOrder = orderIndex
         
         local btn = Instance.new("TextButton", rowFrame) 
-        btn.Size = UDim2.new(1, isMini and -22 or -28, 1, 0) 
+        btn.Size = UDim2.new(1, -28, 1, 0) 
         btn.BackgroundColor3 = Theme.CardBg 
         btn.Font = Enum.Font.GothamMedium 
         btn.Text = "📌 " .. wpName 
         btn.TextColor3 = Theme.TextMain 
-        btn.TextSize = isMini and 8 or 10 
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4) 
+        btn.TextSize = 10 
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5) 
         
         btn.MouseButton1Click:Connect(function()
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -1537,14 +1391,14 @@ task.spawn(function()
         end)
         
         local delBtn = Instance.new("TextButton", rowFrame) 
-        delBtn.Size = UDim2.new(0, isMini and 18 or 24, 1, 0) 
-        delBtn.Position = UDim2.new(1, isMini and -18 or -24, 0, 0) 
+        delBtn.Size = UDim2.new(0, 24, 1, 0) 
+        delBtn.Position = UDim2.new(1, -24, 0, 0) 
         delBtn.BackgroundColor3 = Theme.DeleteBg 
         delBtn.Font = Enum.Font.GothamBold 
         delBtn.Text = "✕" 
         delBtn.TextColor3 = Theme.DeleteRed 
-        delBtn.TextSize = isMini and 8 or 10 
-        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 4)
+        delBtn.TextSize = 10 
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 5)
         
         delBtn.MouseButton1Click:Connect(function() 
             showConfirmation("Hapus posisi \"" .. wpName .. "\"? ", function() deleteWaypoint(wpName) end) 
@@ -1555,11 +1409,7 @@ task.spawn(function()
         for _, child in pairs(waypointsListFrame:GetChildren()) do 
             if child:IsA("Frame") then child:Destroy() end 
         end
-        for _, child in pairs(miniScroll:GetChildren()) do
-            if child:IsA("Frame") then child:Destroy() end
-        end
         
-        -- TAB MAIN UI SPAWN ROW
         local rowFrameSpawn = Instance.new("Frame", waypointsListFrame) 
         rowFrameSpawn.Size = UDim2.new(1, 0, 0, 24) 
         rowFrameSpawn.BackgroundTransparency = 1 
@@ -1579,27 +1429,6 @@ task.spawn(function()
                 if not bypassTeleportWithTween(initialSpawnCFrame) then Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame end
             end
         end)
-
-        -- MINI FLOATING SPAWN ROW
-        local miniRowSpawn = Instance.new("Frame", miniScroll)
-        miniRowSpawn.Size = UDim2.new(1, 0, 0, 20)
-        miniRowSpawn.BackgroundTransparency = 1
-        miniRowSpawn.LayoutOrder = 0
-
-        local miniBtnSpawn = Instance.new("TextButton", miniRowSpawn)
-        miniBtnSpawn.Size = UDim2.new(1, 0, 1, 0)
-        miniBtnSpawn.BackgroundColor3 = Color3.fromRGB(24, 45, 36)
-        miniBtnSpawn.Font = Enum.Font.GothamBold
-        miniBtnSpawn.Text = "📍 Initial Spawn Point"
-        miniBtnSpawn.TextColor3 = Theme.ConfirmGreen
-        miniBtnSpawn.TextSize = 8
-        Instance.new("UICorner", miniBtnSpawn).CornerRadius = UDim.new(0, 4)
-
-        miniBtnSpawn.MouseButton1Click:Connect(function()
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                if not bypassTeleportWithTween(initialSpawnCFrame) then Player.Character.HumanoidRootPart.CFrame = initialSpawnCFrame end
-            end
-        end)
         
         if not AllWaypoints[CurrentPlaceId] then AllWaypoints[CurrentPlaceId] = {} end
         local currentMapData = AllWaypoints[CurrentPlaceId]
@@ -1607,14 +1436,14 @@ task.spawn(function()
         
         for wpName, coord in pairs(currentMapData) do
             if type(coord) == "table" then
-                makeTeleportRow(waypointsListFrame, wpName, coord.X or 0, coord.Y or 0, coord.Z or 0, indexOrder, false)
-                makeTeleportRow(miniScroll, wpName, coord.X or 0, coord.Y or 0, coord.Z or 0, indexOrder, true)
+                makeTeleportRow(wpName, coord.X or 0, coord.Y or 0, coord.Z or 0, indexOrder)
                 indexOrder = indexOrder + 1
             end
         end
     end
 
-    local function saveCurrentPos(name)
+    btnSavePos.MouseButton1Click:Connect(function()
+        local name = wpNameInput.Text
         if name ~= "" and name ~= "Initial Spawn Point" then
             if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                 local currentPos = Player.Character.HumanoidRootPart.Position
@@ -1627,14 +1456,10 @@ task.spawn(function()
                 }
                 saveWaypointsToStorage() 
                 wpNameInput.Text = "" 
-                miniWpNameInput.Text = ""
                 refreshLandmarksUI()
              end
         end
-    end
-
-    btnSavePos.MouseButton1Click:Connect(function() saveCurrentPos(wpNameInput.Text) end)
-    miniSaveBtn.MouseButton1Click:Connect(function() saveCurrentPos(miniWpNameInput.Text) end)
+    end)
 
     refreshLandmarksUI()
 end)
