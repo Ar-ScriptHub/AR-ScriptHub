@@ -80,18 +80,21 @@ local Config = {
 }
 
 local Theme = {
-    HeaderBg = Color3.fromRGB(46, 125, 90),     -- Hijau Header Top Bar
-    Bg = Color3.fromRGB(24, 26, 28),             -- Background Utama
-    SidebarBg = Color3.fromRGB(32, 35, 38),      -- Sidebar Kiri
-    CardBg = Color3.fromRGB(38, 42, 46),         -- Background Elemen / Card
-    Stroke = Color3.fromRGB(55, 60, 65),         -- Border Outline / Divider
-    Accent = Color3.fromRGB(52, 199, 123),       -- Hijau Mint Terang
-    AccentHover = Color3.fromRGB(42, 169, 103),  
-    TextMain = Color3.fromRGB(245, 245, 245),
-    TextMuted = Color3.fromRGB(160, 165, 170),
-    DeleteRed = Color3.fromRGB(255, 90, 90),
-    DeleteBg = Color3.fromRGB(60, 30, 35),
-    ConfirmGreen = Color3.fromRGB(52, 199, 123)
+    HeaderBg = Color3.fromRGB(38, 112, 82),
+    HeaderBgHover = Color3.fromRGB(48, 132, 96),
+    Bg = Color3.fromRGB(16, 18, 21),
+    SidebarBg = Color3.fromRGB(21, 24, 28),
+    CardBg = Color3.fromRGB(28, 32, 37),
+    CardHover = Color3.fromRGB(34, 39, 45),
+    InputBg = Color3.fromRGB(22, 26, 30),
+    Stroke = Color3.fromRGB(48, 55, 63),
+    Accent = Color3.fromRGB(72, 214, 145),
+    AccentHover = Color3.fromRGB(58, 190, 125),
+    TextMain = Color3.fromRGB(245, 247, 248),
+    TextMuted = Color3.fromRGB(151, 160, 168),
+    DeleteRed = Color3.fromRGB(255, 105, 105),
+    DeleteBg = Color3.fromRGB(58, 31, 36),
+    ConfirmGreen = Color3.fromRGB(72, 214, 145)
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -106,6 +109,7 @@ local origAmbient = Lighting.Ambient
 local origOutdoorAmbient = Lighting.OutdoorAmbient
 local origBrightness = Lighting.Brightness
 local origClockTime = Lighting.ClockTime
+local origGravity = workspace.Gravity
 
 local hiddenGuisCache = {}
 
@@ -160,6 +164,7 @@ local function enforceHumanoidProperties()
         local hum = Player.Character:FindFirstChildOfClass("Humanoid")
         hum.WalkSpeed = Config.SuperSpeed and Config.SuperSpeedVal or 16
         hum.JumpPower = Config.SuperJump and Config.SuperJumpVal or 50
+        hum.HipHeight = Config.HipHeight
         hum.UseJumpPower = true
     end
 end
@@ -418,7 +423,7 @@ local function buildESP(target)
                 b.Transparency = 0.6 
                 data.Box = b
             end
-            data.Box.Adornee = tChar 
+            data.Box.Adornee = tHrp 
             data.Box.Parent = SafeGuiTarget
         else
             if data.Box then data.Box:Destroy() data.Box = nil end
@@ -522,6 +527,44 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- ====================================================================
+-- GUI STYLE HELPERS
+-- ====================================================================
+
+local function applyButtonHover(button, normalColor, hoverColor)
+    button.AutoButtonColor = false
+
+    button.MouseEnter:Connect(function()
+        if button.Parent then
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {BackgroundColor3 = hoverColor}
+            ):Play()
+        end
+    end)
+
+    button.MouseLeave:Connect(function()
+        if button.Parent then
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {BackgroundColor3 = normalColor}
+            ):Play()
+        end
+    end)
+end
+
+local function addCardStroke(instance, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Theme.Stroke
+    stroke.Thickness = 1
+    stroke.Transparency = transparency or 0
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = instance
+    return stroke
+end
+
+-- ====================================================================
 -- GUI CORE INSTANCE INITIALIZATION
 -- ====================================================================
 local MainGui = Instance.new("ScreenGui")
@@ -537,8 +580,9 @@ MainGui:SetAttribute("ScriptContent", rawSource)
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame" 
 PopupFrame.Parent = MainGui 
-PopupFrame.Size = UDim2.new(0, 240, 0, 110) 
-PopupFrame.Position = UDim2.new(0.5, -120, 0.5, -55) 
+PopupFrame.Size = UDim2.new(0, 270, 0, 125)
+PopupFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+PopupFrame.Position = UDim2.fromScale(0.5, 0.5) 
 PopupFrame.BackgroundColor3 = Theme.Bg 
 PopupFrame.Visible = false 
 PopupFrame.ZIndex = 1000 
@@ -586,8 +630,8 @@ local function showConfirmation(message, onYes)
     PopupText.Text = message 
     currentCallback = onYes 
     PopupFrame.Visible = true 
-    PopupFrame.Size = UDim2.new(0, 210, 0, 95)
-    TweenService:Create(PopupFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 240, 0, 110)}):Play()
+    PopupFrame.Size = UDim2.new(0, 235, 0, 105)
+    TweenService:Create(PopupFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 270, 0, 125)}):Play()
 end
 
 PopupYes.MouseButton1Click:Connect(function() 
@@ -605,15 +649,17 @@ end)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton" 
 ToggleButton.Parent = MainGui 
-ToggleButton.Size = UDim2.new(0, 38, 0, 38) 
+ToggleButton.Size = UDim2.new(0, 42, 0, 42) 
 ToggleButton.Position = UDim2.new(0.02, 0, 0.2, 0) 
 ToggleButton.BackgroundColor3 = Theme.HeaderBg 
 ToggleButton.Font = Enum.Font.GothamBold 
 ToggleButton.Text = "AR" 
 ToggleButton.TextColor3 = Theme.TextMain 
-ToggleButton.TextSize = 14 
+ToggleButton.TextSize = 15 
 ToggleButton.Visible = false 
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
+addCardStroke(ToggleButton, 0.2)
+applyButtonHover(ToggleButton, Theme.HeaderBg, Theme.HeaderBgHover)
 makeDraggable(ToggleButton, ToggleButton)
 
 local EyeRestoreButton = Instance.new("ImageButton")
@@ -627,48 +673,74 @@ EyeRestoreButton.ImageColor3 = Theme.TextMain
 EyeRestoreButton.Visible = false
 EyeRestoreButton.ZIndex = 9999999
 Instance.new("UICorner", EyeRestoreButton).CornerRadius = UDim.new(0, 17)
+addCardStroke(EyeRestoreButton, 0.2)
+applyButtonHover(EyeRestoreButton, Theme.HeaderBg, Theme.HeaderBgHover)
 makeDraggable(EyeRestoreButton, EyeRestoreButton)
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 430, 0, 240) 
-MainFrame.Position = UDim2.new(0.5, -215, 0.5, -120) 
+MainFrame.Size = UDim2.new(0, 470, 0, 300)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.fromScale(0.5, 0.5) 
 MainFrame.BackgroundColor3 = Theme.Bg 
 MainFrame.Visible = false 
 MainFrame.ClipsDescendants = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local mainScale = Instance.new("UIScale")
+mainScale.Scale = 1
+mainScale.Parent = MainFrame
+
+local function updateMainUIScale()
+    local camera = workspace.CurrentCamera
+    if not camera then
+        return
+    end
+
+    local viewport = camera.ViewportSize
+    local widthScale = (viewport.X - 24) / 470
+    local heightScale = (viewport.Y - 24) / 300
+    mainScale.Scale = math.clamp(math.min(widthScale, heightScale), 0.65, 1)
+end
+
+updateMainUIScale()
+
+if workspace.CurrentCamera then
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateMainUIScale)
+end
 
 local mainStroke = Instance.new("UIStroke", MainFrame) 
-mainStroke.Color = Theme.Stroke 
+mainStroke.Color = Theme.Stroke
 mainStroke.Thickness = 1
+mainStroke.Transparency = 0.15
 
 local Header = Instance.new("Frame", MainFrame) 
 Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 30) 
+Header.Size = UDim2.new(1, 0, 0, 36) 
 Header.BackgroundColor3 = Theme.HeaderBg
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
 local HeaderFix = Instance.new("Frame", Header)
-HeaderFix.Size = UDim2.new(1, 0, 0, 8)
-HeaderFix.Position = UDim2.new(0, 0, 1, -8)
+HeaderFix.Size = UDim2.new(1, 0, 0, 9)
+HeaderFix.Position = UDim2.new(0, 0, 1, -9)
 HeaderFix.BackgroundColor3 = Theme.HeaderBg
 HeaderFix.BorderSizePixel = 0
 
 local RobloxLogo = Instance.new("ImageLabel", Header)
-RobloxLogo.Size = UDim2.new(0, 16, 0, 16)
-RobloxLogo.Position = UDim2.new(0, 8, 0.5, -8)
+RobloxLogo.Size = UDim2.new(0, 18, 0, 18)
+RobloxLogo.Position = UDim2.new(0, 10, 0.5, -9)
 RobloxLogo.BackgroundTransparency = 1
 RobloxLogo.Image = "rbxassetid://10423184683" 
 RobloxLogo.ImageColor3 = Theme.TextMain
 
 local Title = Instance.new("TextLabel", Header) 
 Title.Text = "AR Script Hub" 
-Title.Size = UDim2.new(0.5, 0, 1, 0) 
-Title.Position = UDim2.new(0, 30, 0, 0) 
+Title.Size = UDim2.new(0.55, 0, 0, 20) 
+Title.Position = UDim2.new(0, 34, 0, 2) 
 Title.Font = Enum.Font.GothamBold 
 Title.TextColor3 = Theme.TextMain 
-Title.TextSize = 11 
+Title.TextSize = 12 
 Title.TextXAlignment = Enum.TextXAlignment.Left 
 Title.BackgroundTransparency = 1
 
@@ -694,7 +766,13 @@ makeDraggable(MainFrame, Header)
 
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = true ToggleButton.Visible = false end)
 MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false ToggleButton.Visible = true end)
-CloseBtn.MouseButton1Click:Connect(function() showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function() MainGui:Destroy() end) end)
+CloseBtn.MouseButton1Click:Connect(function() showConfirmation("Hub akan ditutup secara permanen,\napakah kamu yakin?", function()
+        Config.FreecamMode = false
+        pcall(updateFreecamEngine)
+        Config.FlyMode = false
+        pcall(handleFlyEngine)
+        MainGui:Destroy()
+    end) end)
 
 local function toggleCleanGuiView(hide)
     if hide then
@@ -732,8 +810,8 @@ end)
 -- ====================================================================
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 85, 1, -30)
-Sidebar.Position = UDim2.new(0, 0, 0, 30)
+Sidebar.Size = UDim2.new(0, 96, 1, -36)
+Sidebar.Position = UDim2.new(0, 0, 0, 36)
 Sidebar.BackgroundColor3 = Theme.SidebarBg
 Sidebar.BorderSizePixel = 0
 
@@ -748,8 +826,8 @@ SidebarPadding.PaddingRight = UDim.new(0, 4)
 
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -85, 1, -30)
-ContentArea.Position = UDim2.new(0, 85, 0, 30)
+ContentArea.Size = UDim2.new(1, -96, 1, -36)
+ContentArea.Position = UDim2.new(0, 96, 0, 36)
 ContentArea.BackgroundTransparency = 1
 
 local menuContainers = {}
@@ -765,14 +843,14 @@ local function createMenuPage(name, isVisible)
     scroll.Visible = isVisible 
     
     local pad = Instance.new("UIPadding", scroll)
-    pad.PaddingTop = UDim.new(0, 6)
-    pad.PaddingLeft = UDim.new(0, 6)
-    pad.PaddingRight = UDim.new(0, 6)
+    pad.PaddingTop = UDim.new(0, 8)
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
     pad.PaddingBottom = UDim.new(0, 10)
 
     local layout = Instance.new("UIListLayout", scroll)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 5)
+    layout.Padding = UDim.new(0, 7)
 
     menuContainers[name] = scroll 
     return scroll
@@ -793,9 +871,10 @@ local function switchTab(tabName)
     for name, btn in pairs(navButtons) do
         if name == tabName then
             btn.BackgroundColor3 = Theme.CardBg
+            btn.BackgroundTransparency = 0
             btn.TextColor3 = Theme.Accent
         else
-            btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            btn.BackgroundColor3 = Theme.CardHover
             btn.BackgroundTransparency = 1
             btn.TextColor3 = Theme.TextMuted
         end
@@ -804,7 +883,7 @@ end
 
 local function addSidebarButton(textDisplay, tabTarget, order)
     local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 24)
+    btn.Size = UDim2.new(1, 0, 0, 30)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
@@ -812,7 +891,20 @@ local function addSidebarButton(textDisplay, tabTarget, order)
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
     btn.TextSize = 10
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.AutoButtonColor = false
+
+    btn.MouseEnter:Connect(function()
+        if navButtons[tabTarget] ~= btn then
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Theme.CardHover, BackgroundTransparency = 0}):Play()
+        end
+    end)
+
+    btn.MouseLeave:Connect(function()
+        if navButtons[tabTarget] ~= btn then
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundTransparency = 1}):Play()
+        end
+    end)
 
     btn.MouseButton1Click:Connect(function()
         switchTab(tabTarget)
@@ -848,10 +940,11 @@ addSidebarButton("Settings", "Setting", 11)
 -- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 28)
+    card.Size = UDim2.new(1, 0, 0, 34)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 7)
+    addCardStroke(card, 0.35)
 
     local lbl = Instance.new("TextLabel", card)
     lbl.Text = labelText
@@ -859,13 +952,13 @@ local function addToggle(parent, labelText, order, configKey, callback)
     lbl.Position = UDim2.new(0, 8, 0, 0)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 10
+    lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
 
     local track = Instance.new("TextButton", card)
-    track.Size = UDim2.new(0, 38, 0, 18)
-    track.Position = UDim2.new(1, -44, 0.5, -9)
+    track.Size = UDim2.new(0, 42, 0, 20)
+    track.Position = UDim2.new(1, -50, 0.5, -10)
     track.BackgroundColor3 = Config[configKey] and Theme.Accent or Color3.fromRGB(25, 28, 30)
     track.Text = Config[configKey] and "ON" or "OFF"
     track.Font = Enum.Font.GothamBold
@@ -879,8 +972,8 @@ local function addToggle(parent, labelText, order, configKey, callback)
     pad.PaddingRight = UDim.new(0, 4)
 
     local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.new(0, 12, 0, 12)
-    knob.Position = UDim2.new(Config[configKey] and 1 or 0, Config[configKey] and -12 or 0, 0.5, -6)
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(Config[configKey] and 1 or 0, Config[configKey] and -14 or 0, 0.5, -7)
     knob.BackgroundColor3 = Theme.TextMain
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
@@ -892,7 +985,7 @@ local function addToggle(parent, labelText, order, configKey, callback)
         track.Text = active and "ON" or "OFF"
         track.TextXAlignment = active and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
         
-        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(active and 1 or 0, active and -12 or 0, 0.5, -6)}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.12), {Position = UDim2.new(active and 1 or 0, active and -14 or 0, 0.5, -7)}):Play()
         TweenService:Create(track, TweenInfo.new(0.12), {BackgroundColor3 = active and Theme.Accent or Color3.fromRGB(25, 28, 30)}):Play()
         
         if callback then callback(active) end
@@ -900,104 +993,163 @@ local function addToggle(parent, labelText, order, configKey, callback)
 end
 
 local function addSliderWithInput(parent, labelText, min, max, defaultVal, order, configKey, callback)
-    local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 36)
+    local card = Instance.new("Frame")
+    card.Parent = parent
+    card.Size = UDim2.new(1, 0, 0, 48)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
 
-    local lbl = Instance.new("TextLabel", card)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 7)
+    addCardStroke(card, 0.35)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = card
     lbl.Text = labelText
-    lbl.Size = UDim2.new(0.7, 0, 0, 16)
-    lbl.Position = UDim2.new(0, 8, 0, 3)
+    lbl.Size = UDim2.new(0.7, 0, 0, 18)
+    lbl.Position = UDim2.new(0, 10, 0, 5)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextColor3 = Theme.TextMain
-    lbl.TextSize = 10
+    lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
 
-    local inputBox = Instance.new("TextBox", card)
-    inputBox.Size = UDim2.new(0, 35, 0, 14)
-    inputBox.Position = UDim2.new(1, -42, 0, 4)
+    local inputBox = Instance.new("TextBox")
+    inputBox.Parent = card
+    inputBox.Size = UDim2.new(0, 48, 0, 18)
+    inputBox.Position = UDim2.new(1, -58, 0, 5)
     inputBox.BackgroundTransparency = 1
     inputBox.Font = Enum.Font.GothamBold
     inputBox.Text = tostring(defaultVal)
     inputBox.TextColor3 = Theme.Accent
-    inputBox.TextSize = 10
+    inputBox.TextSize = 11
     inputBox.TextXAlignment = Enum.TextXAlignment.Right
+    inputBox.ClearTextOnFocus = false
 
-    local track = Instance.new("Frame", card)
-    track.Size = UDim2.new(1, -16, 0, 3)
-    track.Position = UDim2.new(0, 8, 1, -8)
-    track.BackgroundColor3 = Color3.fromRGB(25, 28, 30)
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+    local track = Instance.new("Frame")
+    track.Parent = card
+    track.Size = UDim2.new(1, -20, 0, 4)
+    track.Position = UDim2.new(0, 10, 1, -12)
+    track.BackgroundColor3 = Theme.InputBg
+    track.BorderSizePixel = 0
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
 
-    local startPerc = math.clamp((defaultVal - min) / (max - min), 0, 1)
-    local fill = Instance.new("Frame", track)
+    local isDecimal = (defaultVal % 1 ~= 0) or (min % 1 ~= 0) or (max % 1 ~= 0)
+    local step = isDecimal and 0.01 or 1
+
+    local function snap(value)
+        local snapped = math.round(value / step) * step
+        if step < 1 then
+            snapped = math.round(snapped * 100) / 100
+        end
+        return math.clamp(snapped, min, max)
+    end
+
+    local startPerc = math.clamp((defaultVal - min) / math.max(max - min, 0.0001), 0, 1)
+
+    local fill = Instance.new("Frame")
+    fill.Parent = track
     fill.Size = UDim2.new(startPerc, 0, 1, 0)
     fill.BackgroundColor3 = Theme.Accent
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+    fill.BorderSizePixel = 0
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
-    local knob = Instance.new("Frame", track)
-    knob.Position = UDim2.new(startPerc, -4, 0.5, -4)
-    knob.Size = UDim2.new(0, 8, 0, 8)
+    local knob = Instance.new("Frame")
+    knob.Parent = track
+    knob.Position = UDim2.new(startPerc, -5, 0.5, -5)
+    knob.Size = UDim2.new(0, 10, 0, 10)
     knob.BackgroundColor3 = Theme.TextMain
+    knob.BorderSizePixel = 0
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
-    local dragTrigger = Instance.new("ImageButton", knob)
-    dragTrigger.Size = UDim2.new(2, 0, 2, 0)
-    dragTrigger.Position = UDim2.new(-0.5, 0, -0.5, 0)
+    local dragTrigger = Instance.new("ImageButton")
+    dragTrigger.Parent = knob
+    dragTrigger.Size = UDim2.new(2.4, 0, 2.4, 0)
+    dragTrigger.Position = UDim2.new(-0.7, 0, -0.7, 0)
     dragTrigger.BackgroundTransparency = 1
+    dragTrigger.ImageTransparency = 1
 
     local function refreshVisuals(value)
-        local clampedValue = math.clamp(value, min, max)
-        if configKey then Config[configKey] = clampedValue end
-        local perc = (clampedValue - min) / (max - min)
+        local clampedValue = snap(tonumber(value) or min)
+
+        if configKey then
+            Config[configKey] = clampedValue
+        end
+
+        local perc = math.clamp((clampedValue - min) / math.max(max - min, 0.0001), 0, 1)
         fill.Size = UDim2.new(perc, 0, 1, 0)
-        knob.Position = UDim2.new(perc, -4, 0.5, -4)
+        knob.Position = UDim2.new(perc, -5, 0.5, -5)
         inputBox.Text = tostring(clampedValue)
-        if callback then callback(clampedValue) end
+
+        if callback then
+            callback(clampedValue)
+        end
     end
 
     local sliding = false
+
     dragTrigger.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local relX = input.Position.X - track.AbsolutePosition.X
-            local perc = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
-            refreshVisuals(math.round(min + (perc * (max - min))))
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true
         end
     end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding
+            and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+
+            local relX = input.Position.X - track.AbsolutePosition.X
+            local perc = math.clamp(relX / math.max(track.AbsoluteSize.X, 1), 0, 1)
+            refreshVisuals(min + (perc * (max - min)))
+        end
+    end)
+
     inputBox.FocusLost:Connect(function()
-        local num = tonumber(inputBox.Text) refreshVisuals(num or min)
+        refreshVisuals(inputBox.Text)
     end)
 end
 
 local function createActionButton(parent, text, color, onClick, order)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 26)
+    local btn = Instance.new("TextButton")
+    btn.Parent = parent
+    btn.Size = UDim2.new(1, 0, 0, 32)
     btn.BackgroundColor3 = color
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
     btn.TextColor3 = Theme.TextMain
     btn.TextSize = 10
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    btn.MouseButton1Click:Connect(onClick)
+    btn.AutoButtonColor = false
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+    addCardStroke(btn, 0.4)
+
+    applyButtonHover(btn, color, Theme.CardHover)
+
+    btn.MouseButton1Click:Connect(function()
+        if onClick then
+            onClick()
+        end
+    end)
+
     return btn
 end
 
 local function createStatLabel(parent, labelText, order)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 22)
+    card.Size = UDim2.new(1, 0, 0, 30)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 5)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 7)
+    addCardStroke(card, 0.35)
 
     local lbl = Instance.new("TextLabel", card)
     lbl.Size = UDim2.new(1, -16, 1, 0)
@@ -1495,7 +1647,7 @@ task.spawn(function()
         local minutes = string.format("%02d", math.floor((sTime % 3600) / 60)) 
         local seconds = string.format("%02d", sTime % 60)
         
-        lblFps.Text = "FPS: " .. tostring(currentFps) .. " FPS" 
+        lblFps.Text = "FPS: " .. tostring(currentFps) 
         lblPing.Text = "Ping: " .. tostring(pingVal) .. " ms" 
         lblTime.Text = "Server Age: " .. hours .. ":" .. minutes .. ":" .. seconds
     end
@@ -1540,6 +1692,19 @@ addToggle(serverPage, "💡 FullBright Core Engine", 9, "FullBright", function(a
     end
 end)
 
+-- Restore the original gravity when the script is closed/reloaded.
+MainGui.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        pcall(function()
+            workspace.Gravity = origGravity
+            Lighting.Ambient = origAmbient
+            Lighting.OutdoorAmbient = origOutdoorAmbient
+            Lighting.Brightness = origBrightness
+            Lighting.ClockTime = origClockTime
+        end)
+    end
+end)
+
 -- 6. SETTINGS PAGE
 createStatLabel(settingPage, "User: " .. Player.Name .. " (" .. Player.UserId .. ")", 1)
 createStatLabel(settingPage, "Executor: " .. CurrentExecutor, 2)
@@ -1567,7 +1732,13 @@ createActionButton(settingPage, "🔄 Reload System UI", Theme.CardBg, function(
 end, 6)
 
 createActionButton(settingPage, "🔴 Close System UI", Theme.DeleteBg, function()
-    showConfirmation("Apakah kamu ingin menutup UI?", function() MainGui:Destroy() end)
+    showConfirmation("Apakah kamu ingin menutup UI?", function()
+        Config.FreecamMode = false
+        pcall(updateFreecamEngine)
+        Config.FlyMode = false
+        pcall(handleFlyEngine)
+        MainGui:Destroy()
+    end)
 end, 7)
 
 -- ====================================================================
@@ -1581,8 +1752,8 @@ task.spawn(function()
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Name = "KeyFrame" 
         KeyFrame.Parent = MainGui 
-        KeyFrame.Size = UDim2.new(0, 230, 0, 130) 
-        KeyFrame.Position = UDim2.new(0.5, -115, 0.5, -65) 
+        KeyFrame.Size = UDim2.new(0, 280, 0, 155) 
+        KeyFrame.Position = UDim2.new(0.5, -140, 0.5, -77) 
         KeyFrame.BackgroundColor3 = Theme.Bg 
         Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 8)
         
@@ -1599,8 +1770,8 @@ task.spawn(function()
         KeyTitle.BackgroundTransparency = 1
         
         local KeyInput = Instance.new("TextBox", KeyFrame) 
-        KeyInput.Size = UDim2.new(1, -24, 0, 26) 
-        KeyInput.Position = UDim2.new(0, 12, 0, 38) 
+        KeyInput.Size = UDim2.new(1, -28, 0, 30) 
+        KeyInput.Position = UDim2.new(0, 14, 0, 42) 
         KeyInput.BackgroundColor3 = Theme.CardBg 
         KeyInput.Font = Enum.Font.GothamMedium 
         KeyInput.PlaceholderText = "Paste key here..." 
@@ -1611,8 +1782,8 @@ task.spawn(function()
         Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5) 
         
         local SubmitBtn = Instance.new("TextButton", KeyFrame) 
-        SubmitBtn.Size = UDim2.new(1, -24, 0, 26) 
-        SubmitBtn.Position = UDim2.new(0, 12, 1, -36) 
+        SubmitBtn.Size = UDim2.new(1, -28, 0, 30) 
+        SubmitBtn.Position = UDim2.new(0, 14, 1, -42) 
         SubmitBtn.BackgroundColor3 = Theme.HeaderBg 
         SubmitBtn.Font = Enum.Font.GothamBold 
         SubmitBtn.Text = "VERIFY KEY" 
