@@ -80,22 +80,21 @@ local Config = {
 }
 
 local Theme = {
-    -- Deep purple / charcoal palette: elegant, readable, not neon.
-    HeaderBg = Color3.fromRGB(82, 58, 125),
-    HeaderBgHover = Color3.fromRGB(105, 74, 155),
-    Bg = Color3.fromRGB(14, 13, 19),
-    SidebarBg = Color3.fromRGB(20, 18, 27),
-    CardBg = Color3.fromRGB(29, 26, 38),
-    CardHover = Color3.fromRGB(39, 34, 50),
-    InputBg = Color3.fromRGB(21, 19, 29),
-    Stroke = Color3.fromRGB(58, 51, 70),
-    Accent = Color3.fromRGB(166, 124, 226),
-    AccentHover = Color3.fromRGB(188, 148, 244),
-    TextMain = Color3.fromRGB(245, 242, 249),
-    TextMuted = Color3.fromRGB(154, 148, 164),
-    DeleteRed = Color3.fromRGB(255, 105, 125),
-    DeleteBg = Color3.fromRGB(59, 29, 39),
-    ConfirmGreen = Color3.fromRGB(166, 124, 226)
+    HeaderBg = Color3.fromRGB(38, 112, 82),
+    HeaderBgHover = Color3.fromRGB(48, 132, 96),
+    Bg = Color3.fromRGB(16, 18, 21),
+    SidebarBg = Color3.fromRGB(21, 24, 28),
+    CardBg = Color3.fromRGB(28, 32, 37),
+    CardHover = Color3.fromRGB(34, 39, 45),
+    InputBg = Color3.fromRGB(22, 26, 30),
+    Stroke = Color3.fromRGB(48, 55, 63),
+    Accent = Color3.fromRGB(72, 214, 145),
+    AccentHover = Color3.fromRGB(58, 190, 125),
+    TextMain = Color3.fromRGB(245, 247, 248),
+    TextMuted = Color3.fromRGB(151, 160, 168),
+    DeleteRed = Color3.fromRGB(255, 105, 105),
+    DeleteBg = Color3.fromRGB(58, 31, 36),
+    ConfirmGreen = Color3.fromRGB(72, 214, 145)
 }
 
 local FILE_NAME = "AR_Hub_Waypoints_v71.json"
@@ -581,7 +580,7 @@ MainGui:SetAttribute("ScriptContent", rawSource)
 local PopupFrame = Instance.new("Frame")
 PopupFrame.Name = "PopupFrame" 
 PopupFrame.Parent = MainGui 
-PopupFrame.Size = UDim2.new(0, 300, 0, 135)
+PopupFrame.Size = UDim2.new(0, 270, 0, 125)
 PopupFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 PopupFrame.Position = UDim2.fromScale(0.5, 0.5) 
 PopupFrame.BackgroundColor3 = Theme.Bg 
@@ -607,7 +606,7 @@ PopupText.ZIndex = 1001
 local PopupYes = Instance.new("TextButton", PopupFrame) 
 PopupYes.Size = UDim2.new(0, 95, 0, 26) 
 PopupYes.Position = UDim2.new(0, 16, 1, -36) 
-PopupYes.BackgroundColor3 = Color3.fromRGB(47, 35, 65) 
+PopupYes.BackgroundColor3 = Color3.fromRGB(30, 60, 45) 
 PopupYes.Font = Enum.Font.GothamBold 
 PopupYes.Text = "YA" 
 PopupYes.TextColor3 = Theme.ConfirmGreen 
@@ -631,8 +630,8 @@ local function showConfirmation(message, onYes)
     PopupText.Text = message 
     currentCallback = onYes 
     PopupFrame.Visible = true 
-    PopupFrame.Size = UDim2.new(0, 260, 0, 112)
-    TweenService:Create(PopupFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 135)}):Play()
+    PopupFrame.Size = UDim2.new(0, 235, 0, 105)
+    TweenService:Create(PopupFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 270, 0, 125)}):Play()
 end
 
 PopupYes.MouseButton1Click:Connect(function() 
@@ -681,7 +680,7 @@ makeDraggable(EyeRestoreButton, EyeRestoreButton)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame" 
 MainFrame.Parent = MainGui 
-MainFrame.Size = UDim2.new(0, 540, 0, 350)
+MainFrame.Size = UDim2.new(0, 470, 0, 300)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.fromScale(0.5, 0.5) 
 MainFrame.BackgroundColor3 = Theme.Bg 
@@ -700,8 +699,8 @@ local function updateMainUIScale()
     end
 
     local viewport = camera.ViewportSize
-    local widthScale = (viewport.X - 24) / 540
-    local heightScale = (viewport.Y - 24) / 350
+    local widthScale = (viewport.X - 24) / 470
+    local heightScale = (viewport.Y - 24) / 300
     mainScale.Scale = math.clamp(math.min(widthScale, heightScale), 0.65, 1)
 end
 
@@ -718,69 +717,32 @@ mainStroke.Transparency = 0.15
 
 local Header = Instance.new("Frame", MainFrame) 
 Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 44) 
+Header.Size = UDim2.new(1, 0, 0, 36) 
 Header.BackgroundColor3 = Theme.HeaderBg
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
 local HeaderFix = Instance.new("Frame", Header)
-HeaderFix.Size = UDim2.new(1, 0, 0, 10)
-HeaderFix.Position = UDim2.new(0, 0, 1, -10)
+HeaderFix.Size = UDim2.new(1, 0, 0, 9)
+HeaderFix.Position = UDim2.new(0, 0, 1, -9)
 HeaderFix.BackgroundColor3 = Theme.HeaderBg
 HeaderFix.BorderSizePixel = 0
 
-local headerStroke = Instance.new("UIStroke", Header)
-headerStroke.Color = Theme.HeaderBgHover
-headerStroke.Transparency = 0.35
-headerStroke.Thickness = 1
-
 local RobloxLogo = Instance.new("ImageLabel", Header)
-RobloxLogo.Size = UDim2.new(0, 20, 0, 20)
-RobloxLogo.Position = UDim2.new(0, 13, 0.5, -10)
+RobloxLogo.Size = UDim2.new(0, 18, 0, 18)
+RobloxLogo.Position = UDim2.new(0, 10, 0.5, -9)
 RobloxLogo.BackgroundTransparency = 1
 RobloxLogo.Image = "rbxassetid://10423184683" 
 RobloxLogo.ImageColor3 = Theme.TextMain
 
 local Title = Instance.new("TextLabel", Header) 
 Title.Text = "AR Script Hub" 
-Title.Size = UDim2.new(0.45, 0, 0, 22) 
-Title.Position = UDim2.new(0, 40, 0, 4) 
+Title.Size = UDim2.new(0.55, 0, 0, 20) 
+Title.Position = UDim2.new(0, 34, 0, 2) 
 Title.Font = Enum.Font.GothamBold 
 Title.TextColor3 = Theme.TextMain 
-Title.TextSize = 13 
+Title.TextSize = 12 
 Title.TextXAlignment = Enum.TextXAlignment.Left 
 Title.BackgroundTransparency = 1
-
-local Subtitle = Instance.new("TextLabel", Header)
-Subtitle.Size = UDim2.new(0, 150, 0, 14)
-Subtitle.Position = UDim2.new(0, 40, 0, 25)
-Subtitle.Text = "UTILITY • CONTROL PANEL"
-Subtitle.Font = Enum.Font.GothamMedium
-Subtitle.TextColor3 = Theme.TextMuted
-Subtitle.TextSize = 8
-Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.BackgroundTransparency = 1
-
-local StatusPill = Instance.new("Frame", Header)
-StatusPill.Size = UDim2.new(0, 62, 0, 20)
-StatusPill.Position = UDim2.new(1, -132, 0.5, -10)
-StatusPill.BackgroundColor3 = Color3.fromRGB(47, 35, 65)
-Instance.new("UICorner", StatusPill).CornerRadius = UDim.new(1, 0)
-
-local StatusDot = Instance.new("Frame", StatusPill)
-StatusDot.Size = UDim2.new(0, 6, 0, 6)
-StatusDot.Position = UDim2.new(0, 8, 0.5, -3)
-StatusDot.BackgroundColor3 = Theme.Accent
-Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
-
-local StatusText = Instance.new("TextLabel", StatusPill)
-StatusText.Size = UDim2.new(1, -20, 1, 0)
-StatusText.Position = UDim2.new(0, 18, 0, 0)
-StatusText.Text = "READY"
-StatusText.Font = Enum.Font.GothamBold
-StatusText.TextColor3 = Theme.Accent
-StatusText.TextSize = 8
-StatusText.TextXAlignment = Enum.TextXAlignment.Left
-StatusText.BackgroundTransparency = 1
 
 local CloseBtn = Instance.new("TextButton", Header) 
 CloseBtn.Text = "✕" 
@@ -799,13 +761,6 @@ MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextColor3 = Theme.TextMain 
 MinimizeBtn.TextSize = 10 
 MinimizeBtn.BackgroundTransparency = 1
-MinimizeBtn.AutoButtonColor = false
-CloseBtn.AutoButtonColor = false
-
-CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Theme.DeleteRed end)
-CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Theme.TextMain end)
-MinimizeBtn.MouseEnter:Connect(function() MinimizeBtn.TextColor3 = Theme.AccentHover end)
-MinimizeBtn.MouseLeave:Connect(function() MinimizeBtn.TextColor3 = Theme.TextMain end)
 
 makeDraggable(MainFrame, Header)
 
@@ -855,24 +810,24 @@ end)
 -- ====================================================================
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 118, 1, -44)
-Sidebar.Position = UDim2.new(0, 0, 0, 44)
+Sidebar.Size = UDim2.new(0, 96, 1, -36)
+Sidebar.Position = UDim2.new(0, 0, 0, 36)
 Sidebar.BackgroundColor3 = Theme.SidebarBg
 Sidebar.BorderSizePixel = 0
 
 local SidebarLayout = Instance.new("UIListLayout", Sidebar)
 SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SidebarLayout.Padding = UDim.new(0, 5)
+SidebarLayout.Padding = UDim.new(0, 3)
 
 local SidebarPadding = Instance.new("UIPadding", Sidebar)
-SidebarPadding.PaddingTop = UDim.new(0, 10)
-SidebarPadding.PaddingLeft = UDim.new(0, 7)
-SidebarPadding.PaddingRight = UDim.new(0, 7)
+SidebarPadding.PaddingTop = UDim.new(0, 4)
+SidebarPadding.PaddingLeft = UDim.new(0, 4)
+SidebarPadding.PaddingRight = UDim.new(0, 4)
 
 local ContentArea = Instance.new("Frame", MainFrame)
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -118, 1, -44)
-ContentArea.Position = UDim2.new(0, 118, 0, 44)
+ContentArea.Size = UDim2.new(1, -96, 1, -36)
+ContentArea.Position = UDim2.new(0, 96, 0, 36)
 ContentArea.BackgroundTransparency = 1
 
 local menuContainers = {}
@@ -888,14 +843,14 @@ local function createMenuPage(name, isVisible)
     scroll.Visible = isVisible 
     
     local pad = Instance.new("UIPadding", scroll)
-    pad.PaddingTop = UDim.new(0, 12)
-    pad.PaddingLeft = UDim.new(0, 12)
-    pad.PaddingRight = UDim.new(0, 12)
+    pad.PaddingTop = UDim.new(0, 8)
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
     pad.PaddingBottom = UDim.new(0, 10)
 
     local layout = Instance.new("UIListLayout", scroll)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 9)
+    layout.Padding = UDim.new(0, 7)
 
     menuContainers[name] = scroll 
     return scroll
@@ -914,46 +869,30 @@ local function switchTab(tabName)
         page.Visible = (name == tabName) 
     end
     for name, btn in pairs(navButtons) do
-        local activeBar = btn:FindFirstChild("ActiveBar")
         if name == tabName then
             btn.BackgroundColor3 = Theme.CardBg
             btn.BackgroundTransparency = 0
             btn.TextColor3 = Theme.Accent
-            if activeBar then activeBar.Visible = true end
         else
             btn.BackgroundColor3 = Theme.CardHover
             btn.BackgroundTransparency = 1
             btn.TextColor3 = Theme.TextMuted
-            if activeBar then activeBar.Visible = false end
         end
     end
 end
 
 local function addSidebarButton(textDisplay, tabTarget, order)
     local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 34)
+    btn.Size = UDim2.new(1, 0, 0, 30)
     btn.BackgroundColor3 = (order == 1) and Theme.CardBg or Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = (order == 1) and 0 or 1
     btn.Font = Enum.Font.GothamMedium
     btn.Text = textDisplay
     btn.TextColor3 = (order == 1) and Theme.Accent or Theme.TextMuted
-    btn.TextSize = 11
-    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.TextSize = 10
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.AutoButtonColor = false
-
-    local btnPad = Instance.new("UIPadding", btn)
-    btnPad.PaddingLeft = UDim.new(0, 12)
-
-    local activeBar = Instance.new("Frame", btn)
-    activeBar.Name = "ActiveBar"
-    activeBar.Size = UDim2.new(0, 3, 0, 18)
-    activeBar.Position = UDim2.new(0, 4, 0.5, -9)
-    activeBar.BackgroundColor3 = Theme.Accent
-    activeBar.BorderSizePixel = 0
-    activeBar.Visible = (order == 1)
-    Instance.new("UICorner", activeBar).CornerRadius = UDim.new(1, 0)
 
     btn.MouseEnter:Connect(function()
         if navButtons[tabTarget] ~= btn then
@@ -1001,7 +940,7 @@ addSidebarButton("Settings", "Setting", 11)
 -- ====================================================================
 local function addToggle(parent, labelText, order, configKey, callback)
     local card = Instance.new("Frame", parent)
-    card.Size = UDim2.new(1, 0, 0, 38)
+    card.Size = UDim2.new(1, 0, 0, 34)
     card.BackgroundColor3 = Theme.CardBg
     card.LayoutOrder = order
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 7)
@@ -1018,7 +957,7 @@ local function addToggle(parent, labelText, order, configKey, callback)
     lbl.BackgroundTransparency = 1
 
     local track = Instance.new("TextButton", card)
-    track.Size = UDim2.new(0, 46, 0, 21)
+    track.Size = UDim2.new(0, 42, 0, 20)
     track.Position = UDim2.new(1, -50, 0.5, -10)
     track.BackgroundColor3 = Config[configKey] and Theme.Accent or Color3.fromRGB(25, 28, 30)
     track.Text = Config[configKey] and "ON" or "OFF"
@@ -1186,8 +1125,7 @@ local function createActionButton(parent, text, color, onClick, order)
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
     btn.TextColor3 = Theme.TextMain
-    btn.TextSize = 11
-    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.TextSize = 10
     btn.LayoutOrder = order
     btn.AutoButtonColor = false
 
@@ -1251,8 +1189,8 @@ end
 local FreecamHud = Instance.new("Frame")
 FreecamHud.Name = "FreecamCinematicHud"
 FreecamHud.Parent = MainGui
-FreecamHud.Size = UDim2.new(0, 220, 0, 300)
-FreecamHud.Position = UDim2.new(1, -230, 0.5, -150)
+FreecamHud.Size = UDim2.new(0, 200, 0, 280)
+FreecamHud.Position = UDim2.new(1, -210, 0.5, -140)
 FreecamHud.BackgroundColor3 = Theme.Bg
 FreecamHud.Visible = false
 Instance.new("UICorner", FreecamHud).CornerRadius = UDim.new(0, 8)
@@ -1419,7 +1357,7 @@ addSliderWithInput(fhScroll, "Inertia Damping", 1, 50, 15, 2, nil, function(v) C
 addSliderWithInput(fhScroll, "Lens FOV", 10, 120, 70, 3, "FreecamFov", function(v) dollyStartFov = v end)
 addToggle(fhScroll, "Freeze Character", 4, "FreecamFreezeChar")
 
-createActionButton(fhScroll, "📍 TELEPORT TO FREECAM", Color3.fromRGB(52, 40, 72), function()
+createActionButton(fhScroll, "📍 TELEPORT TO FREECAM", Color3.fromRGB(35, 65, 50), function()
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
@@ -1543,7 +1481,7 @@ wpNameInput.PlaceholderColor3 = Theme.TextMuted
 wpNameInput.TextSize = 10
 wpNameInput.TextXAlignment = Enum.TextXAlignment.Left
 
-local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(47, 36, 62), function() end, 6)
+local btnSavePos = createActionButton(tpPage, "💾 Simpan Posisi Saat Ini", Color3.fromRGB(35, 55, 45), function() end, 6)
 
 local waypointsListFrame = Instance.new("Frame", tpPage)
 waypointsListFrame.Size = UDim2.new(1, 0, 0, 0)
@@ -1631,7 +1569,7 @@ task.spawn(function()
         
         local btnSpawn = Instance.new("TextButton", rowFrameSpawn) 
         btnSpawn.Size = UDim2.new(1, 0, 1, 0) 
-        btnSpawn.BackgroundColor3 = Color3.fromRGB(39, 30, 54) 
+        btnSpawn.BackgroundColor3 = Color3.fromRGB(24, 45, 36) 
         btnSpawn.Font = Enum.Font.GothamBold 
         btnSpawn.Text = "📍 Initial Spawn Point" 
         btnSpawn.TextColor3 = Theme.ConfirmGreen 
@@ -1814,9 +1752,8 @@ task.spawn(function()
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Name = "KeyFrame" 
         KeyFrame.Parent = MainGui 
-        KeyFrame.Size = UDim2.new(0, 300, 0, 165) 
-        KeyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-        KeyFrame.Position = UDim2.fromScale(0.5, 0.5) 
+        KeyFrame.Size = UDim2.new(0, 280, 0, 155) 
+        KeyFrame.Position = UDim2.new(0.5, -140, 0.5, -77) 
         KeyFrame.BackgroundColor3 = Theme.Bg 
         Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 8)
         
